@@ -34,16 +34,18 @@ public class VisitCounter extends Thread {
     private boolean DEBUG;
     private ArrayList<String> productIds;
     private String dateOnQuery;
+    private String database;
 
 
     static int globalRunnerCount;
 
-    VisitCounter(ArrayList<String> productIds, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG){
+    VisitCounter(ArrayList<String> productIds, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String database){
         this.productIds=productIds;
         this.date=date;
         this.dateOnQuery=dateOnQuery;
         this.SAVE=SAVE;
         this.DEBUG=DEBUG;
+        this.database=database;
     }
 
     public ArrayList<String> getZeroVisitsList(){
@@ -104,6 +106,10 @@ public class VisitCounter extends Thread {
         }
 
         htmlString=MercadoLibre01.getHTMLStringFromPage(url,httpClient); // just 1 retry
+        if (htmlString == null) {
+            httpClient=null;
+            return;
+        }
 
         boolean processItems=true;
         int pos1=0;
@@ -136,7 +142,7 @@ public class VisitCounter extends Thread {
                 continue;
             }
             if (SAVE) {
-                updateVisits(productId, quantity, date);
+                updateVisits(productId, quantity, date, database);
             }
         }
         if (DEBUG) {
@@ -154,10 +160,10 @@ public class VisitCounter extends Thread {
 
     }
 
-    private static synchronized void updateVisits(String productId,int quantity, Date date){
+    private static synchronized void updateVisits(String productId,int quantity, Date date, String database){
 
         if (globalUpdateVisits ==null) {
-            Connection connection = MercadoLibre01.getUpdateConnection();
+            Connection connection = MercadoLibre01.getUpdateConnection(database);
             try {
                 globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
                 globalUpdateVisits.setDate(3,date);

@@ -274,6 +274,9 @@ public class MercadoLibre01  extends Thread {
         Calendar cal = Calendar.getInstance();
         long milliseconds = cal.getTimeInMillis();
         Timestamp timestamp = new Timestamp(milliseconds);
+        if (globalDateformat==null){
+            globalDateformat = new SimpleDateFormat("HH:mm:ss.SSS");
+        }
         String timeStr = globalDateformat.format(timestamp);
         try {
             BufferedWriter log = getLogger();
@@ -290,13 +293,13 @@ public class MercadoLibre01  extends Thread {
     }
 
 
-    private static void updateVisits() {
+    private static void updateVisits(String database) {
 
         String msg = "\nProcesando Visitas";
         System.out.println(msg);
         log(msg);
 
-        Connection connection = getSelectConnection();
+        Connection connection = getSelectConnection(database);
         ArrayList<String> allProductIDs = new ArrayList<String>();
         Date date1=null;
         Date date2=null;
@@ -413,7 +416,7 @@ public class MercadoLibre01  extends Thread {
         long currentTime;
         long timeoutTime;
 
-        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG);
+        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
         threadArrayList.add(visitCounter);
         visitCounter.start();
         currentTime = System.currentTimeMillis();
@@ -434,10 +437,10 @@ public class MercadoLibre01  extends Thread {
         }
     }
 
-    private static synchronized void updateVisits(String productId,int quantity, Date date){
+    private static synchronized void updateVisits(String productId,int quantity, Date date, String database){
 
         if (globalUpdateVisits ==null) {
-            Connection connection = getUpdateConnection();
+            Connection connection = getUpdateConnection(database);
             try {
                 globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
                 globalUpdateVisits.setDate(3,date);
@@ -484,7 +487,7 @@ public class MercadoLibre01  extends Thread {
         }
 
         if (SAVE){
-            saveRunInitialization(globalBaseURL,MAX_THREADS);
+            saveRunInitialization(globalBaseURL,MAX_THREADS,DATABASE);
         }
 
 
@@ -515,7 +518,7 @@ public class MercadoLibre01  extends Thread {
             }
         }
 
-        updateVisits();
+        updateVisits(DATABASE);
 
         String msg = globalPageCount+" paginas procesadas\n "
                     +globalProdutCount+" productos procesados\n "
@@ -526,9 +529,9 @@ public class MercadoLibre01  extends Thread {
     }
 
 
-    private static long saveRunInitialization(String url, int threads) {
+    private static long saveRunInitialization(String url, int threads, String database) {
         PreparedStatement ps = null;
-        Connection connection = getUpdateConnection();
+        Connection connection = getUpdateConnection(database);
         long runId=-1;
         try{
             ps = connection.prepareStatement("INSERT INTO public.corridas(fecha, inicio, url, threads) VALUES (?, ?, ?, ?) RETURNING id;",Statement.RETURN_GENERATED_KEYS);
@@ -566,9 +569,9 @@ public class MercadoLibre01  extends Thread {
         return runId;
     }
 
-    private static long saveRunEnding(long runId,int productostotal, int productosdetailstotal) {
+    private static long saveRunEnding(long runId,int productostotal, int productosdetailstotal, String database) {
         PreparedStatement ps = null;
-        Connection connection = getUpdateConnection();
+        Connection connection = getUpdateConnection(database);
         try{
             ps = connection.prepareStatement("UPDATE public.corridas SET fin=?, productostotal=?, productosdetalletotal=? WHERE id=?;");
 
@@ -729,9 +732,9 @@ public class MercadoLibre01  extends Thread {
     }
 
 
-    private static synchronized Date lastUpdate(String productId) {
+    private static synchronized Date lastUpdate(String productId, String database) {
         Date lastUpdate=null;
-        Connection connection=getSelectConnection();
+        Connection connection=getSelectConnection(database);
         try{
             if (globalSelectProduct ==null) {
                 globalSelectProduct = connection.prepareStatement("SELECT lastUpdate FROM public.productos WHERE id=?;");
@@ -757,9 +760,9 @@ public class MercadoLibre01  extends Thread {
         return ++globalRunnerCount;
     }
 
-    private static synchronized int getTotalSold(String productId) {
+    private static synchronized int getTotalSold(String productId,String database) {
         int totalSold=0;
-        Connection connection = getSelectConnection();
+        Connection connection = getSelectConnection(database);
         try{
             if (globalSelectTotalSold ==null) {
                 globalSelectTotalSold = connection.prepareStatement("SELECT totalvendidos FROM public.productos WHERE id=?;");
@@ -783,9 +786,9 @@ public class MercadoLibre01  extends Thread {
         return totalSold;
     }
 
-    private static synchronized String getLastQuestion(String productId) {
+    private static synchronized String getLastQuestion(String productId, String database) {
         String lastQuestion=null;
-        Connection connection=getSelectConnection();
+        Connection connection=getSelectConnection(database);
         try{
             if (globalSelectLastQuestion==null) {
                 globalSelectLastQuestion = connection.prepareStatement("SELECT lastQuestion FROM public.productos WHERE id=?;");
@@ -838,7 +841,7 @@ public class MercadoLibre01  extends Thread {
     }
 
 
-    private static Connection getSelectConnection(){
+    private static Connection getSelectConnection(String database){
         if (globalSelectConnection==null) {
 
             try {
@@ -846,10 +849,10 @@ public class MercadoLibre01  extends Thread {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/"+database;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "postgres");
+            props.setProperty("password", "password");
             try {
                 globalSelectConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
@@ -862,7 +865,7 @@ public class MercadoLibre01  extends Thread {
     }
 
 
-    protected static Connection getUpdateConnection(){
+    protected static Connection getUpdateConnection(String database){
         if (globalUpadteConnection==null) {
 
             try {
@@ -870,10 +873,10 @@ public class MercadoLibre01  extends Thread {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/"+database;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "postgres");
+            props.setProperty("password", "password");
             try {
                 globalUpadteConnection = DriverManager.getConnection(url, props);
                 globalUpadteConnection.setAutoCommit(false);
@@ -898,7 +901,7 @@ public class MercadoLibre01  extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "postgres");
+            props.setProperty("password", "password");
             try {
                 globalAddProductConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
@@ -921,7 +924,7 @@ public class MercadoLibre01  extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "postgres");
+            props.setProperty("password", "password");
             try {
                 globalAddActivityConnection = DriverManager.getConnection(url, props);
                 globalAddActivityConnection.setAutoCommit(false);
@@ -1245,12 +1248,12 @@ public class MercadoLibre01  extends Thread {
                         System.out.println(msg);
 
                         if (totalSold >= MINIMUM_SALES) { //si no figura venta no le doy bola
-                            Date lastUpdate = lastUpdate(productId);
+                            Date lastUpdate = lastUpdate(productId,DATABASE);
                             if (lastUpdate != null) {//producto existente
                                 if (!ONLY_ADD_NEW_PRODUCTS) { //ignora los updates
                                     boolean sameDate = isSameDate(lastUpdate, getGlobalDate());
                                     if (!sameDate || (sameDate && OVERRIDE_TODAYS_RUN)) { //actualizar
-                                        int previousTotalSold = getTotalSold(productId);
+                                        int previousTotalSold = getTotalSold(productId,DATABASE);
                                         if (totalSold != previousTotalSold) { //actualizar
                                             int newSold = totalSold - previousTotalSold;
 
@@ -1329,7 +1332,7 @@ public class MercadoLibre01  extends Thread {
 
                                             incrementGlobalNewsCount();
 
-                                            String previousLastQuestion = getLastQuestion(productId);
+                                            String previousLastQuestion = getLastQuestion(productId,DATABASE);
 
                                             String questionsURL=QUESTIONS_BASE_URL+ARTICLE_PREFIX+productId.substring(4);
                                             String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL,httpClient);

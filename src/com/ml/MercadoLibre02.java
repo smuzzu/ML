@@ -257,6 +257,9 @@ public class MercadoLibre02 extends Thread {
         Calendar cal = Calendar.getInstance();
         long milliseconds = cal.getTimeInMillis();
         Timestamp timestamp = new Timestamp(milliseconds);
+        if (globalDateformat==null){
+            globalDateformat = new SimpleDateFormat("HH:mm:ss.SSS");
+        }
         String timeStr = globalDateformat.format(timestamp);
         try {
             BufferedWriter log = getLogger();
@@ -396,7 +399,7 @@ public class MercadoLibre02 extends Thread {
         long currentTime;
         long timeoutTime;
 
-        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG);
+        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
         threadArrayList.add(visitCounter);
         visitCounter.start();
         currentTime = System.currentTimeMillis();

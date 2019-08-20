@@ -105,13 +105,16 @@ public class MercadoLibre06c extends Thread {
     static int MAX_THREADS=12;
     static int TIMEOUT_MIN=180;
     static boolean OVERRIDE_TODAYS_RUN=false;
-    static boolean SAVE =true;
+    static boolean SAVE =false;
+    static boolean DEBUG=false;
     static boolean FOLLOWING_DAY = true;
     static boolean PRERVIOUS_DAY = false;
     static boolean ONLY_ADD_NEW_PRODUCTS=false;
     static int MINIMUM_SALES=10;
     static int MINIMUM_INVOICES =40000;
     static String DATABASE="ML6";
+
+    static int MAX_THREADS_VISITS = 30;
 
     //regional settings
     static String ARTICLE_PREFIX="MLA";
@@ -138,6 +141,7 @@ public class MercadoLibre06c extends Thread {
     static PreparedStatement globalSelectProduct = null;
     static PreparedStatement globalSelectTotalSold = null;
     static PreparedStatement globalSelectLastQuestion = null;
+    static PreparedStatement globalUpdateVisits = null;
     //static String globalBaseURL=null;
     //static int[] golbalIntervals = null;
 
@@ -474,7 +478,7 @@ public class MercadoLibre06c extends Thread {
         return globalLogger;
     }
 
-    private static synchronized void log(String string){
+    protected static synchronized void log(String string) {
         Calendar cal = Calendar.getInstance();
         long milliseconds = cal.getTimeInMillis();
         Timestamp timestamp = new Timestamp(milliseconds);
@@ -493,6 +497,181 @@ public class MercadoLibre06c extends Thread {
         log(ExceptionUtils.getStackTrace(throwable));
     }
 
+
+    private static void updateVisits() {
+
+        String msg = "\nProcesando Visitas";
+        System.out.println(msg);
+        log(msg);
+
+        Connection connection = getSelectConnection();
+        ArrayList<String> allProductIDs = new ArrayList<String>();
+        Date date1=null;
+        Date date2=null;
+        String dateOnQueryStr=null;
+        try {
+
+            PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
+            ResultSet rs = datesPreparedStatement.executeQuery();
+            if (rs == null) {
+                msg = "Error getting dates";
+                System.out.println(msg);
+                log(msg);
+            }
+            if (!rs.next()) {
+                msg = "Error getting dates II";
+                System.out.println(msg);
+                log(msg);
+            }
+            date2 = rs.getDate(1);
+            if (!rs.next()) {
+                msg = "Error getting dates III";
+                System.out.println(msg);
+                log(msg);
+            }
+            date1 = rs.getDate(1);
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            String strDate1 = dateFormat.format(date1);
+            String strDate2 = dateFormat.format(date2);
+            dateOnQueryStr = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
+
+
+            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
+            selectPreparedStatement.setDate(1, date2);
+
+
+            rs = selectPreparedStatement.executeQuery();
+            if (rs == null) {
+                msg = "Error getting latest movements "+date2;
+                System.out.println(msg);
+                log(msg);
+            }
+
+            while (rs.next()) {
+                String productId = rs.getString(1);
+                allProductIDs.add(productId);
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log(e);
+        }
+
+        ArrayList<String> zeroVisitsList=processAllVisits(allProductIDs, date2, dateOnQueryStr);
+        msg="Reintentando los ceros";
+        System.out.println(msg);
+        log(msg);
+        zeroVisitsList=processAllVisits(zeroVisitsList, date2, dateOnQueryStr); //insistimos 2 veces mas cuando visitas devuelve cero
+        System.out.println(msg);
+        log(msg);
+        processAllVisits(zeroVisitsList, date2, dateOnQueryStr);
+
+        msg="Visitas Procesadas: "+allProductIDs.size();
+        System.out.println(msg);
+        log(msg);
+
+    }
+
+
+    private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery) {
+        int count = 0;
+
+        ArrayList<String> fiftyProductIDs = new ArrayList<String>();
+        ArrayList<Thread> threadArrayList = new ArrayList<Thread>(); //mover al anterior
+
+
+        for (String productId : allProductIDs) {
+            count++;
+
+            fiftyProductIDs.add(productId);
+
+            if (count >= 50) {
+                process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList);
+                fiftyProductIDs = new ArrayList<String>();
+                count = 0;
+            }
+        }
+        if (fiftyProductIDs.size() > 0) {  //processing last record
+            process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList);
+        }
+
+        for (Thread thread : threadArrayList) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
+
+        //clone
+        ArrayList<String> zeroVisitsList=new ArrayList<String>();
+        for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
+            zeroVisitsList.add(productIdWithZeroVisits);
+        }
+        aVisitCounter.resetZeroVisitsList();
+
+        return zeroVisitsList;
+
+    }
+
+    private static void process50Visits(Date date, String dateOnQuery, ArrayList<String> fiftyProductIDs, ArrayList<Thread> threadArrayList) {
+        long currentTime;
+        long timeoutTime;
+
+        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
+        threadArrayList.add(visitCounter);
+        visitCounter.start();
+        currentTime = System.currentTimeMillis();
+        timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
+
+        while (MAX_THREADS_VISITS < Thread.activeCount()) {
+
+            try {
+                Thread.sleep(10l);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            currentTime = System.currentTimeMillis();
+            if (currentTime > timeoutTime) {
+                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar uno entre " + MAX_THREADS_VISITS + " visitas");
+                System.exit(0);
+            }
+        }
+    }
+
+    private static synchronized void updateVisits(String productId,int quantity, Date date){
+
+        if (globalUpdateVisits ==null) {
+            Connection connection = getUpdateConnection();
+            try {
+                globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
+                globalUpdateVisits.setDate(3,date);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            globalUpdateVisits.setInt(1,quantity);
+            globalUpdateVisits.setString(2,productId);
+
+
+            int updatedRecords=globalUpdateVisits.executeUpdate();
+            globalUpdateVisits.getConnection().commit();
+
+            if (updatedRecords!=1){
+                log("Error updating visits "+productId+" "+ quantity + " " +date);
+            }
+
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
 
     public static void main(String[] args) {
 
@@ -558,6 +737,7 @@ public class MercadoLibre06c extends Thread {
             }
         }
 
+        //updateVisits(); lo hacemos en el b
 
         String msg = globalPageCount+" paginas procesadas\n "
                     +globalProdutCount+" productos procesados\n "
@@ -892,7 +1072,7 @@ public class MercadoLibre06c extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "sopa11");
+            props.setProperty("password", "password");
             try {
                 globalSelectConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
@@ -916,7 +1096,7 @@ public class MercadoLibre06c extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "sopa11");
+            props.setProperty("password", "password");
             try {
                 globalUpadteConnection = DriverManager.getConnection(url, props);
                 globalUpadteConnection.setAutoCommit(false);
@@ -941,7 +1121,7 @@ public class MercadoLibre06c extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "sopa11");
+            props.setProperty("password", "password");
             try {
                 globalAddProductConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
@@ -964,7 +1144,7 @@ public class MercadoLibre06c extends Thread {
             String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "sopa11");
+            props.setProperty("password", "password");
             try {
                 globalAddActivityConnection = DriverManager.getConnection(url, props);
                 globalAddActivityConnection.setAutoCommit(false);
