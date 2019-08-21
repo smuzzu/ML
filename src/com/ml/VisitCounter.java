@@ -5,25 +5,16 @@ package com.ml;
  */
 
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.entity.StrictContentLengthStrategy;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Properties;
+
+import com.ml.utils.Logger;
 
 public class VisitCounter extends Thread {
 
@@ -72,7 +63,7 @@ public class VisitCounter extends Thread {
         if (DEBUG) {
             msg = "XXXXXXXXXXXXXX Iniciando " + runnerID;
             System.out.println(msg);
-            MercadoLibre01.log(msg);
+            Logger.log(msg);
         }
 
         CloseableHttpClient httpClient = MercadoLibre01.buildHttpClient();
@@ -93,9 +84,9 @@ public class VisitCounter extends Thread {
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
-                MercadoLibre01.log(e);
+                Logger.log(e);
             }
-            MercadoLibre01.log(runnerID + " hmlstring from page visits is null " + url);
+            Logger.log(runnerID + " hmlstring from page visits is null " + url);
             try {
                 httpClient.close();
             } catch (IOException e) {
@@ -135,7 +126,7 @@ public class VisitCounter extends Thread {
 
             msg = productId + " " + quantity;
             System.out.println(msg);
-            MercadoLibre01.log(msg);
+            Logger.log(msg);
 
             if (quantity==0){
                 zeroVisitsList.add(productId);
@@ -148,7 +139,7 @@ public class VisitCounter extends Thread {
         if (DEBUG) {
             msg = "XXXXXXXXXXXXXX Este es el fin " + runnerID;
             System.out.println(msg);
-            MercadoLibre01.log(msg);
+            Logger.log(msg);
         }
 
         try {
@@ -180,7 +171,7 @@ public class VisitCounter extends Thread {
             globalUpdateVisits.getConnection().commit();
 
             if (updatedRecords!=1){
-                MercadoLibre01.log("Error updating visits "+productId+" "+ quantity + " " +date);
+                Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
             }
 
 

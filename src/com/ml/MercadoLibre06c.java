@@ -1,7 +1,7 @@
 package com.ml;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Properties;
 
+import com.ml.utils.Logger;
 
 /**
  * Created by Muzzu on 11/12/2017.
@@ -103,7 +104,6 @@ public class MercadoLibre06c extends Thread {
     static Calendar globalCalendar2=null;
 
     static int MAX_THREADS=12;
-    static int TIMEOUT_MIN=180;
     static boolean OVERRIDE_TODAYS_RUN=false;
     static boolean SAVE =false;
     static boolean DEBUG=false;
@@ -111,10 +111,11 @@ public class MercadoLibre06c extends Thread {
     static boolean PRERVIOUS_DAY = false;
     static boolean ONLY_ADD_NEW_PRODUCTS=false;
     static int MINIMUM_SALES=10;
-    static int MINIMUM_INVOICES =40000;
+    static int TIMEOUT_MIN=180;
+    static int MAX_THREADS_VISITS = 30;
     static String DATABASE="ML6";
 
-    static int MAX_THREADS_VISITS = 30;
+    static int MINIMUM_INVOICES =40000;
 
     //regional settings
     static String ARTICLE_PREFIX="MLA";
@@ -442,67 +443,11 @@ public class MercadoLibre06c extends Thread {
         return httpclient;
     }
 
-
-    private static BufferedWriter getLogger(){
-        if (globalLogger==null){
-            Calendar cal = Calendar.getInstance();
-            long milliseconds = cal.getTimeInMillis();
-            Timestamp timestamp = new Timestamp(milliseconds);
-
-            String fileName=("salida"+timestamp.getTime()/1000+".txt");
-            File file= new File (fileName);
-            FileWriter fileWriter=null;
-            if (file.exists())
-            {
-                try {
-                    fileWriter = new FileWriter(file,true);//if file exists append to file. Works fine.
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            else
-            {
-                try {
-                    file.createNewFile();
-                    fileWriter = new FileWriter(file);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            try {
-                globalLogger=new BufferedWriter(fileWriter);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return globalLogger;
-    }
-
-    protected static synchronized void log(String string) {
-        Calendar cal = Calendar.getInstance();
-        long milliseconds = cal.getTimeInMillis();
-        Timestamp timestamp = new Timestamp(milliseconds);
-        String timeStr = globalDateformat.format(timestamp);
-        try {
-            BufferedWriter log = getLogger();
-            log.write(timeStr+" | "+string+"\n");
-            log.newLine();
-            log.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void log(Throwable throwable){
-        log(ExceptionUtils.getStackTrace(throwable));
-    }
-
-
     private static void updateVisits() {
 
         String msg = "\nProcesando Visitas";
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
 
         Connection connection = getSelectConnection();
         ArrayList<String> allProductIDs = new ArrayList<String>();
@@ -516,18 +461,18 @@ public class MercadoLibre06c extends Thread {
             if (rs == null) {
                 msg = "Error getting dates";
                 System.out.println(msg);
-                log(msg);
+                Logger.log(msg);
             }
             if (!rs.next()) {
                 msg = "Error getting dates II";
                 System.out.println(msg);
-                log(msg);
+                Logger.log(msg);
             }
             date2 = rs.getDate(1);
             if (!rs.next()) {
                 msg = "Error getting dates III";
                 System.out.println(msg);
-                log(msg);
+                Logger.log(msg);
             }
             date1 = rs.getDate(1);
 
@@ -545,7 +490,7 @@ public class MercadoLibre06c extends Thread {
             if (rs == null) {
                 msg = "Error getting latest movements "+date2;
                 System.out.println(msg);
-                log(msg);
+                Logger.log(msg);
             }
 
             while (rs.next()) {
@@ -556,21 +501,21 @@ public class MercadoLibre06c extends Thread {
 
         } catch (SQLException e) {
             e.printStackTrace();
-            log(e);
+            Logger.log(e);
         }
 
         ArrayList<String> zeroVisitsList=processAllVisits(allProductIDs, date2, dateOnQueryStr);
         msg="Reintentando los ceros";
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
         zeroVisitsList=processAllVisits(zeroVisitsList, date2, dateOnQueryStr); //insistimos 2 veces mas cuando visitas devuelve cero
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
         processAllVisits(zeroVisitsList, date2, dateOnQueryStr);
 
         msg="Visitas Procesadas: "+allProductIDs.size();
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
 
     }
 
@@ -662,7 +607,7 @@ public class MercadoLibre06c extends Thread {
             globalUpdateVisits.getConnection().commit();
 
             if (updatedRecords!=1){
-                log("Error updating visits "+productId+" "+ quantity + " " +date);
+                Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
             }
 
 
@@ -743,7 +688,7 @@ public class MercadoLibre06c extends Thread {
                     +globalProdutCount+" productos procesados\n "
                     +globalNewsCount+" productos con novedades";
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
 
     }
 
@@ -768,7 +713,7 @@ public class MercadoLibre06c extends Thread {
             connection.commit();
 
             if (insertedRecords!=1){
-                log("Couldn't insert record into runs table");
+                Logger.log("Couldn't insert record into runs table");
             }
             ResultSet rs = ps.getGeneratedKeys();
             if(rs.next()){
@@ -807,7 +752,7 @@ public class MercadoLibre06c extends Thread {
             connection.commit();
 
             if (insertedRecords!=1){
-                log("couldn't update row in runs table");
+                Logger.log("couldn't update row in runs table");
             }
         }catch(SQLException e){
             e.printStackTrace();
@@ -843,11 +788,11 @@ public class MercadoLibre06c extends Thread {
             int registrosInsertados = globalInsertProduct.executeUpdate();
 
             if (registrosInsertados!=1){
-                log("Couldn't insert product I");
+                Logger.log("Couldn't insert product I");
             }
         }catch(SQLException e){
-            log("Couldn't insert product II");
-            log(e);
+            Logger.log("Couldn't insert product II");
+            Logger.log(e);
         }
     }
 
@@ -885,7 +830,7 @@ public class MercadoLibre06c extends Thread {
 
             int insertedRecords = globalUpdateProduct.executeUpdate();
             if (insertedRecords!=1){
-                log("Couldn't update product "+productId);
+                Logger.log("Couldn't update product "+productId);
             }
 
             if (OVERRIDE_TODAYS_RUN){//no sabemos si hay registro pero por las dudas removemos
@@ -896,7 +841,7 @@ public class MercadoLibre06c extends Thread {
                 globalRemoveActivity.setDate(2,getGlobalDate());
                 int removedRecords=globalRemoveActivity.executeUpdate();
                 if (removedRecords>=1){
-                    log("Record removed on activity table date: "+getGlobalDate()+" productId: "+productId);
+                    Logger.log("Record removed on activity table date: "+getGlobalDate()+" productId: "+productId);
                 }
             }
 
@@ -924,14 +869,14 @@ public class MercadoLibre06c extends Thread {
 
             insertedRecords = globalInsertActivity.executeUpdate();
             if (insertedRecords!=1){
-                log("Couln't insert a record in activity table "+productId);
+                Logger.log("Couln't insert a record in activity table "+productId);
             }
 
             connection.commit();
 
         }catch(SQLException e){
-            log("I couldn't add activity due to SQLException "+url);
-            log(e);
+            Logger.log("I couldn't add activity due to SQLException "+url);
+            Logger.log(e);
             if (connection!=null){
                 try {
                     //connection reset
@@ -963,14 +908,14 @@ public class MercadoLibre06c extends Thread {
 
             ResultSet rs = globalSelectProduct.executeQuery();
             if (rs==null){
-                log("Couldn't get last update I "+productId);
+                Logger.log("Couldn't get last update I "+productId);
             }
             if (rs.next()){
                 lastUpdate=rs.getDate(1);
             }
         }catch(SQLException e){
-            log("Couldn't get last update II "+productId);
-            log(e);
+            Logger.log("Couldn't get last update II "+productId);
+            Logger.log(e);
         }
         return lastUpdate;
     }
@@ -991,7 +936,7 @@ public class MercadoLibre06c extends Thread {
 
             ResultSet rs = globalSelectTotalSold.executeQuery();
             if (rs==null){
-                log("Couldn't get total sold i"+productId);
+                Logger.log("Couldn't get total sold i"+productId);
                 return 0;
             }
 
@@ -1000,7 +945,7 @@ public class MercadoLibre06c extends Thread {
             }
         }catch(SQLException e){
             e.printStackTrace();
-            log("Couldn't get total sold ii"+productId);
+            Logger.log("Couldn't get total sold ii"+productId);
         }
         return totalSold;
     }
@@ -1017,7 +962,7 @@ public class MercadoLibre06c extends Thread {
 
             ResultSet rs = globalSelectLastQuestion.executeQuery();
             if (rs==null){
-                log("Couldn't get last question i "+productId);
+                Logger.log("Couldn't get last question i "+productId);
                 return null;
             }
 
@@ -1025,8 +970,8 @@ public class MercadoLibre06c extends Thread {
                 lastQuestion=rs.getString(1);
             }
         }catch(SQLException e){
-            log("Couldn't get last question ii "+productId);
-            log(e);
+            Logger.log("Couldn't get last question ii "+productId);
+            Logger.log(e);
         }
         return lastQuestion;
     }
@@ -1076,8 +1021,8 @@ public class MercadoLibre06c extends Thread {
             try {
                 globalSelectConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
-                log("I couldn't make a select connection");
-                log(e);
+                Logger.log("I couldn't make a select connection");
+                Logger.log(e);
                 e.printStackTrace();
             }
         }
@@ -1101,8 +1046,8 @@ public class MercadoLibre06c extends Thread {
                 globalUpadteConnection = DriverManager.getConnection(url, props);
                 globalUpadteConnection.setAutoCommit(false);
             } catch (SQLException e) {
-                log("I couldn't make an update connection");
-                log(e);
+                Logger.log("I couldn't make an update connection");
+                Logger.log(e);
                 e.printStackTrace();
             }
         }
@@ -1125,8 +1070,8 @@ public class MercadoLibre06c extends Thread {
             try {
                 globalAddProductConnection = DriverManager.getConnection(url, props);
             } catch (SQLException e) {
-                log("I couldn't make addproduct connection");
-                log(e);
+                Logger.log("I couldn't make addproduct connection");
+                Logger.log(e);
                 e.printStackTrace();
             }
         }
@@ -1149,8 +1094,8 @@ public class MercadoLibre06c extends Thread {
                 globalAddActivityConnection = DriverManager.getConnection(url, props);
                 globalAddActivityConnection.setAutoCommit(false);
             } catch (SQLException e) {
-                log("I couldn't make add activity connection");
-                log(e);
+                Logger.log("I couldn't make add activity connection");
+                Logger.log(e);
                 e.printStackTrace();
             }
         }
@@ -1175,7 +1120,7 @@ public class MercadoLibre06c extends Thread {
             int range1=this.currentIinterval[i-1]+1;
             int range2=this.currentIinterval[i];
             String priceRangeStr="_PriceRange_"+range1+"-"+range2;
-            log ("XXXXXXXXXXXXXXXXXXXXXX "+runnerID+" new interval : "+ this.currentUrl+priceRangeStr);
+            Logger.log ("XXXXXXXXXXXXXXXXXXXXXX "+runnerID+" new interval : "+ this.currentUrl+priceRangeStr);
 /*
             String[] subintervals = new String[]{""};
             if (range1==range2){
@@ -1189,7 +1134,7 @@ public class MercadoLibre06c extends Thread {
                 while (!endInterval) {
                     page++;
                     if (page == 43) {
-                        log("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo "
+                        Logger.log("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo "
                                 + this.currentUrl + priceRangeStr);
                         System.out.println("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo "
                                 + this.currentUrl + priceRangeStr);
@@ -1222,11 +1167,11 @@ public class MercadoLibre06c extends Thread {
                             }
                             httpClient=null;
                             httpClient = buildHttpClient();
-                            log(runnerID+" Error en getHTMLStringFromPage II intento #"+retries+" "+uRL);
+                            Logger.log(runnerID+" Error en getHTMLStringFromPage II intento #"+retries+" "+uRL);
                             try {
                                 Thread.sleep(25000);
                             } catch (InterruptedException e) {
-                                log(e);
+                                Logger.log(e);
                             }
                         }
                     }
@@ -1235,9 +1180,9 @@ public class MercadoLibre06c extends Thread {
                         try {
                             Thread.sleep(5000);
                         } catch (InterruptedException e) {
-                            log(e);
+                            Logger.log(e);
                         }
-                        log(runnerID+" hmlstring from page is null " + uRL);
+                        Logger.log(runnerID+" hmlstring from page is null " + uRL);
                         try {
                             httpClient.close();
                         } catch (IOException e) {
@@ -1253,8 +1198,8 @@ public class MercadoLibre06c extends Thread {
                     int resultSectionPos = htmlStringFromPage.indexOf("results-section");
                     String resultListHMTLData = null;
                     if (resultSectionPos == -1) {
-                        log("Error getting results-section on page " + page);
-                        log(htmlStringFromPage);
+                        Logger.log("Error getting results-section on page " + page);
+                        Logger.log(htmlStringFromPage);
                         resultListHMTLData = htmlStringFromPage;
                     } else {
                         resultListHMTLData = htmlStringFromPage.substring(resultSectionPos);
@@ -1263,7 +1208,7 @@ public class MercadoLibre06c extends Thread {
                     String[] allHrefsOnPage = StringUtils.substringsBetween(resultListHMTLData, "<a href", "</a>");
                     if (allHrefsOnPage == null) { //todo check
                         System.out.println("this page has no Hrefs !!! " + allHrefsOnPage);
-                        log("this page has no Hrefs !!!" + allHrefsOnPage);
+                        Logger.log("this page has no Hrefs !!!" + allHrefsOnPage);
                         endInterval = true;
                         continue;
                     }
@@ -1311,7 +1256,7 @@ public class MercadoLibre06c extends Thread {
                         if (title != null) {
                             title = title.trim();
                         } else {
-                            log(runnerID+" null title on page " + page + " url " + uRL);
+                            Logger.log(runnerID+" null title on page " + page + " url " + uRL);
                         }
 
                         int discount = 0;
@@ -1323,8 +1268,8 @@ public class MercadoLibre06c extends Thread {
                             try {
                                 discount = Integer.parseInt(discountStr);
                             } catch (NumberFormatException e) {
-                                log(runnerID+" I couldn't get the discount on " + productUrl);
-                                log(e);
+                                Logger.log(runnerID+" I couldn't get the discount on " + productUrl);
+                                Logger.log(e);
                             }
                         }
 
@@ -1377,8 +1322,8 @@ public class MercadoLibre06c extends Thread {
                                 price += Double.parseDouble(priceDecimalsStr) / 100;
                             }
                         } catch (NumberFormatException e) {
-                            log(runnerID+" I couldn't get the price on " + productUrl);
-                            log(e);
+                            Logger.log(runnerID+" I couldn't get the price on " + productUrl);
+                            Logger.log(e);
                         }
 
                         int totalSold = 0;
@@ -1403,7 +1348,7 @@ public class MercadoLibre06c extends Thread {
                                                 totalSold = Integer.parseInt(soldStr);
                                             } catch (NumberFormatException e) {
                                                 if (!isUsed) {
-                                                    log("I couldn't get total sold on " + productUrl);
+                                                    Logger.log("I couldn't get total sold on " + productUrl);
                                                 }
                                             }
                                         }
@@ -1420,9 +1365,9 @@ public class MercadoLibre06c extends Thread {
                                 try {
                                     Thread.sleep(5000);
                                 } catch (InterruptedException e) {
-                                    log(e);
+                                    Logger.log(e);
                                 }
-                                log(runnerID+" hmlstring from page 2 is null " + uRL);
+                                Logger.log(runnerID+" hmlstring from page 2 is null " + uRL);
                                 try {
                                     httpClient.close();
                                 } catch (IOException e) {
@@ -1446,7 +1391,7 @@ public class MercadoLibre06c extends Thread {
                                                     try {
                                                         totalSold = Integer.parseInt(soldStr);
                                                     } catch (NumberFormatException e) {
-                                                        log("I couldn't get total sold on " + productUrl);
+                                                        Logger.log("I couldn't get total sold on " + productUrl);
                                                         continue;
                                                     }
                                                 }
@@ -1473,8 +1418,8 @@ public class MercadoLibre06c extends Thread {
                                     try {
                                         reviews = Integer.parseInt(reviewsStr);
                                     } catch (NumberFormatException e) {
-                                        log(runnerID+" I couldn't get reviews on " + reviewsStr);
-                                        log(e);
+                                        Logger.log(runnerID+" I couldn't get reviews on " + reviewsStr);
+                                        Logger.log(e);
                                     }
                                     String allStarsStr = StringUtils.substringBetween(productHTMLdata, "<div class=\"stars\">", "<div class=\"item__reviews-total\">");
                                     if (allStarsStr != null) {
@@ -1508,9 +1453,9 @@ public class MercadoLibre06c extends Thread {
                                                     try {
                                                         Thread.sleep(5000);
                                                     } catch (InterruptedException e) {
-                                                        log(e);
+                                                        Logger.log(e);
                                                     }
-                                                    log(runnerID + " hmlstring from page 2 is null " + uRL);
+                                                    Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
                                                     try {
                                                         httpClient.close();
                                                     } catch (IOException e) {
@@ -1555,7 +1500,7 @@ public class MercadoLibre06c extends Thread {
                                             if (seller == null) {
                                                 msg = "No se pudo encontrar al venedor " + productUrl;
                                                 System.out.println(msg);
-                                                log(msg);
+                                                Logger.log(msg);
                                             }else {
                                                 seller=formatSeller(seller);
                                             }
@@ -1585,9 +1530,9 @@ public class MercadoLibre06c extends Thread {
                                                 try {
                                                     Thread.sleep(5000);
                                                 } catch (InterruptedException e) {
-                                                    log(e);
+                                                    Logger.log(e);
                                                 }
-                                                log(runnerID+" hmlstring from page 2 is null " + uRL);
+                                                Logger.log(runnerID+" hmlstring from page 2 is null " + uRL);
                                                 try {
                                                     httpClient.close();
                                                 } catch (IOException e) {
@@ -1616,7 +1561,7 @@ public class MercadoLibre06c extends Thread {
 
                                             msg = runnerID+" new sale. productID: " + productId + " quantity: " + newSold;
                                             System.out.println(msg);
-                                            log(msg);
+                                            Logger.log(msg);
                                             if (SAVE) {
                                                 updateProductAddActivity(productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, shipping, discount, premium);
                                             }
@@ -1632,9 +1577,9 @@ public class MercadoLibre06c extends Thread {
                                         try {
                                             Thread.sleep(5000);
                                         } catch (InterruptedException e) {
-                                            log(e);
+                                            Logger.log(e);
                                         }
-                                        log(runnerID + " hmlstring from page 2 is null " + uRL);
+                                        Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
                                         try {
                                             httpClient.close();
                                         } catch (IOException e) {
@@ -1676,7 +1621,7 @@ public class MercadoLibre06c extends Thread {
                                 if (seller == null) {
                                     msg = "No se pudo encontrar al venedor " + productUrl;
                                     System.out.println(msg);
-                                    log(msg);
+                                    Logger.log(msg);
                                 }else {
                                     seller=formatSeller(seller);
                                 }
@@ -1697,7 +1642,7 @@ public class MercadoLibre06c extends Thread {
 
                                 msg = runnerID+" new product ID: " + productId + " Total Sold: " + totalSold;
                                 System.out.println(msg);
-                                log(msg);
+                                Logger.log(msg);
                                 if (SAVE) {
                                     insertProduct(productId, seller, totalSold, lastQuestion, productUrl, officialStore);
                                 }
@@ -1710,7 +1655,7 @@ public class MercadoLibre06c extends Thread {
 
         String msg="XXXXXXXXXXXXXX Este es el fin "+runnerID;
         System.out.println(msg);
-        log(msg);
+        Logger.log(msg);
         try {
             httpClient.close();
         } catch (IOException e) {
@@ -1723,8 +1668,8 @@ public class MercadoLibre06c extends Thread {
         try {//decode seller url
             seller = URLDecoder.decode(seller, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            log("something went wrong trying to decode the seller " + seller);
-            log(e);
+            Logger.log("something went wrong trying to decode the seller " + seller);
+            Logger.log(e);
         }
         return seller;
     }
@@ -1745,8 +1690,8 @@ public class MercadoLibre06c extends Thread {
                 response = client.execute(httpGet);
             } catch (IOException e) {
                 response=null;
-                log("Error en getHTMLStringFromPage intento #"+retries+" "+uRL);
-                log(e);
+                Logger.log("Error en getHTMLStringFromPage intento #"+retries+" "+uRL);
+                Logger.log(e);
             }
 
             if (response != null) {
@@ -1761,7 +1706,7 @@ public class MercadoLibre06c extends Thread {
                 try {
                     Thread.sleep(5000);//aguantamos los trapos 5 segundos antes de reintentar
                 } catch (InterruptedException e) {
-                    log(e);
+                    Logger.log(e);
                 }
             }/// todo fin
         }
@@ -1769,7 +1714,7 @@ public class MercadoLibre06c extends Thread {
 
 
         if (statusCode!=200){
-            log("XX new status code "+statusCode+" "+uRL);
+            Logger.log("XX new status code "+statusCode+" "+uRL);
             return null;
         }
 
