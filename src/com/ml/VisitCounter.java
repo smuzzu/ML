@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 import com.ml.utils.Logger;
+import com.ml.utils.HttpUtils;
 
 public class VisitCounter extends Thread {
 
@@ -77,7 +78,7 @@ public class VisitCounter extends Thread {
 
         String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
 
-        String htmlString=MercadoLibre01.getHTMLStringFromPage(url,httpClient);
+        String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG);
 
         if (htmlString == null) {
             // hacemos pausa por si es problema de red
@@ -96,7 +97,7 @@ public class VisitCounter extends Thread {
             httpClient = MercadoLibre01.buildHttpClient();
         }
 
-        htmlString=MercadoLibre01.getHTMLStringFromPage(url,httpClient); // just 1 retry
+        htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
         if (htmlString == null) {
             httpClient=null;
             return;
