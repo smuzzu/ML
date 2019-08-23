@@ -1,10 +1,7 @@
 package com.ml;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
 import java.net.URLDecoder;
@@ -25,19 +22,16 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 import com.ml.utils.Logger;
+import com.ml.utils.HttpUtils;
 
 /**
  * Created by Muzzu on 11/12/2017.
@@ -357,37 +351,6 @@ public class MercadoLibre02 extends Thread {
                 System.exit(0);
             }
         }
-    }
-
-    private static synchronized void updateVisits(String productId,int quantity, Date date){
-
-        if (globalUpdateVisits ==null) {
-            Connection connection = getUpdateConnection();
-            try {
-                globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
-                globalUpdateVisits.setDate(3,date);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            globalUpdateVisits.setInt(1,quantity);
-            globalUpdateVisits.setString(2,productId);
-
-
-            int updatedRecords=globalUpdateVisits.executeUpdate();
-            globalUpdateVisits.getConnection().commit();
-
-            if (updatedRecords!=1){
-                Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
-            }
-
-
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
     }
 
     public static void main(String[] args) {
@@ -907,7 +870,7 @@ public class MercadoLibre02 extends Thread {
 
                     System.out.println(runnerID+" "+uRL);
                     Logger.log(runnerID+" "+uRL);
-                    String htmlStringFromPage = getHTMLStringFromPage(uRL,httpClient);
+                    String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG);
                     if (htmlStringFromPage == null) { //suponemos que se terminó
                         // pero tambien hacemos pausa por si es problema de red
                         try {
@@ -1092,7 +1055,7 @@ public class MercadoLibre02 extends Thread {
 
                         String htmlStringFromProductPage = null;
                         if (totalSold == 0 && isUsed) {
-                            htmlStringFromProductPage = getHTMLStringFromPage(productUrl,httpClient);
+                            htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl,httpClient,DEBUG);
                             if (htmlStringFromProductPage == null) {
                                 // hacemos pausa por si es problema de red
                                 try {
@@ -1180,7 +1143,7 @@ public class MercadoLibre02 extends Thread {
                                             int newSold = totalSold - previousTotalSold;
 
                                             if (htmlStringFromProductPage == null) {
-                                                htmlStringFromProductPage = getHTMLStringFromPage(productUrl, httpClient);
+                                                htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
                                                 if (htmlStringFromProductPage == null) {
                                                     // hacemos pausa por si es problema de red
                                                     try {
@@ -1257,7 +1220,7 @@ public class MercadoLibre02 extends Thread {
                                             String previousLastQuestion = getLastQuestion(productId);
 
                                             String questionsURL=QUESTIONS_BASE_URL+ARTICLE_PREFIX+productId.substring(4);
-                                            String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL,httpClient);
+                                            String htmlStringFromQuestionsPage = HttpUtils.getHTMLStringFromPage(questionsURL,httpClient,DEBUG);
                                             if (htmlStringFromQuestionsPage == null) {
                                                 // hacemos pausa por si es problema de red
                                                 try {
@@ -1304,7 +1267,7 @@ public class MercadoLibre02 extends Thread {
                             } else { //agregar vendedor
 
                                 if (htmlStringFromProductPage == null) {
-                                    htmlStringFromProductPage = getHTMLStringFromPage(productUrl, httpClient);
+                                    htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
                                     if (htmlStringFromProductPage == null) {
                                         // hacemos pausa por si es problema de red
                                         try {
@@ -1406,92 +1369,6 @@ public class MercadoLibre02 extends Thread {
             Logger.log(e);
         }
         return seller;
-    }
-
-    protected static String getHTMLStringFromPage(String uRL, CloseableHttpClient client) {
-
-        HttpGet httpGet = new HttpGet(uRL);
-
-        CloseableHttpResponse response= null;
-
-        int retries=0;
-        boolean retry=true;
-        int statusCode=0;
-
-        while (retry && retries<5) {
-            retries++;
-            try {
-                response = client.execute(httpGet);
-            } catch (IOException e) {
-                response=null;
-                Logger.log("Error en getHTMLStringFromPage intento #"+retries+" "+uRL);
-                Logger.log(e);
-            }
-
-            if (response != null) {
-                StatusLine statusline = response.getStatusLine();
-                if (statusline!=null) {
-                    statusCode=statusline.getStatusCode();
-                    retry = false;
-                }
-            }
-
-            if (retry){
-                try {
-                    Thread.sleep(5000);//aguantamos los trapos 5 segundos antes de reintentar
-                } catch (InterruptedException e) {
-                    Logger.log(e);
-                }
-            }/// todo fin
-        }
-
-
-
-        if (statusCode!=200){
-            Logger.log("XX new status code "+statusCode+" "+uRL);
-            return null;
-        }
-
-        HttpEntity httpEntity = response.getEntity();
-        InputStream inputStream = null;
-        try {
-            inputStream = httpEntity.getContent();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return getStringFromInputStream(inputStream);
-    }
-
-
-    // convert InputStream to String
-    private static String getStringFromInputStream(InputStream is) {
-
-        BufferedReader br = null;
-        StringBuilder sb = new StringBuilder();
-
-        String line;
-        try {
-
-            br = new BufferedReader(new InputStreamReader(is));
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return sb.toString();
-
     }
 
     private static synchronized boolean isSameDate(Date date1, Date date2){

@@ -60,8 +60,8 @@ public class MLSellerStatistics1 extends Thread {
     static int globalDisableCount=0;
 
     static int MAX_THREADS = 40; //TODO CAMBIAR 40
-    static boolean SAVE = false; //TODO CAMBIAR
-    static String DATABASE = "ML1";
+    static boolean SAVE = true; //TODO CAMBIAR
+    static String DATABASE = "ML2";
     static boolean DEBUG = false;
     static String FECHA="2019/08/01";
     static String START_FROM="";

@@ -1,10 +1,7 @@
 package com.ml;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
 import java.net.URLDecoder;
@@ -25,19 +22,16 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 import com.ml.utils.Logger;
+import com.ml.utils.HttpUtils;
 
 /**
  * Created by Muzzu on 11/12/2017.
@@ -430,7 +424,7 @@ public class MercadoLibre01  extends Thread {
         }
 
 
-       for (int j=11; j<urls.length; j++) { //todo tiene que empezar de 0
+       for (int j=0; j<urls.length; j++) { //todo tiene que empezar de 0
             initVars();
             globalBaseURL=urls[j];
             golbalIntervals=intervals[j];
@@ -924,7 +918,7 @@ public class MercadoLibre01  extends Thread {
 
                     System.out.println(runnerID+" "+uRL);
                     Logger.log(runnerID+" "+uRL);
-                    String htmlStringFromPage = getHTMLStringFromPage(uRL,httpClient);
+                    String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG);
                     if (htmlStringFromPage == null) { //suponemos que se terminó
                         // pero tambien hacemos pausa por si es problema de red
                         try {
@@ -1109,7 +1103,7 @@ public class MercadoLibre01  extends Thread {
 
                         String htmlStringFromProductPage = null;
                         if (totalSold == 0 && isUsed) {
-                            htmlStringFromProductPage = getHTMLStringFromPage(productUrl,httpClient);
+                            htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl,httpClient,DEBUG);
                             if (htmlStringFromProductPage == null) {
                                 // hacemos pausa por si es problema de red
                                 try {
@@ -1197,7 +1191,7 @@ public class MercadoLibre01  extends Thread {
                                             int newSold = totalSold - previousTotalSold;
 
                                             if (htmlStringFromProductPage == null) {
-                                                htmlStringFromProductPage = getHTMLStringFromPage(productUrl, httpClient);
+                                                htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
                                                 if (htmlStringFromProductPage == null) {
                                                     // hacemos pausa por si es problema de red
                                                     try {
@@ -1274,7 +1268,7 @@ public class MercadoLibre01  extends Thread {
                                             String previousLastQuestion = getLastQuestion(productId,DATABASE);
 
                                             String questionsURL=QUESTIONS_BASE_URL+ARTICLE_PREFIX+productId.substring(4);
-                                            String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL,httpClient);
+                                            String htmlStringFromQuestionsPage = HttpUtils.getHTMLStringFromPage(questionsURL,httpClient,DEBUG);
                                             if (htmlStringFromQuestionsPage == null) {
                                                 // hacemos pausa por si es problema de red
                                                 try {
@@ -1321,7 +1315,7 @@ public class MercadoLibre01  extends Thread {
                             } else { //agregar vendedor
 
                                 if (htmlStringFromProductPage == null) {
-                                    htmlStringFromProductPage = getHTMLStringFromPage(productUrl, httpClient);
+                                    htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
                                     if (htmlStringFromProductPage == null) {
                                         // hacemos pausa por si es problema de red
                                         try {
@@ -1425,6 +1419,7 @@ public class MercadoLibre01  extends Thread {
         return seller;
     }
 
+/*
     protected static String getHTMLStringFromPage(String uRL, CloseableHttpClient client) {
 
         HttpGet httpGet = new HttpGet(uRL);
@@ -1509,7 +1504,7 @@ public class MercadoLibre01  extends Thread {
 
         return sb.toString();
 
-    }
+    }*/
 
     private static synchronized boolean isSameDate(Date date1, Date date2){
         globalCalendar1.setTime(date1);
