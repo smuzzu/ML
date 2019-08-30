@@ -4,6 +4,7 @@ package com.ml;
  * Created by Muzzu on 8/18/2019.
  */
 
+import com.ml.utils.Counters;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
@@ -28,9 +29,6 @@ public class VisitCounter extends Thread {
     private String dateOnQuery;
     private String database;
 
-
-    static int globalRunnerCount;
-
     VisitCounter(ArrayList<String> productIds, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String database){
         this.productIds=productIds;
         this.date=date;
@@ -48,17 +46,16 @@ public class VisitCounter extends Thread {
         this.zeroVisitsList.clear();
     }
 
-    private static synchronized int getGlobalRunnerCount() {
-        return ++globalRunnerCount;
-    }
-
     private static volatile ArrayList<String> zeroVisitsList=new ArrayList<String>();
 
     private static PreparedStatement globalUpdateVisits = null;
 
     public void run(){
 
-        String runnerID="R"+getGlobalRunnerCount();
+        int logCountHelper=0;
+        String lineLog="";
+
+        String runnerID="R"+ Counters.getGlobalRunnerCount();
 
         String msg =null;
         if (DEBUG) {
@@ -67,7 +64,7 @@ public class VisitCounter extends Thread {
             Logger.log(msg);
         }
 
-        CloseableHttpClient httpClient = MercadoLibre01.buildHttpClient();
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
         String allProductIDsStr="";
         for (String productId:productIds){
@@ -94,7 +91,7 @@ public class VisitCounter extends Thread {
                 e.printStackTrace();
             }
             httpClient = null;
-            httpClient = MercadoLibre01.buildHttpClient();
+            httpClient = HttpUtils.buildHttpClient();
         }
 
         htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
@@ -125,9 +122,16 @@ public class VisitCounter extends Thread {
             quantityStr=htmlString.substring(pos1,pos2);
             quantity=Integer.parseInt(quantityStr);
 
-            msg = productId + " " + quantity;
-            System.out.println(msg);
-            Logger.log(msg);
+            logCountHelper++;
+            if (logCountHelper>5){
+                logCountHelper=0;
+                lineLog=lineLog.substring(0,lineLog.length()-1);
+                System.out.println(lineLog);
+                Logger.log(lineLog);
+                lineLog="";
+            }
+
+            lineLog+="   "+productId + " " + String.format("%05d", quantity) + "   |";
 
             if (quantity==0){
                 zeroVisitsList.add(productId);
@@ -137,6 +141,12 @@ public class VisitCounter extends Thread {
                 updateVisits(productId, quantity, date, database);
             }
         }
+        if (lineLog.length()>0) {
+            lineLog=lineLog.substring(0,lineLog.length()-1);
+            System.out.println(lineLog);
+            Logger.log(lineLog);
+        }
+
         if (DEBUG) {
             msg = "XXXXXXXXXXXXXX Este es el fin " + runnerID;
             System.out.println(msg);

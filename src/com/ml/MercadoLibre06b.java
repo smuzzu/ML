@@ -1,19 +1,10 @@
 package com.ml;
 
-import org.apache.commons.lang3.StringUtils;
-
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -22,14 +13,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
+
+import org.apache.http.impl.client.CloseableHttpClient;
+
+import com.ml.utils.Counters;
 import com.ml.utils.Logger;
 import com.ml.utils.HttpUtils;
+import com.ml.utils.HTMLParseUtils;
+import com.ml.utils.ProductPageProcessor;
+
 
 /**
  * Created by Muzzu on 11/12/2017.
@@ -37,9 +34,10 @@ import com.ml.utils.HttpUtils;
 
 public class MercadoLibre06b extends Thread {
 
-    int[] currentIinterval;
-    String currentCustId;
-
+    MercadoLibre06b(String custId, int[] intervals) {
+        this.custId = custId;
+        this.theIntervals = intervals;
+    }
 
 
 /*
@@ -69,51 +67,32 @@ public class MercadoLibre06b extends Thread {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};*/
 
-    static int globalPageCount=0;
-    static int globalProdutCount=0;
-    static int globalNewsCount=0;
-    static int globalRunnerCount=0; //static int globalRunnerCount;
-    //static int globalAndFirstInterval;
 
-    static Connection globalSelectConnection=null;
-    static Connection globalUpadteConnection=null;
-    static Connection globalAddProductConnection=null;
-    static Connection globalAddActivityConnection =null;
-    static Date globalDate=null;
-    static BufferedWriter globalLogger=null;
-    static DateFormat globalDateformat=null;
-    static Calendar globalCalendar1=null;
-    static Calendar globalCalendar2=null;
+    static ArrayList<String> globalProcesedProductList;
 
-    static int MAX_THREADS=14;
-    static boolean OVERRIDE_TODAYS_RUN=false;
-    static boolean SAVE =true;
-    static boolean DEBUG=false;
+    static Connection globalSelectConnection = null;
+    static Connection globalUpadteConnection = null;
+    static Connection globalAddProductConnection = null;
+    static Connection globalAddActivityConnection = null;
+    static Date globalDate = null;
+    static DateFormat globalDateformat = null;
+    static Calendar globalCalendar1 = null;
+    static Calendar globalCalendar2 = null;
+
+    static int MAX_THREADS = 14;
+    static boolean OVERRIDE_TODAYS_RUN = false;
+    static boolean SAVE = false;
+    static boolean DEBUG = false;
     static boolean FOLLOWING_DAY = false;
     static boolean PRERVIOUS_DAY = false;
-    static boolean ONLY_ADD_NEW_PRODUCTS=false;
-    static int MINIMUM_SALES=1;
-    static int TIMEOUT_MIN=50;
+    static boolean ONLY_ADD_NEW_PRODUCTS = false;
+    static int MINIMUM_SALES = 1;
+    static int TIMEOUT_MIN = 50;
     static int MAX_THREADS_VISITS = 30;
-    static String DATABASE="ML6";
-
-    //regional settings
-    static String ARTICLE_PREFIX="MLA";
-    static String PROFILE_BASE_URL ="https://perfil.mercadolibre.com.ar/";
-    static String QUESTIONS_BASE_URL ="https://articulo.mercadolibre.com.ar/noindex/questions/";
-    static String OFICIAL_STORE_LABEL ="Tienda oficial de Mercado Libre";
-    static String INTEREST_FREE_PAYMENTS_LABEL="cuotas sin interés";
+    static String DATABASE = "ML1";
 
 
-    static String SHIPPING1_LABEL="Envío a todo el país";
-    static String SHIPPING2_LABEL="Llega el";
-    static String SHIPPING3_LABEL="Llega mañana";
-    static String FREE_SHIPPING1_LABEL="Envío gratis a todo el país";
-    static String FREE_SHIPPING2_LABEL="Llega gratis el";
-    static String FREE_SHIPPING3_LABEL="Llega gratis mañana";
-
-
-    static boolean BRAZIL=false;
+    static boolean BRAZIL = false;
 
     static PreparedStatement globalInsertProduct = null;
     static PreparedStatement globalInsertActivity = null;
@@ -122,11 +101,12 @@ public class MercadoLibre06b extends Thread {
     static PreparedStatement globalSelectProduct = null;
     static PreparedStatement globalSelectTotalSold = null;
     static PreparedStatement globalSelectLastQuestion = null;
+    static PreparedStatement globalSelectPossiblyPaused = null;
     static PreparedStatement globalUpdateVisits = null;
 
-    static String BASE_URL = "https://listado.mercadolibre.com.ar/";
-    //static int[] golbalIntervals = null;
 
+    private String custId = null;
+    private int[] theIntervals = null;
 
     static String[] sellers = new String[]
             {
@@ -305,88 +285,88 @@ public class MercadoLibre06b extends Thread {
 */
 
 
-    static int[][] intervals = new int[][] {
+    static int[][] intervals = new int[][]{
 
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //REPUESTODOVENTAS
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //ELSITIOREPUESTOS
-            {0,70,100,150,200,250,300,500,700,900,1000,1200,1500,1800,2000,2200,2147483647}, //ANIKASHOP
-            {0,5000,5500,6000,7000,8000,11000,16000,2147483647},  //DIGITAL_MEGA_STORE
-            {0,200,400,700,1400,5000,2147483647},   //CERRAJERIA63
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //ITPROUSER
-            {0,8000,2147483647}, //CONGRESOINSUMOSSA
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647},  //EGRENTUS2007
-            {0,2000,4000,8000,12000,15000,22000,2147483647},    //DECOHOGAR
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //TIENDAIKEA.COM.AR
-            {0,700,1000,3000,2147483647}, //KADIMA-STUFF
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //JUGUETERIA+MARGARITA
-            {0,200,300,400,500,600,750,850,1000,1200,1500,1800,2100,2500,2900,3400,4000,5000,6000,8000,12000,2147483647},  //WARNESTELAS2001
-            {0,198,200,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3400,3500,4000,5000,7000,8000,14000,16000,17999,18000,25000,2147483647}, //OLD-RIDER
-            {0,60,150,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647},  //COMERCIALICSA
-            {0,5000,9000,13000,20000,2147483647},   //SANITARIOS-ARIETA
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,2147483647},  //LACASA+DELFARO
-            {0,300,500,700,900,1000,1200,1500,1800,2000,2200,2500,2800,3000,3500,4000,5000,8000,2147483647}, //AMITOSAI+STORES
-            {0,1500,2500,2147483647},  //BABY+KINGDOM
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //REPUESTODOVENTAS
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //ELSITIOREPUESTOS
+            {0, 70, 100, 150, 200, 250, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2147483647}, //ANIKASHOP
+            {0, 5000, 5500, 6000, 7000, 8000, 11000, 16000, 2147483647},  //DIGITAL_MEGA_STORE
+            {0, 200, 400, 700, 1400, 5000, 2147483647},   //CERRAJERIA63
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //ITPROUSER
+            {0, 8000, 2147483647}, //CONGRESOINSUMOSSA
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647},  //EGRENTUS2007
+            {0, 2000, 4000, 8000, 12000, 15000, 22000, 2147483647},    //DECOHOGAR
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //TIENDAIKEA.COM.AR
+            {0, 700, 1000, 3000, 2147483647}, //KADIMA-STUFF
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //JUGUETERIA+MARGARITA
+            {0, 200, 300, 400, 500, 600, 750, 850, 1000, 1200, 1500, 1800, 2100, 2500, 2900, 3400, 4000, 5000, 6000, 8000, 12000, 2147483647},  //WARNESTELAS2001
+            {0, 198, 200, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3400, 3500, 4000, 5000, 7000, 8000, 14000, 16000, 17999, 18000, 25000, 2147483647}, //OLD-RIDER
+            {0, 60, 150, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647},  //COMERCIALICSA
+            {0, 5000, 9000, 13000, 20000, 2147483647},   //SANITARIOS-ARIETA
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 2147483647},  //LACASA+DELFARO
+            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //AMITOSAI+STORES
+            {0, 1500, 2500, 2147483647},  //BABY+KINGDOM
 
-            {0,2147483647}, //DAGOSTINA+VANITORYS
-            {0,2147483647},  //GALARDI-MUEBLES
-            {0,2147483647}, //ELEGANCE_JARDIN
-            {0,2147483647},  //CHESTER-MANIA
-            {0,2147483647}, //DEBORAOCHOTECO
-            {0,2147483647},  //DEBUENDISE%C3%91O
-            {0,2147483647}, //GUIK+DESIGN
-            {0,2147483647},   //ELECTROMEDINA
+            {0, 2147483647}, //DAGOSTINA+VANITORYS
+            {0, 2147483647},  //GALARDI-MUEBLES
+            {0, 2147483647}, //ELEGANCE_JARDIN
+            {0, 2147483647},  //CHESTER-MANIA
+            {0, 2147483647}, //DEBORAOCHOTECO
+            {0, 2147483647},  //DEBUENDISE%C3%91O
+            {0, 2147483647}, //GUIK+DESIGN
+            {0, 2147483647},   //ELECTROMEDINA
 
-            {0,2147483647}, //SASI36787
-            {0,2147483647}, //.COLGALO.COMO.QUIERAS.
-            {0,2147483647},  //AC-TEC
-            {0,2147483647}, //ALAVUELTA+CERAMICOS
+            {0, 2147483647}, //SASI36787
+            {0, 2147483647}, //.COLGALO.COMO.QUIERAS.
+            {0, 2147483647},  //AC-TEC
+            {0, 2147483647}, //ALAVUELTA+CERAMICOS
 
-            {0,2147483647}, //GREENDECO
-            {0,2147483647}, //SHESHU+WEB
-            {0,2147483647}, //DISTRITOBLANCO
-            {0,2147483647},  //N2M-ELECTRONICA
-            {0,2147483647}, //ARGENSHOP+BSAS
-            {0,2147483647}, //CASAANDREA+LOCAL
-            {0,2147483647}, //INTER+VENT
-            {0,2147483647},  //DECOR+ITUZAINGO
-            {0,2147483647}, //GUIRNALDA+DELUCES
-            {0,2147483647}, //VENTAIMPORTACION
-            {0,2147483647}, //CONFORTSURSA
-            {0,2147483647},  //MLAT_ARG
-            {0,2147483647}, //ELECTROLED+SA
-            {0,2147483647},   //DANPER+COMPLEMENTOS
-            {0,2147483647},  //MI-BIOMBO-ES-TU-BIOMBO
-            {0,2147483647},  //PUFFYFIACAS
-            {0,2147483647}, //ARBOVERDE.SA
-            {0,2147483647}, //CARELLI+COMPANY
-            {0,2147483647},  //ESCANDINAVIA+ARG
-            {0,2147483647},  //VST+ONLINE
-            {0,2147483647},  //ELMUNDODELASCAJAS
-            {0,2147483647}, //COLOMBRARO+ONLINE
-            {0,2147483647},  //SUFERRETERIAONLINE
-            {0,2147483647}, //OTHERBRANDS
-            {0,2147483647},  //CAPRICHOSA+CAROLA
-            {0,2147483647}, //PLASTICHEMONDO
-            {0,2147483647}, //IMPERIO+DESIGN
-            {0,2147483647},  //INTERMARBLE-SRL
-            {0,2147483647},  //CEGEVAHOGAR
-            {0,2147483647},  //BAIRES+4
-            {0,2147483647},  //BALL_SELLINGS
-            {0,2147483647},  //AMOBLAMIENTOS+A.S
-            {0,2147483647},  //MUEBO
-            {0,2147483647},  //GLOBAL+GROUP10
-            {0,2147483647}, //DAMPLAST-RAMOS
-            {0,2147483647},  //MOBILARG
-            {0,2147483647},  //INTEGRAL+DECO
-            {0,2147483647}, //Desillas
-            {0,2147483647},  //LIVINGSTYLEDESIGN
-            {0,2147483647},  //SU-OFFICE
-            {0,2147483647},  //MUNDO+SHOPS
-            {0,2147483647}, //LEATHERPLAST_MUEBLES
-            {0,2147483647},  //INSUOFFICE
-            {0,2147483647}, //AMV-TIENDA+ONLINE
-            {0,2147483647}, //COMPUSOLUTIONS.SUC.JUAN
-            {0,2147483647}  //COMPUSOLUTIONS.SUC.TONY
+            {0, 2147483647}, //GREENDECO
+            {0, 2147483647}, //SHESHU+WEB
+            {0, 2147483647}, //DISTRITOBLANCO
+            {0, 2147483647},  //N2M-ELECTRONICA
+            {0, 2147483647}, //ARGENSHOP+BSAS
+            {0, 2147483647}, //CASAANDREA+LOCAL
+            {0, 2147483647}, //INTER+VENT
+            {0, 2147483647},  //DECOR+ITUZAINGO
+            {0, 2147483647}, //GUIRNALDA+DELUCES
+            {0, 2147483647}, //VENTAIMPORTACION
+            {0, 2147483647}, //CONFORTSURSA
+            {0, 2147483647},  //MLAT_ARG
+            {0, 2147483647}, //ELECTROLED+SA
+            {0, 2147483647},   //DANPER+COMPLEMENTOS
+            {0, 2147483647},  //MI-BIOMBO-ES-TU-BIOMBO
+            {0, 2147483647},  //PUFFYFIACAS
+            {0, 2147483647}, //ARBOVERDE.SA
+            {0, 2147483647}, //CARELLI+COMPANY
+            {0, 2147483647},  //ESCANDINAVIA+ARG
+            {0, 2147483647},  //VST+ONLINE
+            {0, 2147483647},  //ELMUNDODELASCAJAS
+            {0, 2147483647}, //COLOMBRARO+ONLINE
+            {0, 2147483647},  //SUFERRETERIAONLINE
+            {0, 2147483647}, //OTHERBRANDS
+            {0, 2147483647},  //CAPRICHOSA+CAROLA
+            {0, 2147483647}, //PLASTICHEMONDO
+            {0, 2147483647}, //IMPERIO+DESIGN
+            {0, 2147483647},  //INTERMARBLE-SRL
+            {0, 2147483647},  //CEGEVAHOGAR
+            {0, 2147483647},  //BAIRES+4
+            {0, 2147483647},  //BALL_SELLINGS
+            {0, 2147483647},  //AMOBLAMIENTOS+A.S
+            {0, 2147483647},  //MUEBO
+            {0, 2147483647},  //GLOBAL+GROUP10
+            {0, 2147483647}, //DAMPLAST-RAMOS
+            {0, 2147483647},  //MOBILARG
+            {0, 2147483647},  //INTEGRAL+DECO
+            {0, 2147483647}, //Desillas
+            {0, 2147483647},  //LIVINGSTYLEDESIGN
+            {0, 2147483647},  //SU-OFFICE
+            {0, 2147483647},  //MUNDO+SHOPS
+            {0, 2147483647}, //LEATHERPLAST_MUEBLES
+            {0, 2147483647},  //INSUOFFICE
+            {0, 2147483647}, //AMV-TIENDA+ONLINE
+            {0, 2147483647}, //COMPUSOLUTIONS.SUC.JUAN
+            {0, 2147483647}  //COMPUSOLUTIONS.SUC.TONY
 
     };
 
@@ -400,36 +380,19 @@ public class MercadoLibre06b extends Thread {
         }
     }*/
 
-    protected static CloseableHttpClient buildHttpClient() {
-        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials("random", "random"));
 
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(40000) //40 seconds in milliseconds
-                .setConnectionRequestTimeout(40000)
-                .setSocketTimeout(40000)
-                .build();
-
-        CloseableHttpClient httpclient =
-                HttpClientBuilder.create()
-                        .setDefaultCredentialsProvider(credentialsProvider)
-                        .setDefaultRequestConfig(requestConfig)
-                        .build();
-        return httpclient;
-    }
-
-    private static void updateVisits() {
+    private static void updateVisits(String database) {
 
         String msg = "\nProcesando Visitas";
         System.out.println(msg);
         Logger.log(msg);
+        Counters.initGlobalRunnerCount();
 
-        Connection connection = getSelectConnection();
+        Connection connection = getSelectConnection(database);
         ArrayList<String> allProductIDs = new ArrayList<String>();
-        Date date1=null;
-        Date date2=null;
-        String dateOnQueryStr=null;
+        Date date1 = null;
+        Date date2 = null;
+        String dateOnQueryStr = null;
         try {
 
             PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
@@ -464,7 +427,7 @@ public class MercadoLibre06b extends Thread {
 
             rs = selectPreparedStatement.executeQuery();
             if (rs == null) {
-                msg = "Error getting latest movements "+date2;
+                msg = "Error getting latest movements " + date2;
                 System.out.println(msg);
                 Logger.log(msg);
             }
@@ -480,16 +443,16 @@ public class MercadoLibre06b extends Thread {
             Logger.log(e);
         }
 
-        ArrayList<String> zeroVisitsList=processAllVisits(allProductIDs, date2, dateOnQueryStr);
-        msg="Reintentando los ceros";
+        ArrayList<String> zeroVisitsList = processAllVisits(allProductIDs, date2, dateOnQueryStr);
+        msg = "Reintentando los ceros";
         System.out.println(msg);
         Logger.log(msg);
-        zeroVisitsList=processAllVisits(zeroVisitsList, date2, dateOnQueryStr); //insistimos 2 veces mas cuando visitas devuelve cero
+        zeroVisitsList = processAllVisits(zeroVisitsList, date2, dateOnQueryStr); //insistimos 2 veces mas cuando visitas devuelve cero
         System.out.println(msg);
         Logger.log(msg);
         processAllVisits(zeroVisitsList, date2, dateOnQueryStr);
 
-        msg="Visitas Procesadas: "+allProductIDs.size();
+        msg = "Visitas Procesadas: " + allProductIDs.size();
         System.out.println(msg);
         Logger.log(msg);
 
@@ -525,11 +488,11 @@ public class MercadoLibre06b extends Thread {
                 e.printStackTrace();
             }
         }
-        VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
+        VisitCounter aVisitCounter = (VisitCounter) threadArrayList.get(0);
 
         //clone
-        ArrayList<String> zeroVisitsList=new ArrayList<String>();
-        for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
+        ArrayList<String> zeroVisitsList = new ArrayList<String>();
+        for (String productIdWithZeroVisits : aVisitCounter.getZeroVisitsList()) {
             zeroVisitsList.add(productIdWithZeroVisits);
         }
         aVisitCounter.resetZeroVisitsList();
@@ -557,35 +520,34 @@ public class MercadoLibre06b extends Thread {
             }
             currentTime = System.currentTimeMillis();
             if (currentTime > timeoutTime) {
-                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar uno entre " + MAX_THREADS_VISITS + " visitas");
+                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas");
                 System.exit(0);
             }
         }
     }
 
-    private static synchronized void updateVisits(String productId,int quantity, Date date){
+    private static synchronized void updateVisits(String productId, int quantity, Date date, String database) {
 
-        if (globalUpdateVisits ==null) {
-            Connection connection = getUpdateConnection();
+        if (globalUpdateVisits == null) {
+            Connection connection = getUpdateConnection(database);
             try {
                 globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
-                globalUpdateVisits.setDate(3,date);
+                globalUpdateVisits.setDate(3, date);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
         try {
-            globalUpdateVisits.setInt(1,quantity);
-            globalUpdateVisits.setString(2,productId);
+            globalUpdateVisits.setInt(1, quantity);
+            globalUpdateVisits.setString(2, productId);
 
 
-            int updatedRecords=globalUpdateVisits.executeUpdate();
+            int updatedRecords = globalUpdateVisits.executeUpdate();
             globalUpdateVisits.getConnection().commit();
 
-            if (updatedRecords!=1){
-                Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
+            if (updatedRecords != 1) {
+                Logger.log("Error updating visits " + productId + " " + quantity + " " + date);
             }
-
 
 
         } catch (SQLException e) {
@@ -594,24 +556,23 @@ public class MercadoLibre06b extends Thread {
 
     }
 
-
     public static void main(String[] args) {
 
+        System.setProperty("webdriver.chrome.driver", "C:\\Users\\Muzzu\\IdeaProjects\\selenium\\chromedriver_win32_2.4\\chromedriver.exe");
+        System.setProperty("webdriver.gecko.driver", "C:\\Users\\Muzzu\\IdeaProjects\\selenium\\geckodriver-v0.20.0-win64\\geckodriver.exe");
 
         globalDateformat = new SimpleDateFormat("HH:mm:ss.SSS");
         globalCalendar1 = Calendar.getInstance();
         globalCalendar2 = Calendar.getInstance();
 
-        updateVisits();
-        System.exit(0);
 
-        if (intervals.length != sellers.length){//validacion de intervalo
+        if (intervals.length != sellers.length) {//validacion de intervalo
             System.out.println("Error en largos. Intervals:" + intervals.length + " //  sellers: " + sellers.length);
             System.exit(0);
         }
 
-        for (int i=0; i<intervals.length; i++){ //validacion de intervalo
-            for (int j=1; j<intervals[i].length; j++) {
+        for (int i = 0; i < intervals.length; i++) { //validacion de intervalo
+            for (int j = 1; j < intervals[i].length; j++) {
                 if (intervals[i][j - 1] >= intervals[i][j]) {
                     System.out.println("Error en intervalo #" + i + " // " + intervals[i][j - 1] + "-" + intervals[i][j]);
                     System.exit(0);
@@ -619,42 +580,42 @@ public class MercadoLibre06b extends Thread {
             }
         }
 
-        if (SAVE){
-            saveRunInitialization(BASE_URL,MAX_THREADS);
+        if (SAVE) {
+            saveRunInitialization("url", MAX_THREADS, DATABASE);
         }
 
 
-        CloseableHttpClient httpClient = buildHttpClient();
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
-        for (int j=0; j<sellers.length; j++) { //todo tiene que empezar de 0
+        for (int j = 0; j < sellers.length; j++) { //todo tiene que empezar de 0
 
 
-            MercadoLibre06b thread1 = new MercadoLibre06b();
+            MercadoLibre06b thread1 = new MercadoLibre06b(sellers[j], intervals[j]);
 
 
             int retries = 0;
-            boolean retry=true;
+            boolean retry = true;
             String seller = sellers[j];
-            String uRL=PROFILE_BASE_URL+seller;
+            String uRL = HTMLParseUtils.PROFILE_BASE_URL + seller;
 
-            String htmlStringFromPage =null;
+            String htmlStringFromPage = null;
 
-            while (retry && retries<4) {
+            while (retry && retries < 4) {
                 retries++;
-                htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG);
-                if (htmlStringFromPage!=null){
-                    retry=false;
-                }else {
+                htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG);
+                if (htmlStringFromPage != null) {
+                    retry = false;
+                } else {
                     try {
                         httpClient.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    httpClient=null;
-                    httpClient = buildHttpClient();
-                    Logger.log("R000 Error en getHTMLStringFromPage II intento #"+retries+" "+uRL);
+                    httpClient = null;
+                    httpClient = HttpUtils.buildHttpClient();
+                    Logger.log("R000 Error en getHTMLStringFromPage II intento #" + retries + " " + uRL);
                     try {
                         Thread.sleep(25000);
                     } catch (InterruptedException e) {
@@ -675,42 +636,42 @@ public class MercadoLibre06b extends Thread {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                httpClient=null;
-                httpClient = buildHttpClient();
+                httpClient = null;
+                httpClient = HttpUtils.buildHttpClient();
                 continue;
             }
 
-            int pos1=htmlStringFromPage.indexOf("_CustId_");
-            if (pos1==-1){
-                String errMsg="***** Este vendedor no tiene productos publicados ahora "+uRL;
+            int pos1 = htmlStringFromPage.indexOf("_CustId_");
+            if (pos1 == -1) {
+                String errMsg = "***** Este vendedor no tiene productos publicados ahora " + uRL;
                 System.out.println(errMsg);
                 Logger.log(errMsg);
                 continue;
             }
-            pos1+=8;
-            int pos2 = htmlStringFromPage.indexOf("\"",pos1);
+            pos1 += 8;
+            int pos2 = htmlStringFromPage.indexOf("\"", pos1);
 
-            String custId=htmlStringFromPage.substring(pos1,pos2);
+            String custId = htmlStringFromPage.substring(pos1, pos2);
 
 
-            thread1.currentCustId=custId;
-            thread1.currentIinterval=intervals[j];
+            thread1.custId = custId;
+            thread1.theIntervals = intervals[j];
             threadArrayList.add(thread1);
             thread1.start();
 
-            long currentTime=System.currentTimeMillis();
-            long timeoutTime=currentTime+TIMEOUT_MIN*60l*1000l;
+            long currentTime = System.currentTimeMillis();
+            long timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
 
-            while (MAX_THREADS<Thread.activeCount()){
+            while (MAX_THREADS < Thread.activeCount()) {
 
                 try {
                     Thread.sleep(30000l);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                currentTime=System.currentTimeMillis();
-                if (currentTime>timeoutTime){
-                    System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar uno entre "+MAX_THREADS+" vendedores");
+                currentTime = System.currentTimeMillis();
+                if (currentTime > timeoutTime) {
+                    System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar uno entre " + MAX_THREADS + " vendedores");
                     System.exit(0);
                 }
             }
@@ -724,48 +685,53 @@ public class MercadoLibre06b extends Thread {
             }
         }
 
-        updateVisits();
+        if (!ONLY_ADD_NEW_PRODUCTS) {
+            processPossiblyPausedProducts(DATABASE);
+        }
 
-        String msg = globalPageCount+" paginas procesadas\n "
-                    +globalProdutCount+" productos procesados\n "
-                    +globalNewsCount+" productos con novedades";
+        updateVisits(DATABASE);
+
+        String msg = "******************************************************\n"
+                + Counters.getGlobalPageCount() + " paginas procesadas\n "
+                + Counters.getGlobalProductCount() + " productos procesados\n "
+                + Counters.getGlobalNewsCount() + " productos con novedades";
         System.out.println(msg);
         Logger.log(msg);
 
     }
 
 
-    private static long saveRunInitialization(String url, int threads) {
+    private static long saveRunInitialization(String url, int threads, String database) {
         PreparedStatement ps = null;
-        Connection connection = getUpdateConnection();
-        long runId=-1;
-        try{
-            ps = connection.prepareStatement("INSERT INTO public.corridas(fecha, inicio, url, threads) VALUES (?, ?, ?, ?) RETURNING id;",Statement.RETURN_GENERATED_KEYS);
+        Connection connection = getUpdateConnection(database);
+        long runId = -1;
+        try {
+            ps = connection.prepareStatement("INSERT INTO public.corridas(fecha, inicio, url, threads) VALUES (?, ?, ?, ?) RETURNING id;", Statement.RETURN_GENERATED_KEYS);
 
             Calendar cal = Calendar.getInstance();
             long milliseconds = cal.getTimeInMillis();
             Timestamp timestamp = new Timestamp(milliseconds);
 
-            ps.setDate(1,getGlobalDate());
-            ps.setTimestamp(2,timestamp);
-            ps.setString(3,url);
-            ps.setInt(4,threads);
+            ps.setDate(1, getGlobalDate());
+            ps.setTimestamp(2, timestamp);
+            ps.setString(3, url);
+            ps.setInt(4, threads);
 
             int insertedRecords = ps.executeUpdate();
             connection.commit();
 
-            if (insertedRecords!=1){
+            if (insertedRecords != 1) {
                 Logger.log("Couldn't insert record into runs table");
             }
             ResultSet rs = ps.getGeneratedKeys();
-            if(rs.next()){
-                runId=rs.getInt(1);
+            if (rs.next()) {
+                runId = rs.getInt(1);
             }
-        }catch(SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
-        }finally{
+        } finally {
             try {
-                if (ps!=null) {
+                if (ps != null) {
                     ps.close();
                 }
             } catch (SQLException e) {
@@ -775,32 +741,32 @@ public class MercadoLibre06b extends Thread {
         return runId;
     }
 
-    private static long saveRunEnding(long runId,int productostotal, int productosdetailstotal) {
+    private static long saveRunEnding(long runId, int productostotal, int productosdetailstotal, String database) {
         PreparedStatement ps = null;
-        Connection connection = getUpdateConnection();
-        try{
+        Connection connection = getUpdateConnection(database);
+        try {
             ps = connection.prepareStatement("UPDATE public.corridas SET fin=?, productostotal=?, productosdetalletotal=? WHERE id=?;");
 
             Calendar cal = Calendar.getInstance();
             long milliseconds = cal.getTimeInMillis();
             Timestamp timestamp = new Timestamp(milliseconds);
 
-            ps.setTimestamp(1,timestamp);
-            ps.setInt(2,productostotal);
-            ps.setInt(3,productosdetailstotal);
-            ps.setLong(4,runId);
+            ps.setTimestamp(1, timestamp);
+            ps.setInt(2, productostotal);
+            ps.setInt(3, productosdetailstotal);
+            ps.setLong(4, runId);
 
             int insertedRecords = ps.executeUpdate();
             connection.commit();
 
-            if (insertedRecords!=1){
+            if (insertedRecords != 1) {
                 Logger.log("couldn't update row in runs table");
             }
-        }catch(SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
-        }finally{
+        } finally {
             try {
-                if (ps!=null) {
+                if (ps != null) {
                     ps.close();
                 }
             } catch (SQLException e) {
@@ -811,125 +777,125 @@ public class MercadoLibre06b extends Thread {
     }
 
     private static synchronized void insertProduct(String idProduct, String seller, int totalSold, String latestquestion, String url, boolean officialStore) {
-        Connection connection= getAddProductConnection();
+        Connection connection = getAddProductConnection();
 
-        try{
-            if (globalInsertProduct ==null) {
+        try {
+            if (globalInsertProduct == null) {
                 globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, url, tiendaoficial) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
             }
 
-            globalInsertProduct.setString(1,idProduct);
-            globalInsertProduct.setString(2,seller);
-            globalInsertProduct.setDate(3,getGlobalDate());
-            globalInsertProduct.setDate(4,getGlobalDate());
-            globalInsertProduct.setString(5,latestquestion);
-            globalInsertProduct.setInt(6,totalSold);
-            globalInsertProduct.setString(7,url);
-            globalInsertProduct.setBoolean(8,officialStore);
+            globalInsertProduct.setString(1, idProduct);
+            globalInsertProduct.setString(2, seller);
+            globalInsertProduct.setDate(3, getGlobalDate());
+            globalInsertProduct.setDate(4, getGlobalDate());
+            globalInsertProduct.setString(5, latestquestion);
+            globalInsertProduct.setInt(6, totalSold);
+            globalInsertProduct.setString(7, url);
+            globalInsertProduct.setBoolean(8, officialStore);
 
             int registrosInsertados = globalInsertProduct.executeUpdate();
 
-            if (registrosInsertados!=1){
+            if (registrosInsertados != 1) {
                 Logger.log("Couldn't insert product I");
             }
-        }catch(SQLException e){
+        } catch (SQLException e) {
             Logger.log("Couldn't insert product II");
             Logger.log(e);
         }
     }
 
-    private synchronized static Date getGlobalDate(){
-        if (globalDate==null){
+    private synchronized static Date getGlobalDate() {
+        if (globalDate == null) {
             Calendar cal = Calendar.getInstance();
             long milliseconds = cal.getTimeInMillis();
-            long oneDayinMiliseconds=0;
-            if (FOLLOWING_DAY){
-                oneDayinMiliseconds=86400000; //this will add a complete day on milliseconds
+            long oneDayinMiliseconds = 0;
+            if (FOLLOWING_DAY) {
+                oneDayinMiliseconds = 86400000; //this will add a complete day on milliseconds
             }
-            if (PRERVIOUS_DAY){
-                oneDayinMiliseconds=-86400000; //this will add a complete day on milliseconds
+            if (PRERVIOUS_DAY) {
+                oneDayinMiliseconds = -86400000; //this will add a complete day on milliseconds
             }
-            Date date = new Date(milliseconds+oneDayinMiliseconds);
-            globalDate=date;
+            Date date = new Date(milliseconds + oneDayinMiliseconds);
+            globalDate = date;
         }
         return globalDate;
     }
 
-    private static synchronized void updateProductAddActivity(String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int shipping, int discount, boolean premium) {
+    public static synchronized void updateProductAddActivity(String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int shipping, int discount, boolean premium) {
         Connection connection = getAddActivityConnection();
-        try{
-            if (globalUpdateProduct ==null) {
-                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, inhabilitado=false WHERE id = ?;");
+        try {
+            if (globalUpdateProduct == null) {
+                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, deshabilitado=false WHERE id = ?;");
             }
 
-            globalUpdateProduct.setInt(1,totalSold);
-            globalUpdateProduct.setDate(2,getGlobalDate());
-            globalUpdateProduct.setString(3,url);
-            globalUpdateProduct.setString(4,lastQuestion);
-            globalUpdateProduct.setString(5,seller);
-            globalUpdateProduct.setBoolean(6,officialStore);
-            globalUpdateProduct.setString(7,productId);
+            globalUpdateProduct.setInt(1, totalSold);
+            globalUpdateProduct.setDate(2, getGlobalDate());
+            globalUpdateProduct.setString(3, url);
+            globalUpdateProduct.setString(4, lastQuestion);
+            globalUpdateProduct.setString(5, seller);
+            globalUpdateProduct.setBoolean(6, officialStore);
+            globalUpdateProduct.setString(7, productId);
 
             int insertedRecords = globalUpdateProduct.executeUpdate();
-            if (insertedRecords!=1){
-                Logger.log("Couldn't update product "+productId);
+            if (insertedRecords != 1) {
+                Logger.log("Couldn't update product " + productId);
             }
 
-            if (OVERRIDE_TODAYS_RUN){//no sabemos si hay registro pero por las dudas removemos
-                if (globalRemoveActivity==null){
-                    globalRemoveActivity=connection.prepareStatement("DELETE FROM public.movimientos WHERE idproducto=? and fecha=?");
+            if (OVERRIDE_TODAYS_RUN) {//no sabemos si hay registro pero por las dudas removemos
+                if (globalRemoveActivity == null) {
+                    globalRemoveActivity = connection.prepareStatement("DELETE FROM public.movimientos WHERE idproducto=? and fecha=?");
                 }
-                globalRemoveActivity.setString(1,productId);
-                globalRemoveActivity.setDate(2,getGlobalDate());
-                int removedRecords=globalRemoveActivity.executeUpdate();
-                if (removedRecords>=1){
-                    Logger.log("Record removed on activity table date: "+getGlobalDate()+" productId: "+productId);
+                globalRemoveActivity.setString(1, productId);
+                globalRemoveActivity.setDate(2, getGlobalDate());
+                int removedRecords = globalRemoveActivity.executeUpdate();
+                if (removedRecords >= 1) {
+                    Logger.log("Record removed on activity table date: " + getGlobalDate() + " productId: " + productId);
                 }
             }
 
-            if (globalInsertActivity ==null){
-                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            if (globalInsertActivity == null) {
+                globalInsertActivity = connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
             }
 
-            globalInsertActivity.setDate(1,getGlobalDate());
-            globalInsertActivity.setString(2,productId);
-            globalInsertActivity.setString(3,title);
-            globalInsertActivity.setString(4,url);
-            globalInsertActivity.setInt(5,feedbacksTotal);
+            globalInsertActivity.setDate(1, getGlobalDate());
+            globalInsertActivity.setString(2, productId);
+            globalInsertActivity.setString(3, title);
+            globalInsertActivity.setString(4, url);
+            globalInsertActivity.setInt(5, feedbacksTotal);
             globalInsertActivity.setDouble(6, feedbacksAverage);
             globalInsertActivity.setDouble(7, price);
-            globalInsertActivity.setInt(8,newSold);
-            globalInsertActivity.setInt(9,totalSold);
-            globalInsertActivity.setInt(10,newQuestions);
-            globalInsertActivity.setInt(11,pagina);
-            globalInsertActivity.setString(12,seller);
-            globalInsertActivity.setBoolean(13,officialStore);
+            globalInsertActivity.setInt(8, newSold);
+            globalInsertActivity.setInt(9, totalSold);
+            globalInsertActivity.setInt(10, newQuestions);
+            globalInsertActivity.setInt(11, pagina);
+            globalInsertActivity.setString(12, seller);
+            globalInsertActivity.setBoolean(13, officialStore);
 
-            globalInsertActivity.setInt(14,shipping);
-            globalInsertActivity.setInt(15,discount);
-            globalInsertActivity.setBoolean(16,premium);
+            globalInsertActivity.setInt(14, shipping);
+            globalInsertActivity.setInt(15, discount);
+            globalInsertActivity.setBoolean(16, premium);
 
             insertedRecords = globalInsertActivity.executeUpdate();
-            if (insertedRecords!=1){
-                Logger.log("Couln't insert a record in activity table "+productId);
+            if (insertedRecords != 1) {
+                Logger.log("Couln't insert a record in activity table " + productId);
             }
 
             connection.commit();
 
-        }catch(SQLException e){
-            Logger.log("I couldn't add activity due to SQLException "+url);
+        } catch (SQLException e) {
+            Logger.log("I couldn't add activity due to SQLException " + url);
             Logger.log(e);
-            if (connection!=null){
+            if (connection != null) {
                 try {
                     //connection reset
                     connection.close();
-                    connection=null;
-                    globalAddActivityConnection=null;
+                    connection = null;
+                    globalAddActivityConnection = null;
 
                     //prepared statement's reset
-                    globalInsertActivity=null;
-                    globalRemoveActivity=null;
-                    globalUpdateProduct=null;
+                    globalInsertActivity = null;
+                    globalRemoveActivity = null;
+                    globalUpdateProduct = null;
                 } catch (SQLException e1) {
                     e1.printStackTrace();
                 }
@@ -938,109 +904,193 @@ public class MercadoLibre06b extends Thread {
     }
 
 
-    private static synchronized Date lastUpdate(String productId) {
-        Date lastUpdate=null;
-        Connection connection=getSelectConnection();
-        try{
-            if (globalSelectProduct ==null) {
+    private static synchronized Date lastUpdate(String productId, String database) {
+        Date lastUpdate = null;
+        Connection connection = getSelectConnection(database);
+        try {
+            if (globalSelectProduct == null) {
                 globalSelectProduct = connection.prepareStatement("SELECT lastUpdate FROM public.productos WHERE id=?;");
             }
 
-            globalSelectProduct.setString(1,productId);
+            globalSelectProduct.setString(1, productId);
 
             ResultSet rs = globalSelectProduct.executeQuery();
-            if (rs==null){
-                Logger.log("Couldn't get last update I "+productId);
+            if (rs == null) {
+                Logger.log("Couldn't get last update I " + productId);
             }
-            if (rs.next()){
-                lastUpdate=rs.getDate(1);
+            if (rs.next()) {
+                lastUpdate = rs.getDate(1);
             }
-        }catch(SQLException e){
-            Logger.log("Couldn't get last update II "+productId);
+        } catch (SQLException e) {
+            Logger.log("Couldn't get last update II " + productId);
             Logger.log(e);
         }
         return lastUpdate;
     }
 
-    private static synchronized int getGlobalRunnerCount() {
-        return ++globalRunnerCount;
-    }
 
-    private static synchronized int getTotalSold(String productId) {
-        int totalSold=0;
-        Connection connection = getSelectConnection();
-        try{
-            if (globalSelectTotalSold ==null) {
+    public static synchronized int getTotalSold(String productId, String database) {
+        int totalSold = 0;
+        Connection connection = getSelectConnection(database);
+        try {
+            if (globalSelectTotalSold == null) {
                 globalSelectTotalSold = connection.prepareStatement("SELECT totalvendidos FROM public.productos WHERE id=?;");
             }
 
-            globalSelectTotalSold.setString(1,productId);
+            globalSelectTotalSold.setString(1, productId);
 
             ResultSet rs = globalSelectTotalSold.executeQuery();
-            if (rs==null){
-                Logger.log("Couldn't get total sold i"+productId);
+            if (rs == null) {
+                Logger.log("Couldn't get total sold i" + productId);
                 return 0;
             }
 
-            if (rs.next()){
-                totalSold=rs.getInt(1);
+            if (rs.next()) {
+                totalSold = rs.getInt(1);
             }
-        }catch(SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
-            Logger.log("Couldn't get total sold ii"+productId);
+            Logger.log("Couldn't get total sold ii" + productId);
         }
         return totalSold;
     }
 
-    private static synchronized String getLastQuestion(String productId) {
-        String lastQuestion=null;
-        Connection connection=getSelectConnection();
-        try{
-            if (globalSelectLastQuestion==null) {
+    public static synchronized String getLastQuestion(String productId, String database) {
+        String lastQuestion = null;
+        Connection connection = getSelectConnection(database);
+        try {
+            if (globalSelectLastQuestion == null) {
                 globalSelectLastQuestion = connection.prepareStatement("SELECT lastQuestion FROM public.productos WHERE id=?;");
             }
 
-            globalSelectLastQuestion.setString(1,productId);
+            globalSelectLastQuestion.setString(1, productId);
 
             ResultSet rs = globalSelectLastQuestion.executeQuery();
-            if (rs==null){
-                Logger.log("Couldn't get last question i "+productId);
+            if (rs == null) {
+                Logger.log("Couldn't get last question i " + productId);
                 return null;
             }
 
-            if (rs.next()){
-                lastQuestion=rs.getString(1);
+            if (rs.next()) {
+                lastQuestion = rs.getString(1);
             }
-        }catch(SQLException e){
-            Logger.log("Couldn't get last question ii "+productId);
+        } catch (SQLException e) {
+            Logger.log("Couldn't get last question ii " + productId);
             Logger.log(e);
         }
         return lastQuestion;
     }
 
-    synchronized private static void incrementGlobalPageCount(){
-        globalPageCount++;
+
+    private static void processPossiblyPausedProducts(String database) {
+
+        String msg = "*** Procesando pausados  / novedades antes del proceso " + Counters.getGlobalNewsCount();
+        ;
+        System.out.println(msg);
+        Logger.log(msg);
+
+        Connection connection = getSelectConnection(database);
+
+        String productId = null;
+        String productUrl = null;
+        ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
+        try {
+            PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
+            ResultSet rs = datesPreparedStatement.executeQuery();
+            if (rs == null) {
+                msg = "Error getting dates B";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            if (!rs.next()) {
+                msg = "Error getting dates B II";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            if (!rs.next()) {
+                msg = "Error getting dates B III";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            Date previousWeekRunDate = rs.getDate(1);
+
+            //option 1
+            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<?;");
+            globalSelectPossiblyPaused.setDate(1, globalDate);
+
+            //option 2
+            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate=? and proveedor in ('ACACIAYLENGA','PRIMERO UNO','MISIONLIVE') ;");
+            globalSelectPossiblyPaused.setDate(1, previousWeekRunDate);
+
+            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
+            if (rs2 == null) {
+                Logger.log("Couldn't get Possibly Paused Products");
+                return;
+            }
+
+            while (rs2.next()) {
+                productId = rs2.getString(1);
+                if (!globalProcesedProductList.contains(productId)) {
+                    productUrl = rs2.getString(2);
+                    possiblyPausedProductList.add(productUrl);
+                }
+            }
+        } catch (SQLException e) {
+            Logger.log("Couldn't get Possibly Paused Products II");
+            Logger.log(e);
+        }
+
+        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
+        long currentTime;
+        long timeoutTime;
+
+        Counters.initGlobalRunnerCount();
+        for (String url : possiblyPausedProductList) {
+            //processArticle(url,0,possiblyPausedProductList,)
+
+
+            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, SAVE, DEBUG, DATABASE);
+            threadArrayList.add(productPageProcessor);
+            productPageProcessor.start();
+            currentTime = System.currentTimeMillis();
+            timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
+
+            while (MAX_THREADS < (Thread.activeCount() - 1)) {
+
+                try {
+                    Thread.sleep(10l);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                currentTime = System.currentTimeMillis();
+                if (currentTime > timeoutTime) {
+                    System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar un producto pausado entre " + MAX_THREADS + " visitas");
+                    System.exit(0);
+                }
+            }
+
+            for (Thread thread : threadArrayList) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+
     }
 
-    synchronized private static void incrementGlobalNewsCount(){
-        globalNewsCount++;
-    }
 
-
-    synchronized private static void incrementGlobalProductCount(){
-        globalProdutCount++;
-    }
-
-
-    private static Connection getSelectConnection(){
-        if (globalSelectConnection==null) {
+    private static Connection getSelectConnection(String database) {
+        if (globalSelectConnection == null) {
 
             try {
                 Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/" + database;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
             props.setProperty("password", "password");
@@ -1056,15 +1106,15 @@ public class MercadoLibre06b extends Thread {
     }
 
 
-    private static Connection getUpdateConnection(){
-        if (globalUpadteConnection==null) {
+    protected static Connection getUpdateConnection(String database) {
+        if (globalUpadteConnection == null) {
 
             try {
                 Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/" + database;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
             props.setProperty("password", "password");
@@ -1081,15 +1131,15 @@ public class MercadoLibre06b extends Thread {
     }
 
 
-    private static Connection getAddProductConnection(){
-        if (globalAddProductConnection==null) {
+    private static Connection getAddProductConnection() {
+        if (globalAddProductConnection == null) {
 
             try {
                 Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/" + DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
             props.setProperty("password", "password");
@@ -1104,15 +1154,15 @@ public class MercadoLibre06b extends Thread {
         return globalAddProductConnection;
     }
 
-    private static Connection getAddActivityConnection(){
-        if (globalAddActivityConnection ==null) {
+    private static Connection getAddActivityConnection() {
+        if (globalAddActivityConnection == null) {
 
             try {
                 Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            String url = "jdbc:postgresql://localhost:5432/"+DATABASE;
+            String url = "jdbc:postgresql://localhost:5432/" + DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
             props.setProperty("password", "password");
@@ -1128,92 +1178,92 @@ public class MercadoLibre06b extends Thread {
         return globalAddActivityConnection;
     }
 
-    public void run(){
+    public void run() {
 
-        CloseableHttpClient httpClient = buildHttpClient();
-        int itemsInPage=48;
-        String runnerID="R"+getGlobalRunnerCount();
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+        int itemsInPage = 48;
+        String runnerID = "R" + Counters.getGlobalRunnerCount();
 
-       // boolean processFinished=false;
+        // boolean processFinished=false;
 
-        String custIdStr= "_CustId_"+this.currentCustId;
-        String sellerIdStr="_seller*id_"+this.currentCustId;
+        String custIdStr = "_CustId_" + this.custId;
+        String sellerIdStr = "_seller*id_" + this.custId;
 
-        System.out.println(runnerID+" "+ BASE_URL + custIdStr);
-        Logger.log(runnerID+" "+ BASE_URL + custIdStr);
+        System.out.println(runnerID + " " + HTMLParseUtils.PRODUCT_LIST_BASE_URL + custIdStr);
+        Logger.log(runnerID + " " + HTMLParseUtils.PRODUCT_LIST_BASE_URL + custIdStr);
 
 
-        for (int i=1; i<this.currentIinterval.length; i++){
-            int range1=this.currentIinterval[i-1]+1;
-            int range2=this.currentIinterval[i];
-            String priceRangeStr="_PriceRange_"+range1+"-"+range2;
+        for (int i = 1; i < this.theIntervals.length; i++) {
+            int range1 = this.theIntervals[i - 1] + 1;
+            int range2 = this.theIntervals[i];
+            String priceRangeStr = "_PriceRange_" + range1 + "-" + range2;
             //log ("XXXXXXXXXXXXXXXXXXXXXX "+runnerID+" new customer : "+ custIds[i]);
 
             boolean endInterval = false;
             //getPage(interval, true);
-            int page=0;
+            int page = 0;
             while (!endInterval) {
                 page++;
                 if (page == 43) {
-                    Logger.log("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo "+
-                            BASE_URL + custIdStr + priceRangeStr + sellerIdStr);
-                    System.out.println("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo "+
-                            BASE_URL + custIdStr + priceRangeStr + sellerIdStr);
+                    Logger.log("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo " +
+                            HTMLParseUtils.PRODUCT_LIST_BASE_URL + custIdStr + priceRangeStr + sellerIdStr);
+                    System.out.println("XXXXXXXXXXXXXXXXXXXXXX este intervalo no pudo ser recorrido por completo " +
+                            HTMLParseUtils.PRODUCT_LIST_BASE_URL + custIdStr + priceRangeStr + sellerIdStr);
                     endInterval = true;
                     continue;
                 }//se acabose
 
-                incrementGlobalPageCount();
+                Counters.incrementGlobalPageCount();
                 int since = (page - 1) * itemsInPage + 1;
                 String sinceStr = "_Desde_" + since;
-                String uRL = BASE_URL +  sinceStr + custIdStr + priceRangeStr + sellerIdStr;
+                String uRL = HTMLParseUtils.PRODUCT_LIST_BASE_URL + sinceStr + custIdStr + priceRangeStr + sellerIdStr;
                 if (page == 1) {
-                    uRL = BASE_URL + custIdStr + priceRangeStr + sellerIdStr;
+                    uRL = HTMLParseUtils.PRODUCT_LIST_BASE_URL + custIdStr + priceRangeStr + sellerIdStr;
                 }
 
-                    int retries = 0;
-                    boolean retry=true;
-                    String htmlStringFromPage =null;
+                int retries = 0;
+                boolean retry = true;
+                String htmlStringFromPage = null;
 
-                    while (retry && retries<20) {
-                        retries++;
-                        htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG);
-                        if (htmlStringFromPage!=null){
-                            retry=false;
-                        }else {
-                            try {
-                                httpClient.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            httpClient=null;
-                            httpClient = buildHttpClient();
-                            Logger.log(runnerID+" Error en getHTMLStringFromPage II intento #"+retries+" "+uRL);
-                            try {
-                                Thread.sleep(25000);
-                            } catch (InterruptedException e) {
-                                Logger.log(e);
-                            }
-                        }
-                    }
-                    if (htmlStringFromPage == null) { //suponemos que se terminó
-                        // pero tambien hacemos pausa por si es problema de red
-                        try {
-                            Thread.sleep(5000);
-                        } catch (InterruptedException e) {
-                            Logger.log(e);
-                        }
-                        Logger.log(runnerID+" hmlstring from page is null " + uRL);
+                while (retry && retries < 20) {
+                    retries++;
+                    htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG);
+                    if (htmlStringFromPage != null) {
+                        retry = false;
+                    } else {
                         try {
                             httpClient.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        httpClient=null;
-                        httpClient = buildHttpClient();
-                        endInterval = true;
-                        continue;
+                        httpClient = null;
+                        httpClient = HttpUtils.buildHttpClient();
+                        Logger.log(runnerID + " Error en getHTMLStringFromPage II intento #" + retries + " " + uRL);
+                        try {
+                            Thread.sleep(25000);
+                        } catch (InterruptedException e) {
+                            Logger.log(e);
+                        }
                     }
+                }
+                if (htmlStringFromPage == null) { //suponemos que se terminó
+                    // pero tambien hacemos pausa por si es problema de red
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
+                    Logger.log(runnerID + " hmlstring from page is null " + uRL);
+                    try {
+                        httpClient.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    httpClient = null;
+                    httpClient = HttpUtils.buildHttpClient();
+                    endInterval = true;
+                    continue;
+                }
 
                 htmlStringFromPage = htmlStringFromPage.toString();
                 int resultSectionPos = htmlStringFromPage.indexOf("results-section");
@@ -1236,7 +1286,7 @@ public class MercadoLibre06b extends Thread {
 
                 ArrayList<String> productsURLArrayList = new ArrayList();
                 for (String href : allHrefsOnPage) {
-                    if (href.indexOf(ARTICLE_PREFIX) > 0 && href.indexOf("-_JM") > 0) {
+                    if (href.indexOf(HTMLParseUtils.ARTICLE_PREFIX) > 0 && href.indexOf("-_JM") > 0) {
                         href = href.substring(href.indexOf("http"), href.indexOf("-_JM")) + "-_JM";
                         if (!productsURLArrayList.contains(href)) {
                             productsURLArrayList.add(href);
@@ -1250,11 +1300,9 @@ public class MercadoLibre06b extends Thread {
 
                 int idPos1, idPos2 = 0;
                 for (String productUrl : productsURLArrayList) {
-                    incrementGlobalProductCount();
+                    Counters.incrementGlobalProductCount();
 
-                    idPos1 = productUrl.indexOf(ARTICLE_PREFIX);
-                    idPos2 = idPos1 + 13;
-                    String productId = productUrl.substring(idPos1, idPos2);
+                    String productId = HTMLParseUtils.getProductIdFromURL(productUrl);
 
                     int initPoint = resultListHMTLData.indexOf(productUrl);
                     int nextPoint = resultListHMTLData.length();//just for the last item #48 o #50 depending on the page layout
@@ -1271,116 +1319,36 @@ public class MercadoLibre06b extends Thread {
                         productHTMLdata = productHTMLdata.toString(); //aca le sacamos los caracteres de control que impiden hacer los search dentro del string
                     }
 
-                    int titlePos1 = productHTMLdata.indexOf("main-title\">") + 12;
-                    int titlePos2 = productHTMLdata.indexOf("<", titlePos1);
-                    String title = productHTMLdata.substring(titlePos1, titlePos2);
+                    String title = HTMLParseUtils.getTitle2(productHTMLdata);
                     if (title != null) {
                         title = title.trim();
                     } else {
-                        Logger.log(runnerID+" null title on page " + page + " url " + uRL);
+                        Logger.log(runnerID + " null title on page " + page + " url " + uRL);
                     }
 
-                    int discount = 0;
-                    int discountPos1=productHTMLdata.indexOf("item__discount"); //procesando descuento opcional
-                    if (discountPos1>0){ //optional field
-                        discountPos1+=17;
-                        int discountPos2=productHTMLdata.indexOf("%",discountPos1);
-                        String discountStr = productHTMLdata.substring(discountPos1, discountPos2);
-                        try {
-                            discount = Integer.parseInt(discountStr);
-                        } catch (NumberFormatException e) {
-                            Logger.log(runnerID+" I couldn't get the discount on " + productUrl);
-                            Logger.log(e);
-                        }
+                    int discount = HTMLParseUtils.getDiscount2(productHTMLdata);
+                    if (discount < 0) {
+                        Logger.log(runnerID + " I couldn't get the discount on " + productUrl);
                     }
 
-                    int shipping=0;
-                    if (productHTMLdata.indexOf(SHIPPING1_LABEL)>0){
-                        shipping=1;
-                    }else {
-                        if (productHTMLdata.indexOf(FREE_SHIPPING1_LABEL)>0){
-                            shipping=101;
-                        }
-                    }
-                    //todo ENVIO EXPRESS
-/*
-                    boolean shipping2=productHTMLdata.indexOf(SHIPPING2_LABEL)>0;
-                    boolean shipping3=productHTMLdata.indexOf(SHIPPING3_LABEL)>0;
-                    boolean freeShipping2=productHTMLdata.indexOf(FREE_SHIPPING2_LABEL)>0;
-                    boolean freeShipping3=productHTMLdata.indexOf(FREE_SHIPPING3_LABEL)>0;
-*/
+                    int shipping = HTMLParseUtils.getShipping(productHTMLdata);
 
-                    boolean premium=false;
-                    if (productHTMLdata.indexOf(INTEREST_FREE_PAYMENTS_LABEL)>0) {
-                        premium = true;
+                    boolean premium = HTMLParseUtils.getPremium(productHTMLdata);
+
+                    double price = HTMLParseUtils.getPrice2(productHTMLdata);
+                    if (price == 0) {
+                        Logger.log(runnerID + " I couldn't get the price on " + productUrl);
                     }
 
-
-                    int pricePos1 = productHTMLdata.indexOf("price__fraction\">") + 17;
-                    int pricePos2 = productHTMLdata.indexOf("<", pricePos1);
-                    String priceStr = productHTMLdata.substring(pricePos1, pricePos2);
-                    if (priceStr != null) {
-                        //sacamos los puntos de miles para que no confunda con decimales
-                        priceStr = priceStr.replace(".", "");
-                        priceStr = priceStr.trim();
-                    }
-
-                    String priceDecimalsStr = null;
-                    int priceDecimalPos1 = productHTMLdata.indexOf("price__decimals\">");
-                    if (priceDecimalPos1 >= 0) { //el tag de decimales puede no estar
-                        priceDecimalPos1 += 17; //le sumo los caracteres de posicion de "price__decimals">
-                        int priceDecimalPos2 = productHTMLdata.indexOf("<", priceDecimalPos1);
-                        priceDecimalsStr = productHTMLdata.substring(priceDecimalPos1, priceDecimalPos2);
-                        if (priceDecimalsStr != null) {
-                            priceDecimalsStr = priceDecimalsStr.trim();
-                        }
-                    }
-
-                    Double price = null;
-                    try {
-                        price = Double.parseDouble(priceStr);
-                        if (priceDecimalsStr != null) {
-                            price += Double.parseDouble(priceDecimalsStr) / 100;
-                        }
-                    } catch (NumberFormatException e) {
-                        Logger.log(runnerID+" I couldn't get the price on " + productUrl);
-                        Logger.log(e);
-                    }
+                    boolean isUsed = HTMLParseUtils.isUsed2(productHTMLdata);
 
                     int totalSold = 0;
-                    boolean isUsed = false;
-                    if (productHTMLdata.indexOf("Usado") > 0) {
-                        isUsed = true;
-                    }
-
-                    int soldPos1 = productHTMLdata.indexOf("item__condition\">") + 17;
-                    if (soldPos1 > 0) {//puede ser que no vendió o es usado
-                        int soldPos2 = productHTMLdata.indexOf("</div>", soldPos1);
-                        if (soldPos2 > 0) {
-                            String soldStr = productHTMLdata.substring(soldPos1, soldPos2);
-                            //parseo doble, primero ubicamos el div y despue vemos que su contenido tenga la palabra vendidos
-                            if (soldStr != null && soldStr.lastIndexOf("vendido") > 0) {
-                                soldPos2 = productHTMLdata.indexOf("vendido", soldPos1);
-                                if (soldPos2 > 0) {
-                                    soldStr = productHTMLdata.substring(soldPos1, soldPos2);
-                                    if (soldStr != null) {
-                                        soldStr = soldStr.trim();
-                                        try {
-                                            totalSold = Integer.parseInt(soldStr);
-                                        } catch (NumberFormatException e) {
-                                            if (!isUsed) {
-                                                Logger.log("I couldn't get total sold on " + productUrl);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     String htmlStringFromProductPage = null;
-                    if (totalSold == 0 && isUsed) {
-                        htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl,httpClient,DEBUG);
+
+                    if (!isUsed) {
+                        totalSold = HTMLParseUtils.getTotalSold2(productHTMLdata);
+                    } else {
+                        htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
                         if (htmlStringFromProductPage == null) {
                             // hacemos pausa por si es problema de red
                             try {
@@ -1388,87 +1356,55 @@ public class MercadoLibre06b extends Thread {
                             } catch (InterruptedException e) {
                                 Logger.log(e);
                             }
-                            Logger.log(runnerID+" hmlstring from page 2 is null " + uRL);
+                            Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
                             try {
                                 httpClient.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            httpClient=null;
-                            httpClient = buildHttpClient();
+                            httpClient = null;
+                            httpClient = HttpUtils.buildHttpClient();
                             continue; //ignoramos este item
-                        }else {
-                            soldPos1 = htmlStringFromProductPage.indexOf("item-conditions\">") + 18;
-                            if (soldPos1 > 18) {
-                                soldPos1 = htmlStringFromProductPage.indexOf("Usado")+5;
-                                if (soldPos1>5) {
-                                    soldPos1=htmlStringFromProductPage.indexOf("&nbsp;-&nbsp;", soldPos1)+13;
-                                    if (soldPos1>13) {
-                                        int soldPos2 = htmlStringFromProductPage.indexOf("vendido", soldPos1);
-                                        if (soldPos2 > 0) {
-                                            String soldStr = htmlStringFromProductPage.substring(soldPos1, soldPos2);
-                                            if (soldStr != null) {
-                                                soldStr = soldStr.trim();
-                                                try {
-                                                    totalSold = Integer.parseInt(soldStr);
-                                                } catch (NumberFormatException e) {
-                                                    Logger.log("I couldn't get total sold on " + productUrl);
-                                                    continue;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                        } else {
+                            totalSold = HTMLParseUtils.getTotalSold(htmlStringFromProductPage, productUrl);
+                            if (totalSold == -1) {//error
+                                continue;
                             }
                         }
                     }
 
-                    ///////////////////////// fin get total sold from product page
 
+                    int reviews = HTMLParseUtils.getReviews2(productHTMLdata);
+                    if (reviews < 0) {
+                        reviews = 0;
+                        Logger.log(runnerID + " I couldn't get the reviews on " + productUrl);
+                    }
 
-                    int reviews = 0;
                     double stars = 0.0;
-                    int reviewsPos1 = productHTMLdata.indexOf("reviews-total\">");
-                    if (reviewsPos1 >= 0) {// puede ser que no tenga reviews
-                        reviewsPos1 += 15;
-                        int reviewsPos2 = productHTMLdata.indexOf("<", reviewsPos1);
-                        String reviewsStr = productHTMLdata.substring(reviewsPos1, reviewsPos2);
-                        if (reviewsStr != null) {
-                            reviewsStr = reviewsStr.trim();
-                            if (reviewsStr.length() > 0) {
-                                try {
-                                    reviews = Integer.parseInt(reviewsStr);
-                                } catch (NumberFormatException e) {
-                                    Logger.log(runnerID+" I couldn't get reviews on " + reviewsStr);
-                                    Logger.log(e);
-                                }
-                                String allStarsStr = StringUtils.substringBetween(productHTMLdata, "<div class=\"stars\">", "<div class=\"item__reviews-total\">");
-                                if (allStarsStr != null) {
-                                    stars = allStarsStr.split("star-icon-full").length - 1 * 1.0;
-                                    boolean halfStar = allStarsStr.indexOf("star-icon-half") > 0;
-                                    if (halfStar) {
-                                        stars += 0.5;
-                                    }
-                                }
-                            }
+                    if (reviews > 0) {
+                        stars = HTMLParseUtils.getStars2(productHTMLdata);
+                        if (stars < 0.0) {
+                            stars = 0.0;
+                            Logger.log(runnerID + " I couldn't get the stars on " + productUrl);
                         }
                     }
 
-                    String msg = runnerID+" processing page " + page + " | " + productId + " | " + totalSold + " | " + reviews + " | " + stars + " | " + price + " | " + title + " | " + productUrl;
+
+                    String msg = runnerID + " processing page " + page + " | " + productId + " | " + totalSold + " | " + reviews + " | " + stars + " | " + price + " | " + title + " | " + productUrl;
                     System.out.println(msg);
 
                     if (totalSold >= MINIMUM_SALES) { //si no figura venta no le doy bola
-                        Date lastUpdate = lastUpdate(productId);
+                        Date lastUpdate = lastUpdate(productId, DATABASE);
                         if (lastUpdate != null) {//producto existente
                             if (!ONLY_ADD_NEW_PRODUCTS) { //ignora los updates
                                 boolean sameDate = isSameDate(lastUpdate, getGlobalDate());
                                 if (!sameDate || (sameDate && OVERRIDE_TODAYS_RUN)) { //actualizar
-                                    int previousTotalSold = getTotalSold(productId);
+                                    int previousTotalSold = getTotalSold(productId, DATABASE);
                                     if (totalSold != previousTotalSold) { //actualizar
                                         int newSold = totalSold - previousTotalSold;
 
                                         if (htmlStringFromProductPage == null) {
-                                            htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
+                                            htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
                                             if (htmlStringFromProductPage == null) {
                                                 // hacemos pausa por si es problema de red
                                                 try {
@@ -1483,116 +1419,40 @@ public class MercadoLibre06b extends Thread {
                                                     e.printStackTrace();
                                                 }
                                                 httpClient = null;
-                                                httpClient = buildHttpClient();
+                                                httpClient = HttpUtils.buildHttpClient();
                                                 continue;
                                                 //ignoramos este item
                                             }
                                         }
 
-                                        boolean officialStore=false;
-                                        int officialStorePos1=htmlStringFromProductPage.indexOf(OFICIAL_STORE_LABEL);
-                                        if (officialStorePos1>=0){
-                                            officialStore=true;
-                                        }
+                                        boolean officialStore = HTMLParseUtils.getOfficialStore(htmlStringFromProductPage);
 
-                                        String seller=null;
-                                        int sellerPos1,sellerPos2;
-                                        if (officialStore){
-                                            sellerPos1 = htmlStringFromProductPage.indexOf("official-store-info");
-                                            if (sellerPos1>0){
-                                                sellerPos1=htmlStringFromProductPage.indexOf("title",sellerPos1);
-                                                sellerPos1+=7;
-                                                sellerPos2=htmlStringFromProductPage.indexOf("<",sellerPos1);
-                                                seller=htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
-                                            }
-                                        }else {
-                                            int sellerPos0 = htmlStringFromProductPage.indexOf("reputation-info");
-                                            if (sellerPos0 > 0) {
-                                                sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL, sellerPos0);
-                                                if (sellerPos1 > 0) {
-                                                    sellerPos1 += 35;
-                                                    sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
-                                                    if (sellerPos2 > 0) {
-                                                        seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        if (seller == null) {
-                                            msg = "No se pudo encontrar al venedor " + productUrl;
-                                            System.out.println(msg);
-                                            Logger.log(msg);
-                                        }else {
-                                            seller=formatSeller(seller);
-                                        }
+                                        String seller = HTMLParseUtils.getSeller(htmlStringFromProductPage, officialStore, productUrl);
 
-                                        String lastQuestion=null;
-                                        int lastQuestionPos1=htmlStringFromProductPage.indexOf("questions__content");
-                                        if (lastQuestionPos1>0) {
-                                            lastQuestionPos1 = htmlStringFromProductPage.indexOf("p>",lastQuestionPos1)+2;
-                                            int lastQuestionPos2=htmlStringFromProductPage.indexOf("</p>",lastQuestionPos1);
-                                            lastQuestion=htmlStringFromProductPage.substring(lastQuestionPos1,lastQuestionPos2);
-                                            if (lastQuestion!=null){
-                                                lastQuestion=lastQuestion.trim();
-                                            }
-                                        }
+                                        String lastQuestion = HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
+                                        String previousLastQuestion = getLastQuestion(productId, DATABASE);
+                                        ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(htmlStringFromProductPage, productUrl, httpClient, runnerID, DEBUG, previousLastQuestion);
+                                        int newQuestions = newQuestionsList.size();
 
-                                        int newQuestions = 0;
+                                        Counters.incrementGlobalNewsCount();
 
-                                        incrementGlobalNewsCount();
-
-                                        String previousLastQuestion = getLastQuestion(productId);
-
-                                        String questionsURL=QUESTIONS_BASE_URL+ARTICLE_PREFIX+productId.substring(4);
-                                        String htmlStringFromQuestionsPage = HttpUtils.getHTMLStringFromPage(questionsURL,httpClient,DEBUG);
-                                        if (htmlStringFromQuestionsPage == null) {
-                                            // hacemos pausa por si es problema de red
-                                            try {
-                                                Thread.sleep(5000);
-                                            } catch (InterruptedException e) {
-                                                Logger.log(e);
-                                            }
-                                            Logger.log(runnerID+" hmlstring from page 2 is null " + uRL);
-                                            try {
-                                                httpClient.close();
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
-                                            httpClient=null;
-                                            httpClient = buildHttpClient();
-                                            //endInterval = true;
-                                            //continue;
-                                        }else {//procesamos las preguntas
-                                            String[] allquestionsOnPage = StringUtils.substringsBetween(htmlStringFromQuestionsPage, "<p>", "</p>");
-                                            if (allquestionsOnPage != null) { //todo check
-                                                int j=0;
-                                                for (String question: allquestionsOnPage){
-                                                    if (lastQuestion==null){
-                                                        lastQuestion=question;
-                                                    }
-                                                    if (question.equals(previousLastQuestion)){
-                                                        newQuestions=j;
-                                                        break;
-                                                    }
-                                                    j++;
-                                                }
-                                            }
-                                        }
-
-                                        msg = runnerID+" new sale. productID: " + productId + " quantity: " + newSold;
+                                        msg = runnerID + " new sale. productID: " + productId + " quantity: " + newSold;
                                         System.out.println(msg);
                                         Logger.log(msg);
+
                                         if (SAVE) {
                                             updateProductAddActivity(productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, shipping, discount, premium);
                                         }
+                                    } else {//no vendió esta semana
+                                        addProcesedProductToList(productId);
                                     }
                                 }
                             }
                         } else { //agregar vendedor
 
                             if (htmlStringFromProductPage == null) {
-                                htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
+                                htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
                                 if (htmlStringFromProductPage == null) {
                                     // hacemos pausa por si es problema de red
                                     try {
@@ -1606,64 +1466,24 @@ public class MercadoLibre06b extends Thread {
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
-                                    httpClient = null;
-                                    httpClient = buildHttpClient();
+                                    httpClient = HttpUtils.buildHttpClient();
                                     continue;
                                     //ignoramos este item
                                 }
                             }
 
-                            boolean officialStore=false;
-                            int officialStorePos1=htmlStringFromProductPage.indexOf(OFICIAL_STORE_LABEL);
-                            if (officialStorePos1>=0){
-                                officialStore=true;
-                            }
+                            boolean officialStore = HTMLParseUtils.getOfficialStore(htmlStringFromProductPage);
 
-                            String seller=null;
-                            int sellerPos1,sellerPos2;
-                            if (officialStore){
-                                sellerPos1 = htmlStringFromProductPage.indexOf("official-store-info");
-                                if (sellerPos1>0){
-                                    sellerPos1=htmlStringFromProductPage.indexOf("title",sellerPos1);
-                                    sellerPos1+=7;
-                                    sellerPos2=htmlStringFromProductPage.indexOf("<",sellerPos1);
-                                    seller=htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
-                                }
-                            }else {
-                                sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL);
-                                if (sellerPos1 > 0) {
-                                    sellerPos1 += 35;
-                                    sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
-                                    if (sellerPos2 > 0) {
-                                        seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
-                                    }
-                                }
-                            }
-                            if (seller == null) {
-                                msg = "No se pudo encontrar al venedor " + productUrl;
-                                System.out.println(msg);
-                                Logger.log(msg);
-                            }else {
-                                seller=formatSeller(seller);
-                            }
+                            String seller = HTMLParseUtils.getSeller(htmlStringFromProductPage, officialStore, productUrl);
 
-                            String lastQuestion=null;
-                            int lastQuestionPos1=htmlStringFromProductPage.indexOf("questions__content");
-                            if (lastQuestionPos1>0) {
-                                lastQuestionPos1 = htmlStringFromProductPage.indexOf("p>",lastQuestionPos1)+2;
-                                int lastQuestionPos2=htmlStringFromProductPage.indexOf("</p>",lastQuestionPos1);
-                                lastQuestion=htmlStringFromProductPage.substring(lastQuestionPos1,lastQuestionPos2);
-                                if (lastQuestion!=null){
-                                    lastQuestion=lastQuestion.trim();
-                                }
-                            }
+                            String lastQuestion = HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
+                            Counters.incrementGlobalNewsCount();
 
-                            incrementGlobalNewsCount();
-
-                            msg = runnerID+" new product ID: " + productId + " Total Sold: " + totalSold;
+                            msg = runnerID + " new product ID: " + productId + " Total Sold: " + totalSold;
                             System.out.println(msg);
                             Logger.log(msg);
+
                             if (SAVE) {
                                 insertProduct(productId, seller, totalSold, lastQuestion, productUrl, officialStore);
                             }
@@ -1674,7 +1494,7 @@ public class MercadoLibre06b extends Thread {
         }
 
 
-        String msg="XXXXXXXXXXXXXX Este es el fin "+runnerID;
+        String msg = "XXXXXXXXXXXXXX Este es el fin " + runnerID;
         System.out.println(msg);
         Logger.log(msg);
         try {
@@ -1682,25 +1502,22 @@ public class MercadoLibre06b extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        httpClient=null;
+        httpClient = null;
     }
 
-    private static String formatSeller(String seller) {
-        try {//decode seller url
-            seller = URLDecoder.decode(seller, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            Logger.log("something went wrong trying to decode the seller " + seller);
-            Logger.log(e);
-        }
-        return seller;
-    }
-
-    private static synchronized boolean isSameDate(Date date1, Date date2){
+    private static synchronized boolean isSameDate(Date date1, Date date2) {
         globalCalendar1.setTime(date1);
         globalCalendar2.setTime(date2);
         boolean sameDay = globalCalendar1.get(Calendar.YEAR) == globalCalendar2.get(Calendar.YEAR) &&
                 globalCalendar1.get(Calendar.DAY_OF_YEAR) == globalCalendar2.get(Calendar.DAY_OF_YEAR);
         return sameDay;
+    }
+
+    private synchronized void addProcesedProductToList(String productId) {
+        if (globalProcesedProductList == null) {
+            globalProcesedProductList = new ArrayList<String>();
+        }
+        globalProcesedProductList.add(productId);
     }
 
 }
