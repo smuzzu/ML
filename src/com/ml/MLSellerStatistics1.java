@@ -129,7 +129,7 @@ public class MLSellerStatistics1 extends Thread {
             String url = "jdbc:postgresql://localhost:5432/" + DATABASE;
             Properties props = new Properties();
             props.setProperty("user", "postgres");
-            props.setProperty("password", "postgres");
+            props.setProperty("password", "password");
             try {
                 globalUpadteConnection = DriverManager.getConnection(url, props);
                 globalUpadteConnection.setAutoCommit(true);

@@ -492,7 +492,7 @@ public class MercadoLibre06c extends Thread {
         int count = 0;
 
         ArrayList<String> fiftyProductIDs = new ArrayList<String>();
-        ArrayList<Thread> threadArrayList = new ArrayList<Thread>(); //mover al anterior
+        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
 
 
         for (String productId : allProductIDs) {
@@ -517,14 +517,19 @@ public class MercadoLibre06c extends Thread {
                 e.printStackTrace();
             }
         }
-        VisitCounter aVisitCounter = (VisitCounter) threadArrayList.get(0);
-
         //clone
-        ArrayList<String> zeroVisitsList = new ArrayList<String>();
-        for (String productIdWithZeroVisits : aVisitCounter.getZeroVisitsList()) {
-            zeroVisitsList.add(productIdWithZeroVisits);
+        ArrayList<String> zeroVisitsList=new ArrayList<String>();
+        if (threadArrayList.size()>0){
+            VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
+            for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
+                zeroVisitsList.add(productIdWithZeroVisits);
+            }
+            aVisitCounter.resetZeroVisitsList();
+        }else {
+            String msg="No product with 0 vitists";
+            System.out.println(msg);
+            Logger.log(msg);
         }
-        aVisitCounter.resetZeroVisitsList();
 
         return zeroVisitsList;
 
@@ -650,7 +655,7 @@ public class MercadoLibre06c extends Thread {
         }
 
         if (!ONLY_ADD_NEW_PRODUCTS) {
-            processPossiblyPausedProducts(DATABASE);
+            //processPossiblyPausedProducts(DATABASE);
         }
 
         //updateVisits(DATABASE); esto lo hacemos en el otro, al final
@@ -948,8 +953,7 @@ public class MercadoLibre06c extends Thread {
 
     private static void processPossiblyPausedProducts(String database) {
 
-        String msg = "*** Procesando pausados  / novedades antes del proceso " + Counters.getGlobalNewsCount();
-        ;
+        String msg="*** Procesando pausados  / novedades antes del proceso "+Counters.getGlobalNewsCount();;
         System.out.println(msg);
         Logger.log(msg);
 
@@ -979,12 +983,16 @@ public class MercadoLibre06c extends Thread {
             Date previousWeekRunDate = rs.getDate(1);
 
             //option 1
-            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<?;");
+            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<? and deshabilitado=false");
             globalSelectPossiblyPaused.setDate(1, globalDate);
 
             //option 2
-            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate=? and proveedor in ('ACACIAYLENGA','PRIMERO UNO','MISIONLIVE') ;");
-            globalSelectPossiblyPaused.setDate(1, previousWeekRunDate);
+            //globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate=? and deshabilitado=false");
+            //globalSelectPossiblyPaused.setDate(1, previousWeekRunDate);
+
+            msg="revisando pausados "+" - "+ globalSelectPossiblyPaused.toString();
+            System.out.println(msg);
+            Logger.log(msg);
 
             ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
             if (rs2 == null) {
@@ -1004,6 +1012,10 @@ public class MercadoLibre06c extends Thread {
             Logger.log(e);
         }
         //return possiblyPausedProductList;
+
+        msg="posibles pausados: "+possiblyPausedProductList.size()+" de "+globalProcesedProductList.size();
+        System.out.println(msg);
+        Logger.log(msg);
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
         long currentTime;
@@ -1033,7 +1045,6 @@ public class MercadoLibre06c extends Thread {
                     System.exit(0);
                 }
             }
-
             for (Thread thread : threadArrayList) {
                 try {
                     thread.join();
@@ -1041,9 +1052,7 @@ public class MercadoLibre06c extends Thread {
                     e.printStackTrace();
                 }
             }
-
         }
-
     }
 
 
@@ -1190,6 +1199,7 @@ public class MercadoLibre06c extends Thread {
                 if (page == 1) {
                     uRL = baseURL + priceRangeStr;
                 }
+                uRL+="_DisplayType_G";
 
                 int retries = 0;
                 boolean retry = true;
@@ -1292,8 +1302,9 @@ public class MercadoLibre06c extends Thread {
                     String title = HTMLParseUtils.getTitle2(productHTMLdata);
                     if (title != null) {
                         title = title.trim();
-                    } else {
-                        Logger.log(runnerID + " null title on page " + page + " url " + uRL);
+                        }
+                        if (title==null || title.length()==0) {
+                            Logger.log(runnerID+" invalid title on page " + page + " url " + uRL);
                     }
 
                     int discount = HTMLParseUtils.getDiscount2(productHTMLdata);

@@ -1,12 +1,16 @@
 package com.ml.utils;
 
 import com.ml.MercadoLibre01;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Properties;
 
 public class ProductPageProcessor extends Thread {
 
@@ -15,6 +19,7 @@ public class ProductPageProcessor extends Thread {
     private boolean DEBUG;
     private String DATABASE;
 
+    static Connection globalUpadteConnection2 = null;
 
     public ProductPageProcessor(String url, boolean SAVE, boolean DEBUG, String DATABASE){
         this.url=url;
@@ -27,19 +32,18 @@ public class ProductPageProcessor extends Thread {
     public void run() {
         String runnerID = "R" + Counters.getGlobalRunnerCount();
 
-        String msg = null;
+        String msg = runnerID + " procesando posible pausado "+ url;
         if (DEBUG) {
-            msg = "XXXXXXXXXXXXXX Iniciando " + runnerID;
             System.out.println(msg);
-            Logger.log(msg);
         }
+        Logger.log(msg);
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
         int retries = 0;
         String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG);
 
-        while (htmlString == null && retries < 5) {
+        while (htmlString == null && retries < 2) { // TODO VOLVER A 5 intentos ****************
             retries++;
             // hacemos pausa por si es problema de red
             try {
@@ -47,7 +51,7 @@ public class ProductPageProcessor extends Thread {
             } catch (InterruptedException e) {
                 Logger.log(e);
             }
-            Logger.log(runnerID + " hmlstring from page visits is null " + url);
+            Logger.log(runnerID + " hmlstring from possible paused page is null " + url);
             try {
                 httpClient.close();
             } catch (IOException e) {
@@ -58,19 +62,27 @@ public class ProductPageProcessor extends Thread {
             htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG);
         }
 
+        boolean disable=false;
         if (htmlString == null) {
             httpClient = null;
-            return;
+            disable=true;
         }
-
+        if (htmlString.indexOf("viendo una nueva publicaci")>0){//hubo un redirect a otra cosa
+            disable=true;
+        }
         int totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
-        if (totalSold == -1) {
-            return;
+        if (totalSold <=-0) {
+            disable=true;
         }
 
         String productId = HTMLParseUtils.getProductIdFromURL(url);
+
+        if (disable){
+            disableProduct(productId,DATABASE);
+        }
+
         int previousTotalSold = MercadoLibre01.getTotalSold(productId, DATABASE);
-        if (totalSold != previousTotalSold) { //actualizar
+        if (totalSold>0 && totalSold != previousTotalSold) { //actualizar
             int newSold = totalSold - previousTotalSold;
 
             boolean officialStore=HTMLParseUtils.getOfficialStore(htmlString);
@@ -106,35 +118,6 @@ public class ProductPageProcessor extends Thread {
             System.out.println(msg);
             Logger.log(msg);
 
-            if (officialStore){
-                boolean b = false;
-            }
-            if (premium){
-                boolean b = false;
-            }
-            if (productId==null || seller==null || url==null || title==null){
-                boolean b = false;
-            }
-            if (totalSold==0 || newSold==0){
-                boolean b = false;
-            }
-            if (shipping!=0){
-                boolean b = false;
-            }
-            if (newQuestions==0){
-                boolean b = false;
-            }
-            if (reviews>0 && stars==0) {
-                boolean b = false;
-            }
-            if (price==0){
-                boolean b = false;
-            }
-            if (discount>0){
-                boolean b = false;
-            }
-
-
             if (SAVE) {
                 MercadoLibre01.updateProductAddActivity(productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
             }
@@ -143,6 +126,50 @@ public class ProductPageProcessor extends Thread {
 
 
     }
+
+    private static synchronized Connection getUpdateConnection(String database) {
+        if (globalUpadteConnection2 == null) {
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "jdbc:postgresql://localhost:5432/" + database;
+            Properties props = new Properties();
+            props.setProperty("user", "postgres");
+            props.setProperty("password", "password");
+            try {
+                globalUpadteConnection2 = DriverManager.getConnection(url, props);
+                globalUpadteConnection2.setAutoCommit(true);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make an update connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalUpadteConnection2;
+    }
+
+    private static synchronized void disableProduct(String productId,String database){
+        int registrosModificados=0;
+        Connection updateConnection=getUpdateConnection(database);
+        try {
+            PreparedStatement preparedStatement = updateConnection.prepareStatement("update productos set deshabilitado = true where id = ?");
+            preparedStatement.setString(1, productId);
+            registrosModificados = preparedStatement.executeUpdate();
+            //incrementGlobalDisableCount();
+        } catch (SQLException e) {
+            Logger.log("Error deshabilitando producto "+productId);
+            Logger.log(e);
+        }
+
+        if (registrosModificados < 1) {
+            Logger.log("Couldn't no pudo deshabilitar ningun producto de empresa " + productId);
+        }
+
+    }
+
+
 
 
 }
