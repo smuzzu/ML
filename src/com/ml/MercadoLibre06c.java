@@ -103,9 +103,9 @@ public class MercadoLibre06c extends Thread {
     static Calendar globalCalendar1 = null;
     static Calendar globalCalendar2 = null;
 
-    static int MAX_THREADS = 20;//14
+    static int MAX_THREADS = 14;//14
     static boolean OVERRIDE_TODAYS_RUN = false;
-    static boolean SAVE = false;
+    static boolean SAVE = true;
     static boolean DEBUG = false;
     static boolean FOLLOWING_DAY = true;
     static boolean PRERVIOUS_DAY = false;
@@ -126,7 +126,6 @@ public class MercadoLibre06c extends Thread {
     static PreparedStatement globalSelectProduct = null;
     static PreparedStatement globalSelectTotalSold = null;
     static PreparedStatement globalSelectLastQuestion = null;
-    static PreparedStatement globalSelectPossiblyPaused = null;
     static PreparedStatement globalUpdateVisits = null;
 
 
@@ -655,14 +654,14 @@ public class MercadoLibre06c extends Thread {
         }
 
         if (!ONLY_ADD_NEW_PRODUCTS) {
-            //processPossiblyPausedProducts(DATABASE);
+           ProductPageProcessor.processPossiblyPausedProducts(DATABASE,getSelectConnection(DATABASE),getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
         }
 
         //updateVisits(DATABASE); esto lo hacemos en el otro, al final
 
-        String msg = "******************************************************\n"
-                + Counters.getGlobalPageCount() + " paginas procesadas\n "
-                + Counters.getGlobalProductCount() + " productos procesados\n "
+        String msg = "******************************************************\r\n"
+                + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
+                + Counters.getGlobalProductCount() + " productos procesados\r\n "
                 + Counters.getGlobalNewsCount() + " productos con novedades";
         System.out.println(msg);
         Logger.log(msg);
@@ -951,111 +950,6 @@ public class MercadoLibre06c extends Thread {
     }
 
 
-    private static void processPossiblyPausedProducts(String database) {
-
-        String msg="*** Procesando pausados  / novedades antes del proceso "+Counters.getGlobalNewsCount();;
-        System.out.println(msg);
-        Logger.log(msg);
-
-        Connection connection = getSelectConnection(database);
-
-        String productId = null;
-        String productUrl = null;
-        ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
-        try {
-            PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
-            ResultSet rs = datesPreparedStatement.executeQuery();
-            if (rs == null) {
-                msg = "Error getting dates B";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            if (!rs.next()) {
-                msg = "Error getting dates B II";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            if (!rs.next()) {
-                msg = "Error getting dates B III";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            Date previousWeekRunDate = rs.getDate(1);
-
-            //option 1
-            globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<? and deshabilitado=false");
-            globalSelectPossiblyPaused.setDate(1, globalDate);
-
-            //option 2
-            //globalSelectPossiblyPaused = connection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate=? and deshabilitado=false");
-            //globalSelectPossiblyPaused.setDate(1, previousWeekRunDate);
-
-            msg="revisando pausados "+" - "+ globalSelectPossiblyPaused.toString();
-            System.out.println(msg);
-            Logger.log(msg);
-
-            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
-            if (rs2 == null) {
-                Logger.log("Couldn't get Possibly Paused Products");
-                return;
-            }
-
-            while (rs2.next()) {
-                productId = rs2.getString(1);
-                if (!globalProcesedProductList.contains(productId)) {
-                    productUrl = rs2.getString(2);
-                    possiblyPausedProductList.add(productUrl);
-                }
-            }
-        } catch (SQLException e) {
-            Logger.log("Couldn't get Possibly Paused Products II");
-            Logger.log(e);
-        }
-        //return possiblyPausedProductList;
-
-        msg="posibles pausados: "+possiblyPausedProductList.size()+" de "+globalProcesedProductList.size();
-        System.out.println(msg);
-        Logger.log(msg);
-
-        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
-        long currentTime;
-        long timeoutTime;
-
-        Counters.initGlobalRunnerCount();
-        for (String url : possiblyPausedProductList) {
-            //processArticle(url,0,possiblyPausedProductList,)
-
-
-            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, SAVE, DEBUG, DATABASE);
-            threadArrayList.add(productPageProcessor);
-            productPageProcessor.start();
-            currentTime = System.currentTimeMillis();
-            timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
-
-            while (MAX_THREADS < (Thread.activeCount() - 1)) {
-
-                try {
-                    Thread.sleep(10l);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                currentTime = System.currentTimeMillis();
-                if (currentTime > timeoutTime) {
-                    System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar un producto pausado entre " + MAX_THREADS + " visitas");
-                    System.exit(0);
-                }
-            }
-            for (Thread thread : threadArrayList) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-
     private static Connection getSelectConnection(String database) {
         if (globalSelectConnection == null) {
 
@@ -1208,7 +1102,7 @@ public class MercadoLibre06c extends Thread {
                 while (retry && retries < 20) {
                     retries++;
                     htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG);
-                    if (htmlStringFromPage != null) {
+                    if (HttpUtils.isOK(htmlStringFromPage)) {
                         retry = false;
                     } else {
                         try {
@@ -1226,7 +1120,7 @@ public class MercadoLibre06c extends Thread {
                         }
                     }
                 }
-                if (htmlStringFromPage == null) { //suponemos que se terminó
+                if (!HttpUtils.isOK(htmlStringFromPage)) { //suponemos que se terminó
                     // pero tambien hacemos pausa por si es problema de red
                     try {
                         Thread.sleep(5000);
@@ -1330,7 +1224,7 @@ public class MercadoLibre06c extends Thread {
                         totalSold = HTMLParseUtils.getTotalSold2(productHTMLdata);
                     } else {
                         htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
-                        if (htmlStringFromProductPage == null) {
+                        if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                             // hacemos pausa por si es problema de red
                             try {
                                 Thread.sleep(5000);
@@ -1384,9 +1278,9 @@ public class MercadoLibre06c extends Thread {
                                     if (totalSold != previousTotalSold) { //actualizar
                                         int newSold = totalSold - previousTotalSold;
 
-                                        if (htmlStringFromProductPage == null) {
+                                        if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                                             htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
-                                            if (htmlStringFromProductPage == null) {
+                                            if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                                                 // hacemos pausa por si es problema de red
                                                 try {
                                                     Thread.sleep(5000);
@@ -1413,7 +1307,7 @@ public class MercadoLibre06c extends Thread {
                                         String lastQuestion = HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
                                         String previousLastQuestion = getLastQuestion(productId, DATABASE);
-                                        ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(htmlStringFromProductPage, productUrl, httpClient, runnerID, DEBUG, previousLastQuestion);
+                                        ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(productUrl, httpClient, runnerID, DEBUG, previousLastQuestion);
                                         int newQuestions = newQuestionsList.size();
 
                                         Counters.incrementGlobalNewsCount();
@@ -1432,9 +1326,9 @@ public class MercadoLibre06c extends Thread {
                             }
                         } else { //agregar vendedor
 
-                            if (htmlStringFromProductPage == null) {
+                            if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                                 htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
-                                if (htmlStringFromProductPage == null) {
+                                if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                                     // hacemos pausa por si es problema de red
                                     try {
                                         Thread.sleep(5000);

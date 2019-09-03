@@ -26,6 +26,8 @@ import java.util.ArrayList;
 
 public class HttpUtils {
 
+    public static final String URLChanged="urlChanged|";
+
     public static CloseableHttpClient buildHttpClient() {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
@@ -83,7 +85,6 @@ public class HttpUtils {
                     Logger.log(e);
                 }
 
-                if (1 == 1) { //rebuild client on retry?
                     try {
                         client.close();
                     } catch (IOException e) {
@@ -92,33 +93,50 @@ public class HttpUtils {
                     client = null;
                     client = HttpUtils.buildHttpClient();
                 }
-            }/// todo fin
         }
 
         if (statusCode != 200) {
             if ((DEBUG) || (statusCode != 404 && statusCode != 403)) {  //403 y 404 se loguea solo con debug
                 Logger.log("new status code " + statusCode + " " + uRL);
             }
-            return null;
+            return ""+statusCode+"|";
         }
 
         if (isUrlChanged(context, uRL)) {
             if (DEBUG) {
                 Logger.log("url changed " + uRL);
             }
-            return null;
+            return URLChanged;
         }
 
-
-        HttpEntity httpEntity = response.getEntity();
         InputStream inputStream = null;
-        try {
-            inputStream = httpEntity.getContent();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (response!=null) {
+            HttpEntity httpEntity = response.getEntity();
+            try {
+                inputStream = httpEntity.getContent();
+            } catch (IOException e) {
+                Logger.log(e);
+                e.printStackTrace();
+            }
         }
 
-        return getStringFromInputStream(inputStream);
+        if (inputStream!=null) {
+            String responseStr = getStringFromInputStream(inputStream);
+            if (responseStr != null && responseStr.length() > 0) {
+                return "ok|" + responseStr;
+            }
+        }
+
+        return "nullORempty|";
+    }
+
+    public static boolean isOK(String hmlString){
+        if (hmlString!=null && hmlString.length()>1){
+            String result=hmlString.substring(0,2);
+            return result.equals("ok");
+        }
+        return false;
     }
 
     private static String getStringFromInputStream(InputStream is) {
@@ -158,16 +176,23 @@ public class HttpUtils {
         if (newURL == null || newURL.indexOf("NoIndex_True") > 0 || (newURL.indexOf("mercadolibre.com.ar") == -1 && newURL.indexOf("api.mercadolibre.com") == -1)) {
             return true;
         }
+        if (url.indexOf("MLA-")>0){
+            String productId1=HTMLParseUtils.getProductIdFromURL(url);
+            String productId2=HTMLParseUtils.getProductIdFromURL(newURL);
+            if (!productId1.equals(productId2)){
+                return true;
+            }
+        }
 
         return false;
     }
 
-    public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String htmlString, String uRL, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
+    public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(uRL);
-        String htmlStringFromQuestionsPage = HttpUtils.getHTMLStringFromPage(questionsURL, httpClient, DEBUG);
-        if (htmlStringFromQuestionsPage == null) {
+        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG);
+        if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red
             try {
                 Thread.sleep(5000);

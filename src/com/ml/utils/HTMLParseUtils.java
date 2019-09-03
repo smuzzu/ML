@@ -95,11 +95,6 @@ public class HTMLParseUtils {
                     soldPos1 = soldStr.lastIndexOf(">") + 1;
                     if (soldPos1 < 1) {
                         soldPos1 = soldStr.lastIndexOf(";") + 1;
-                        if (soldPos1 < 1) {
-                            String msg = "I couldn't get total sold on I " + productUrl;
-                            System.out.println(msg);
-                            Logger.log(msg);
-                        }
                     }
                     soldStr = soldStr.substring(soldPos1);
                     soldStr = soldStr.replaceAll("\\p{Cntrl}", "");

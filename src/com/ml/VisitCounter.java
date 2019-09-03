@@ -77,7 +77,7 @@ public class VisitCounter extends Thread {
 
         String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG);
 
-        if (htmlString == null) {
+        if (!HttpUtils.isOK(htmlString)) {
             // hacemos pausa por si es problema de red
             try {
                 Thread.sleep(5000);
@@ -95,7 +95,7 @@ public class VisitCounter extends Thread {
         }
 
         htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
-        if (htmlString == null) {
+        if (!HttpUtils.isOK(htmlString)) {
             httpClient=null;
             return;
         }

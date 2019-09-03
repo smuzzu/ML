@@ -347,7 +347,7 @@ public class MLSellerStatistics1 extends Thread {
 
 
 
-            if (htmlString==null){
+            if (!HttpUtils.isOK(htmlString)){
                 String msg = "el vendedor no aparecio de entrada "+seller;
                 if (DEBUG) {
                     System.out.println(msg);
@@ -420,7 +420,7 @@ public class MLSellerStatistics1 extends Thread {
                 }
 
 
-                if (htmlString==null){
+                if (!HttpUtils.isOK(htmlString)){
                     msg="al final el vendedor no aparecio nunca 2 si no es tienda oficial hay que verificar: "+seller;
                     System.out.println(msg);
                     Logger.log(msg);
@@ -1185,7 +1185,7 @@ public class MLSellerStatistics1 extends Thread {
 
             htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient, DEBUG);
 
-            if (htmlString==null) {
+            if (!HttpUtils.isOK(htmlString)) {
                 String msg = "el listado no aparecio de entrada " + productsUrl;
                 if(DEBUG) {
                     System.out.println(msg);
@@ -1208,7 +1208,7 @@ public class MLSellerStatistics1 extends Thread {
                 ////////////////////////////////////////////
 
                 htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient,DEBUG);
-                if (htmlString == null) {
+                if (!HttpUtils.isOK(htmlString)) {
                     if(DEBUG) {
                         msg = "al final el listado no aparecio nunca 2: " + productsUrl;
                         System.out.println(msg);
@@ -1234,7 +1234,7 @@ public class MLSellerStatistics1 extends Thread {
                 }
             }
 
-            if (htmlString==null || htmlString.contains("Escribí en el buscador lo que querés encontrar")){//vendedor inactivo
+            if (!HttpUtils.isOK(htmlString) || htmlString.contains("Escribí en el buscador lo que querés encontrar")){//vendedor inactivo
                 noActivePublications=true;
                 String msg = "Vendedor sin publicaciones activas " + sellerUrl;
                 System.out.println(msg);
@@ -1381,7 +1381,7 @@ public class MLSellerStatistics1 extends Thread {
                     retry=false;
                     retries++;
                     String htmlString3 = HttpUtils.getHTMLStringFromPage(visitUrl, httpClient,DEBUG);
-                    if (htmlString3 != null) {
+                    if (HttpUtils.isOK(htmlString3)) {
                         int pos1 = htmlString3.indexOf("total_visits\":");
                         if (pos1 > 0) {
                             pos1 += 14;
@@ -1518,7 +1518,7 @@ public class MLSellerStatistics1 extends Thread {
 
         for (String url:urls) {
             page=HttpUtils.getHTMLStringFromPage(url,client,DEBUG);
-            if (page!=null){
+            if (HttpUtils.isOK(page)){
                 break;
             }else {
                 //rebuild httpClient
@@ -1655,34 +1655,6 @@ public class MLSellerStatistics1 extends Thread {
         }
 
         return false;
-    }
-
-    private static synchronized String getStringFromInputStream(InputStream is) {
-
-        BufferedReader br = null;
-        StringBuilder sb = new StringBuilder();
-
-        String line;
-        try {
-
-            br = new BufferedReader(new InputStreamReader(is));
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return sb.toString();
     }
 
 
