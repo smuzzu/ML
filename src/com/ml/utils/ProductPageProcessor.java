@@ -1,18 +1,15 @@
 package com.ml.utils;
 
-import com.ml.MercadoLibre01;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Properties;
 
 public class ProductPageProcessor extends Thread {
 
@@ -20,17 +17,20 @@ public class ProductPageProcessor extends Thread {
     private boolean SAVE;
     private boolean DEBUG;
     private String DATABASE;
+    private Date globalDate;
+    private boolean localRun;
 
-    static Connection globalUpadteConnection2 = null;
-    static int MAX_THREADS=17;
+    static int MAX_THREADS=20;
     static int TIMEOUT_MIN=10;
 
 
-    public ProductPageProcessor(String url, boolean SAVE, boolean DEBUG, String DATABASE){
+    public ProductPageProcessor(String url, boolean SAVE, boolean DEBUG, String DATABASE, Date globalDate, boolean localRun){
         this.url=url;
         this.SAVE=SAVE;
         this.DEBUG=DEBUG;
         this.DATABASE=DATABASE;
+        this.globalDate=globalDate;
+        this.localRun=localRun;
     }
 
 
@@ -80,15 +80,16 @@ public class ProductPageProcessor extends Thread {
 
         if (disable){
             msg="Deshabilitando producto "+url;
+            Counters.incrementGlobalDisableCount();
             System.out.println(msg);
             Logger.log(msg);
             if (SAVE) {
-                disableProduct(productId, DATABASE);
+                DatabaseHelper.disableProduct(productId, DATABASE);
             }
             return;
         }
 
-        int previousTotalSold = MercadoLibre01.getTotalSold(productId, DATABASE);
+        int previousTotalSold = DatabaseHelper.fetchTotalSold(productId, DATABASE);
         if (totalSold>0 && totalSold != previousTotalSold) { //actualizar
             int newSold = totalSold - previousTotalSold;
 
@@ -98,7 +99,7 @@ public class ProductPageProcessor extends Thread {
 
             String lastQuestion=HTMLParseUtils.getLastQuestion(htmlString);
 
-            String previousLastQuestion = MercadoLibre01.getLastQuestion(productId,DATABASE);
+            String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId,DATABASE);
             ArrayList<String> newQuestionsList= HttpUtils.getNewQuestionsFromPreviousLastQuestion(url,httpClient,runnerID,DEBUG,previousLastQuestion);
             int newQuestions = newQuestionsList.size();
 
@@ -125,8 +126,8 @@ public class ProductPageProcessor extends Thread {
             System.out.println(msg);
             Logger.log(msg);
 
-            if (SAVE) {
-                MercadoLibre01.updateProductAddActivity(productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
+            if (SAVE && !localRun) {
+                DatabaseHelper.updateProductAddActivity(DATABASE,false,globalDate,productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
             }
 
         }
@@ -134,38 +135,26 @@ public class ProductPageProcessor extends Thread {
 
     }
 
-    private static synchronized Connection getUpdateConnection(String database) {
-        if (globalUpadteConnection2 == null) {
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "jdbc:postgresql://localhost:5432/" + database;
-            Properties props = new Properties();
-            props.setProperty("user", "postgres");
-            props.setProperty("password", "password");
-            try {
-                globalUpadteConnection2 = DriverManager.getConnection(url, props);
-                globalUpadteConnection2.setAutoCommit(true);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make an update connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalUpadteConnection2;
-    }
-
-    public static void processPossiblyPausedProducts(String database,Connection selectConnection, Date globalDate, ArrayList<String> globalProcesedProductList, boolean SAVE, boolean DEBUG) {
+    public static void processPossiblyPausedProducts(String database, Date globalDate, ArrayList<String> globalProcesedProductList, boolean SAVE, boolean DEBUG) {
 
         String msg="*** Procesando pausados  / novedades antes del proceso "+Counters.getGlobalNewsCount();;
         System.out.println(msg);
         Logger.log(msg);
 
+        Connection selectConnection = DatabaseHelper.getSelectConnection(database);
+
         String productId=null;
         String productUrl=null;
         ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
+        boolean localRun=false; //localRun=true do not registerSale
+        if (globalProcesedProductList==null){
+            msg="Error en globalProcesedProductList !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n Procesando toda la base";
+            System.out.println(msg);
+            Logger.log(msg);
+            globalProcesedProductList=new ArrayList<String>();
+            localRun=true;
+        }
+
         try{
             PreparedStatement datesPreparedStatement = selectConnection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
             ResultSet rs = datesPreparedStatement.executeQuery();
@@ -188,7 +177,7 @@ public class ProductPageProcessor extends Thread {
 
             PreparedStatement globalSelectPossiblyPaused = null;
             //option 1
-            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<? and deshabilitado=false");
+            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id,url FROM public.productos WHERE lastupdate<? and deshabilitado=false order by lastupdate");
             globalSelectPossiblyPaused.setDate(1,globalDate);
 
             //option 2
@@ -205,13 +194,6 @@ public class ProductPageProcessor extends Thread {
                 return;
             }
 
-            if (globalProcesedProductList==null){
-                msg="Error en globalProcesedProductList !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n Procesando toda la base";
-                System.out.println(msg);
-                Logger.log(msg);
-                globalProcesedProductList=new ArrayList<String>();
-            }
-
             while (rs2.next()){
                 productId=rs2.getString(1);
                 if (!globalProcesedProductList.contains(productId)) {
@@ -223,7 +205,7 @@ public class ProductPageProcessor extends Thread {
             Logger.log("Couldn't get Possibly Paused Products II");
             Logger.log(e);
         }
-        //return possiblyPausedProductList;
+
         int possiblePausedTotal=0;
         if (globalProcesedProductList!=null){
             possiblePausedTotal=globalProcesedProductList.size();
@@ -238,10 +220,7 @@ public class ProductPageProcessor extends Thread {
 
         Counters.initGlobalRunnerCount();
         for (String url:possiblyPausedProductList){
-            //processArticle(url,0,possiblyPausedProductList,)
-
-
-            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, SAVE, DEBUG, database);
+            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, SAVE, DEBUG, database,globalDate,localRun);
             threadArrayList.add(productPageProcessor);
             productPageProcessor.start();
             currentTime = System.currentTimeMillis();
@@ -268,29 +247,23 @@ public class ProductPageProcessor extends Thread {
                 e.printStackTrace();
             }
         }
+        msg="total de deshabilitados: "+Counters.getGlobalDisableCount();
+        System.out.println(msg);
+        Logger.log(msg);
     }
 
 
 
-    private static synchronized void disableProduct(String productId,String database){
-        int registrosModificados=0;
-        Connection updateConnection=getUpdateConnection(database);
-        try {
-            PreparedStatement preparedStatement = updateConnection.prepareStatement("update productos set deshabilitado = true where id = ?");
-            preparedStatement.setString(1, productId);
-            registrosModificados = preparedStatement.executeUpdate();
-            //incrementGlobalDisableCount();
-        } catch (SQLException e) {
-            Logger.log("Error deshabilitando producto "+productId);
-            Logger.log(e);
-        }
 
-        if (registrosModificados < 1) {
-            Logger.log("Couldn't no pudo deshabilitar ningun producto de empresa " + productId);
-        }
 
+    public static void main(String[] args){
+
+        String DATABASE="ML2";
+        boolean SAVE=true;
+        boolean DEBUG=false;
+        Date globalDate= Date.valueOf("2019-08-21");
+        ProductPageProcessor.processPossiblyPausedProducts(DATABASE, globalDate,null,SAVE,DEBUG);
     }
-
 
 
 

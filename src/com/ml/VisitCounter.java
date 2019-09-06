@@ -5,6 +5,7 @@ package com.ml;
  */
 
 import com.ml.utils.Counters;
+import com.ml.utils.DatabaseHelper;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
@@ -12,7 +13,10 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import com.ml.utils.Logger;
@@ -38,6 +42,9 @@ public class VisitCounter extends Thread {
         this.database=database;
     }
 
+    static int TIMEOUT_MIN = 10;
+    static int MAX_THREADS_VISITS = 30;
+
     public ArrayList<String> getZeroVisitsList(){
         return this.zeroVisitsList;
     }
@@ -47,8 +54,6 @@ public class VisitCounter extends Thread {
     }
 
     private static volatile ArrayList<String> zeroVisitsList=new ArrayList<String>();
-
-    private static PreparedStatement globalUpdateVisits = null;
 
     public void run(){
 
@@ -138,7 +143,7 @@ public class VisitCounter extends Thread {
                 continue;
             }
             if (SAVE) {
-                updateVisits(productId, quantity, date, database);
+                DatabaseHelper.updateVisitOnDatabase(productId, quantity, date, database);
             }
         }
         if (lineLog.length()>0) {
@@ -162,34 +167,153 @@ public class VisitCounter extends Thread {
 
     }
 
-    private static synchronized void updateVisits(String productId,int quantity, Date date, String database){
+    private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
+        int count = 0;
 
-        if (globalUpdateVisits ==null) {
-            Connection connection = MercadoLibre01.getUpdateConnection(database);
+        ArrayList<String> fiftyProductIDs = new ArrayList<String>();
+        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
+
+
+        for (String productId : allProductIDs) {
+            count++;
+
+            fiftyProductIDs.add(productId);
+
+            if (count >= 50) {
+                process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+                fiftyProductIDs = new ArrayList<String>();
+                count = 0;
+            }
+        }
+        if (fiftyProductIDs.size() > 0) {  //processing last record
+            process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+        }
+
+        for (Thread thread : threadArrayList) {
             try {
-                globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
-                globalUpdateVisits.setDate(3,date);
-            } catch (SQLException e) {
+                thread.join();
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        //clone
+        ArrayList<String> zeroVisitsList=new ArrayList<String>();
+        if (threadArrayList.size()>0){
+            VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
+            for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
+                zeroVisitsList.add(productIdWithZeroVisits);
+            }
+            aVisitCounter.resetZeroVisitsList();
+        }else {
+            String msg="No product with 0 vitists";
+            System.out.println(msg);
+            Logger.log(msg);
+        }
+
+        return zeroVisitsList;
+
+    }
+
+    private static void process50Visits(Date date, String dateOnQuery, ArrayList<String> fiftyProductIDs, ArrayList<Thread> threadArrayList, boolean SAVE, boolean DEBUG, String DATABASE) {
+        long currentTime;
+        long timeoutTime;
+
+        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
+        threadArrayList.add(visitCounter);
+        visitCounter.start();
+        currentTime = System.currentTimeMillis();
+        timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
+
+        while (MAX_THREADS_VISITS < Thread.activeCount()) {
+
+            try {
+                Thread.sleep(10l);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            currentTime = System.currentTimeMillis();
+            if (currentTime > timeoutTime) {
+                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas");
+                System.exit(0);
+            }
+        }
+    }
+
+    public static void updateVisits(String database, boolean SAVE, boolean DEBUG) {
+
+        String msg = "\nProcesando Visitas";
+        System.out.println(msg);
+        Logger.log(msg);
+        Counters.initGlobalRunnerCount();
+
+        Connection connection = DatabaseHelper.getSelectConnection(database);
+        ArrayList<String> allProductIDs = new ArrayList<String>();
+        Date date1=null;
+        Date date2=null;
+        String dateOnQueryStr=null;
         try {
-            globalUpdateVisits.setInt(1,quantity);
-            globalUpdateVisits.setString(2,productId);
+
+            PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
+            ResultSet rs = datesPreparedStatement.executeQuery();
+            if (rs == null) {
+                msg = "Error getting dates";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            if (!rs.next()) {
+                msg = "Error getting dates II";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            date2 = rs.getDate(1);
+            if (!rs.next()) {
+                msg = "Error getting dates III";
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+            date1 = rs.getDate(1);
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            String strDate1 = dateFormat.format(date1);
+            String strDate2 = dateFormat.format(date2);
+            dateOnQueryStr = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
 
 
-            int updatedRecords=globalUpdateVisits.executeUpdate();
-            globalUpdateVisits.getConnection().commit();
+            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
+            selectPreparedStatement.setDate(1, date2);
 
-            if (updatedRecords!=1){
-                Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
+
+            rs = selectPreparedStatement.executeQuery();
+            if (rs == null) {
+                msg = "Error getting latest movements "+date2;
+                System.out.println(msg);
+                Logger.log(msg);
             }
 
+            while (rs.next()) {
+                String productId = rs.getString(1);
+                allProductIDs.add(productId);
+            }
 
 
         } catch (SQLException e) {
             e.printStackTrace();
+            Logger.log(e);
         }
 
+        ArrayList<String> zeroVisitsList=processAllVisits(allProductIDs, date2, dateOnQueryStr,SAVE,DEBUG,database);
+        msg="Reintentando los ceros";
+        System.out.println(msg);
+        Logger.log(msg);
+        zeroVisitsList=processAllVisits(zeroVisitsList, date2, dateOnQueryStr,SAVE,DEBUG,database); //insistimos 2 veces mas cuando visitas devuelve cero
+        System.out.println(msg);
+        Logger.log(msg);
+        processAllVisits(zeroVisitsList, date2, dateOnQueryStr,SAVE,DEBUG,database);
+
+        msg="Visitas Procesadas: "+allProductIDs.size();
+        System.out.println(msg);
+        Logger.log(msg);
+
     }
+
 }

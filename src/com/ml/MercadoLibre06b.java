@@ -5,27 +5,21 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
-import java.sql.Connection;
+
 import java.sql.Date;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Properties;
+
+import com.ml.utils.Counters;
+import com.ml.utils.DatabaseHelper;
+import com.ml.utils.HTMLParseUtils;
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
+import com.ml.utils.ProductPageProcessor;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.http.impl.client.CloseableHttpClient;
-
-import com.ml.utils.Counters;
-import com.ml.utils.Logger;
-import com.ml.utils.HttpUtils;
-import com.ml.utils.HTMLParseUtils;
-import com.ml.utils.ProductPageProcessor;
 
 
 /**
@@ -70,10 +64,6 @@ public class MercadoLibre06b extends Thread {
 
     static ArrayList<String> globalProcesedProductList;
 
-    static Connection globalSelectConnection = null;
-    static Connection globalUpadteConnection = null;
-    static Connection globalAddProductConnection = null;
-    static Connection globalAddActivityConnection = null;
     static Date globalDate = null;
     static DateFormat globalDateformat = null;
     static Calendar globalCalendar1 = null;
@@ -88,21 +78,9 @@ public class MercadoLibre06b extends Thread {
     static boolean ONLY_ADD_NEW_PRODUCTS = false;
     static int MINIMUM_SALES = 1;
     static int TIMEOUT_MIN = 50;
-    static int MAX_THREADS_VISITS = 30;
     static String DATABASE = "ML6";
 
-
     static boolean BRAZIL = false;
-
-    static PreparedStatement globalInsertProduct = null;
-    static PreparedStatement globalInsertActivity = null;
-    static PreparedStatement globalRemoveActivity = null;
-    static PreparedStatement globalUpdateProduct = null;
-    static PreparedStatement globalSelectProduct = null;
-    static PreparedStatement globalSelectTotalSold = null;
-    static PreparedStatement globalSelectLastQuestion = null;
-    static PreparedStatement globalUpdateVisits = null;
-
 
     private String custId = null;
     private int[] theIntervals = null;
@@ -376,186 +354,6 @@ public class MercadoLibre06b extends Thread {
     }*/
 
 
-    private static void updateVisits(String database) {
-
-        String msg = "\nProcesando Visitas";
-        System.out.println(msg);
-        Logger.log(msg);
-        Counters.initGlobalRunnerCount();
-
-        Connection connection = getSelectConnection(database);
-        ArrayList<String> allProductIDs = new ArrayList<String>();
-        Date date1 = null;
-        Date date2 = null;
-        String dateOnQueryStr = null;
-        try {
-
-            PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
-            ResultSet rs = datesPreparedStatement.executeQuery();
-            if (rs == null) {
-                msg = "Error getting dates";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            if (!rs.next()) {
-                msg = "Error getting dates II";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            date2 = rs.getDate(1);
-            if (!rs.next()) {
-                msg = "Error getting dates III";
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-            date1 = rs.getDate(1);
-
-            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            String strDate1 = dateFormat.format(date1);
-            String strDate2 = dateFormat.format(date2);
-            dateOnQueryStr = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
-
-
-            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
-            selectPreparedStatement.setDate(1, date2);
-
-
-            rs = selectPreparedStatement.executeQuery();
-            if (rs == null) {
-                msg = "Error getting latest movements " + date2;
-                System.out.println(msg);
-                Logger.log(msg);
-            }
-
-            while (rs.next()) {
-                String productId = rs.getString(1);
-                allProductIDs.add(productId);
-            }
-
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Logger.log(e);
-        }
-
-        ArrayList<String> zeroVisitsList = processAllVisits(allProductIDs, date2, dateOnQueryStr);
-        msg = "Reintentando los ceros";
-        System.out.println(msg);
-        Logger.log(msg);
-        zeroVisitsList = processAllVisits(zeroVisitsList, date2, dateOnQueryStr); //insistimos 2 veces mas cuando visitas devuelve cero
-        System.out.println(msg);
-        Logger.log(msg);
-        processAllVisits(zeroVisitsList, date2, dateOnQueryStr);
-
-        msg = "Visitas Procesadas: " + allProductIDs.size();
-        System.out.println(msg);
-        Logger.log(msg);
-
-    }
-
-
-    private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery) {
-        int count = 0;
-
-        ArrayList<String> fiftyProductIDs = new ArrayList<String>();
-        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
-
-
-        for (String productId : allProductIDs) {
-            count++;
-
-            fiftyProductIDs.add(productId);
-
-            if (count >= 50) {
-                process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList);
-                fiftyProductIDs = new ArrayList<String>();
-                count = 0;
-            }
-        }
-        if (fiftyProductIDs.size() > 0) {  //processing last record
-            process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList);
-        }
-
-        for (Thread thread : threadArrayList) {
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        //clone
-        ArrayList<String> zeroVisitsList=new ArrayList<String>();
-        if (threadArrayList.size()>0){
-            VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
-            for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
-                zeroVisitsList.add(productIdWithZeroVisits);
-            }
-            aVisitCounter.resetZeroVisitsList();
-        }else {
-            String msg="No product with 0 vitists";
-            System.out.println(msg);
-            Logger.log(msg);
-        }
-
-        return zeroVisitsList;
-
-    }
-
-    private static void process50Visits(Date date, String dateOnQuery, ArrayList<String> fiftyProductIDs, ArrayList<Thread> threadArrayList) {
-        long currentTime;
-        long timeoutTime;
-
-        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
-        threadArrayList.add(visitCounter);
-        visitCounter.start();
-        currentTime = System.currentTimeMillis();
-        timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
-
-        while (MAX_THREADS_VISITS < Thread.activeCount()) {
-
-            try {
-                Thread.sleep(10l);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            currentTime = System.currentTimeMillis();
-            if (currentTime > timeoutTime) {
-                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas");
-                System.exit(0);
-            }
-        }
-    }
-
-    private static synchronized void updateVisits(String productId, int quantity, Date date, String database) {
-
-        if (globalUpdateVisits == null) {
-            Connection connection = getUpdateConnection(database);
-            try {
-                globalUpdateVisits = connection.prepareStatement("update public.movimientos set visitas=? where idproducto=? and fecha =?");
-                globalUpdateVisits.setDate(3, date);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            globalUpdateVisits.setInt(1, quantity);
-            globalUpdateVisits.setString(2, productId);
-
-
-            int updatedRecords = globalUpdateVisits.executeUpdate();
-            globalUpdateVisits.getConnection().commit();
-
-            if (updatedRecords != 1) {
-                Logger.log("Error updating visits " + productId + " " + quantity + " " + date);
-            }
-
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-    }
-
     public static void main(String[] args) {
 
         System.setProperty("webdriver.chrome.driver", "C:\\Users\\Muzzu\\IdeaProjects\\selenium\\chromedriver_win32_2.4\\chromedriver.exe");
@@ -579,11 +377,6 @@ public class MercadoLibre06b extends Thread {
                 }
             }
         }
-
-        if (SAVE) {
-            saveRunInitialization("url", MAX_THREADS, DATABASE);
-        }
-
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
@@ -686,10 +479,10 @@ public class MercadoLibre06b extends Thread {
         }
 
         if (!ONLY_ADD_NEW_PRODUCTS) {
-           ProductPageProcessor.processPossiblyPausedProducts(DATABASE,getSelectConnection(DATABASE),getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
+           ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
         }
 
-        updateVisits(DATABASE);
+        VisitCounter.updateVisits(DATABASE, SAVE,DEBUG);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
@@ -698,110 +491,6 @@ public class MercadoLibre06b extends Thread {
         System.out.println(msg);
         Logger.log(msg);
 
-    }
-
-
-    private static long saveRunInitialization(String url, int threads, String database) {
-        PreparedStatement ps = null;
-        Connection connection = getUpdateConnection(database);
-        long runId = -1;
-        try {
-            ps = connection.prepareStatement("INSERT INTO public.corridas(fecha, inicio, url, threads) VALUES (?, ?, ?, ?) RETURNING id;", Statement.RETURN_GENERATED_KEYS);
-
-            Calendar cal = Calendar.getInstance();
-            long milliseconds = cal.getTimeInMillis();
-            Timestamp timestamp = new Timestamp(milliseconds);
-
-            ps.setDate(1, getGlobalDate());
-            ps.setTimestamp(2, timestamp);
-            ps.setString(3, url);
-            ps.setInt(4, threads);
-
-            int insertedRecords = ps.executeUpdate();
-            connection.commit();
-
-            if (insertedRecords != 1) {
-                Logger.log("Couldn't insert record into runs table");
-            }
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                runId = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return runId;
-    }
-
-    private static long saveRunEnding(long runId, int productostotal, int productosdetailstotal, String database) {
-        PreparedStatement ps = null;
-        Connection connection = getUpdateConnection(database);
-        try {
-            ps = connection.prepareStatement("UPDATE public.corridas SET fin=?, productostotal=?, productosdetalletotal=? WHERE id=?;");
-
-            Calendar cal = Calendar.getInstance();
-            long milliseconds = cal.getTimeInMillis();
-            Timestamp timestamp = new Timestamp(milliseconds);
-
-            ps.setTimestamp(1, timestamp);
-            ps.setInt(2, productostotal);
-            ps.setInt(3, productosdetailstotal);
-            ps.setLong(4, runId);
-
-            int insertedRecords = ps.executeUpdate();
-            connection.commit();
-
-            if (insertedRecords != 1) {
-                Logger.log("couldn't update row in runs table");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return runId;
-    }
-
-    private static synchronized void insertProduct(String idProduct, String seller, int totalSold, String latestquestion, String url, boolean officialStore) {
-        Connection connection = getAddProductConnection();
-
-        try {
-            if (globalInsertProduct == null) {
-                globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, url, tiendaoficial) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
-            }
-
-            globalInsertProduct.setString(1, idProduct);
-            globalInsertProduct.setString(2, seller);
-            globalInsertProduct.setDate(3, getGlobalDate());
-            globalInsertProduct.setDate(4, getGlobalDate());
-            globalInsertProduct.setString(5, latestquestion);
-            globalInsertProduct.setInt(6, totalSold);
-            globalInsertProduct.setString(7, url);
-            globalInsertProduct.setBoolean(8, officialStore);
-
-            int registrosInsertados = globalInsertProduct.executeUpdate();
-
-            if (registrosInsertados != 1) {
-                Logger.log("Couldn't insert product I");
-            }
-        } catch (SQLException e) {
-            Logger.log("Couldn't insert product II");
-            Logger.log(e);
-        }
     }
 
     private synchronized static Date getGlobalDate() {
@@ -821,263 +510,7 @@ public class MercadoLibre06b extends Thread {
         return globalDate;
     }
 
-    public static synchronized void updateProductAddActivity(String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int shipping, int discount, boolean premium) {
-        Connection connection = getAddActivityConnection();
-        try {
-            if (globalUpdateProduct == null) {
-                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, deshabilitado=false WHERE id = ?;");
-            }
 
-            globalUpdateProduct.setInt(1, totalSold);
-            globalUpdateProduct.setDate(2, getGlobalDate());
-            globalUpdateProduct.setString(3, url);
-            globalUpdateProduct.setString(4, lastQuestion);
-            globalUpdateProduct.setString(5, seller);
-            globalUpdateProduct.setBoolean(6, officialStore);
-            globalUpdateProduct.setString(7, productId);
-
-            int insertedRecords = globalUpdateProduct.executeUpdate();
-            if (insertedRecords != 1) {
-                Logger.log("Couldn't update product " + productId);
-            }
-
-            if (OVERRIDE_TODAYS_RUN) {//no sabemos si hay registro pero por las dudas removemos
-                if (globalRemoveActivity == null) {
-                    globalRemoveActivity = connection.prepareStatement("DELETE FROM public.movimientos WHERE idproducto=? and fecha=?");
-                }
-                globalRemoveActivity.setString(1, productId);
-                globalRemoveActivity.setDate(2, getGlobalDate());
-                int removedRecords = globalRemoveActivity.executeUpdate();
-                if (removedRecords >= 1) {
-                    Logger.log("Record removed on activity table date: " + getGlobalDate() + " productId: " + productId);
-                }
-            }
-
-            if (globalInsertActivity == null) {
-                globalInsertActivity = connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-            }
-
-            globalInsertActivity.setDate(1, getGlobalDate());
-            globalInsertActivity.setString(2, productId);
-            globalInsertActivity.setString(3, title);
-            globalInsertActivity.setString(4, url);
-            globalInsertActivity.setInt(5, feedbacksTotal);
-            globalInsertActivity.setDouble(6, feedbacksAverage);
-            globalInsertActivity.setDouble(7, price);
-            globalInsertActivity.setInt(8, newSold);
-            globalInsertActivity.setInt(9, totalSold);
-            globalInsertActivity.setInt(10, newQuestions);
-            globalInsertActivity.setInt(11, pagina);
-            globalInsertActivity.setString(12, seller);
-            globalInsertActivity.setBoolean(13, officialStore);
-
-            globalInsertActivity.setInt(14, shipping);
-            globalInsertActivity.setInt(15, discount);
-            globalInsertActivity.setBoolean(16, premium);
-
-            insertedRecords = globalInsertActivity.executeUpdate();
-            if (insertedRecords != 1) {
-                Logger.log("Couln't insert a record in activity table " + productId);
-            }
-
-            connection.commit();
-
-        } catch (SQLException e) {
-            Logger.log("I couldn't add activity due to SQLException " + url);
-            Logger.log(e);
-            if (connection != null) {
-                try {
-                    //connection reset
-                    connection.close();
-                    connection = null;
-                    globalAddActivityConnection = null;
-
-                    //prepared statement's reset
-                    globalInsertActivity = null;
-                    globalRemoveActivity = null;
-                    globalUpdateProduct = null;
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
-            }
-        }
-    }
-
-
-    private static synchronized Date lastUpdate(String productId, String database) {
-        Date lastUpdate = null;
-        Connection connection = getSelectConnection(database);
-        try {
-            if (globalSelectProduct == null) {
-                globalSelectProduct = connection.prepareStatement("SELECT lastUpdate FROM public.productos WHERE id=?;");
-            }
-
-            globalSelectProduct.setString(1, productId);
-
-            ResultSet rs = globalSelectProduct.executeQuery();
-            if (rs == null) {
-                Logger.log("Couldn't get last update I " + productId);
-            }
-            if (rs.next()) {
-                lastUpdate = rs.getDate(1);
-            }
-        } catch (SQLException e) {
-            Logger.log("Couldn't get last update II " + productId);
-            Logger.log(e);
-        }
-        return lastUpdate;
-    }
-
-
-    public static synchronized int getTotalSold(String productId, String database) {
-        int totalSold = 0;
-        Connection connection = getSelectConnection(database);
-        try {
-            if (globalSelectTotalSold == null) {
-                globalSelectTotalSold = connection.prepareStatement("SELECT totalvendidos FROM public.productos WHERE id=?;");
-            }
-
-            globalSelectTotalSold.setString(1, productId);
-
-            ResultSet rs = globalSelectTotalSold.executeQuery();
-            if (rs == null) {
-                Logger.log("Couldn't get total sold i" + productId);
-                return 0;
-            }
-
-            if (rs.next()) {
-                totalSold = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Logger.log("Couldn't get total sold ii" + productId);
-        }
-        return totalSold;
-    }
-
-    public static synchronized String getLastQuestion(String productId, String database) {
-        String lastQuestion = null;
-        Connection connection = getSelectConnection(database);
-        try {
-            if (globalSelectLastQuestion == null) {
-                globalSelectLastQuestion = connection.prepareStatement("SELECT lastQuestion FROM public.productos WHERE id=?;");
-            }
-
-            globalSelectLastQuestion.setString(1, productId);
-
-            ResultSet rs = globalSelectLastQuestion.executeQuery();
-            if (rs == null) {
-                Logger.log("Couldn't get last question i " + productId);
-                return null;
-            }
-
-            if (rs.next()) {
-                lastQuestion = rs.getString(1);
-            }
-        } catch (SQLException e) {
-            Logger.log("Couldn't get last question ii " + productId);
-            Logger.log(e);
-        }
-        return lastQuestion;
-    }
-
-
-
-    private static Connection getSelectConnection(String database) {
-        if (globalSelectConnection == null) {
-
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "jdbc:postgresql://localhost:5432/" + database;
-            Properties props = new Properties();
-            props.setProperty("user", "postgres");
-            props.setProperty("password", "password");
-            try {
-                globalSelectConnection = DriverManager.getConnection(url, props);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make a select connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalSelectConnection;
-    }
-
-
-    protected static Connection getUpdateConnection(String database) {
-        if (globalUpadteConnection == null) {
-
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "jdbc:postgresql://localhost:5432/" + database;
-            Properties props = new Properties();
-            props.setProperty("user", "postgres");
-            props.setProperty("password", "password");
-            try {
-                globalUpadteConnection = DriverManager.getConnection(url, props);
-                globalUpadteConnection.setAutoCommit(false);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make an update connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalUpadteConnection;
-    }
-
-
-    private static Connection getAddProductConnection() {
-        if (globalAddProductConnection == null) {
-
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "jdbc:postgresql://localhost:5432/" + DATABASE;
-            Properties props = new Properties();
-            props.setProperty("user", "postgres");
-            props.setProperty("password", "password");
-            try {
-                globalAddProductConnection = DriverManager.getConnection(url, props);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make addproduct connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalAddProductConnection;
-    }
-
-    private static Connection getAddActivityConnection() {
-        if (globalAddActivityConnection == null) {
-
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "jdbc:postgresql://localhost:5432/" + DATABASE;
-            Properties props = new Properties();
-            props.setProperty("user", "postgres");
-            props.setProperty("password", "password");
-            try {
-                globalAddActivityConnection = DriverManager.getConnection(url, props);
-                globalAddActivityConnection.setAutoCommit(false);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make add activity connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalAddActivityConnection;
-    }
 
     public void run() {
 
@@ -1297,12 +730,12 @@ public class MercadoLibre06b extends Thread {
                     System.out.println(msg);
 
                     if (totalSold >= MINIMUM_SALES) { //si no figura venta no le doy bola
-                        Date lastUpdate = lastUpdate(productId, DATABASE);
+                        Date lastUpdate = DatabaseHelper.fetchLastUpdate(productId,DATABASE);
                         if (lastUpdate != null) {//producto existente
                             if (!ONLY_ADD_NEW_PRODUCTS) { //ignora los updates
-                                boolean sameDate = isSameDate(lastUpdate, getGlobalDate());
+                                boolean sameDate = Counters.isSameDate(lastUpdate, getGlobalDate());
                                 if (!sameDate || (sameDate && OVERRIDE_TODAYS_RUN)) { //actualizar
-                                    int previousTotalSold = getTotalSold(productId, DATABASE);
+                                    int previousTotalSold = DatabaseHelper.fetchTotalSold(productId,DATABASE);
                                     if (totalSold != previousTotalSold) { //actualizar
                                         int newSold = totalSold - previousTotalSold;
 
@@ -1334,7 +767,7 @@ public class MercadoLibre06b extends Thread {
 
                                         String lastQuestion = HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
-                                        String previousLastQuestion = getLastQuestion(productId, DATABASE);
+                                        String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId,DATABASE);
                                         ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(productUrl, httpClient, runnerID, DEBUG, previousLastQuestion);
                                         int newQuestions = newQuestionsList.size();
 
@@ -1345,7 +778,7 @@ public class MercadoLibre06b extends Thread {
                                         Logger.log(msg);
 
                                         if (SAVE) {
-                                            updateProductAddActivity(productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, shipping, discount, premium);
+                                            DatabaseHelper.updateProductAddActivity(DATABASE,OVERRIDE_TODAYS_RUN,getGlobalDate(),productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, shipping, discount, premium);
                                         }
                                     } else {//no vendió esta semana
                                         addProcesedProductToList(productId);
@@ -1388,7 +821,7 @@ public class MercadoLibre06b extends Thread {
                             Logger.log(msg);
 
                             if (SAVE) {
-                                insertProduct(productId, seller, totalSold, lastQuestion, productUrl, officialStore);
+                                DatabaseHelper.insertProduct(DATABASE,OVERRIDE_TODAYS_RUN,getGlobalDate(),productId, seller, totalSold, lastQuestion, productUrl, officialStore);
                             }
                         }
                     }
@@ -1406,14 +839,6 @@ public class MercadoLibre06b extends Thread {
             e.printStackTrace();
         }
         httpClient = null;
-    }
-
-    private static synchronized boolean isSameDate(Date date1, Date date2) {
-        globalCalendar1.setTime(date1);
-        globalCalendar2.setTime(date2);
-        boolean sameDay = globalCalendar1.get(Calendar.YEAR) == globalCalendar2.get(Calendar.YEAR) &&
-                globalCalendar1.get(Calendar.DAY_OF_YEAR) == globalCalendar2.get(Calendar.DAY_OF_YEAR);
-        return sameDay;
     }
 
     private synchronized void addProcesedProductToList(String productId) {
