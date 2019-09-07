@@ -292,7 +292,6 @@ public class DatabaseHelper {
 
 
             int updatedRecords=globalUpdateVisits.executeUpdate();
-            globalUpdateVisits.getConnection().commit();
 
             if (updatedRecords!=1){
                 Logger.log("Error updating visits "+productId+" "+ quantity + " " +date);
