@@ -448,10 +448,11 @@ public class MercadoLibre06c extends Thread {
         }
 
         if (!ONLY_ADD_NEW_PRODUCTS) {
-           ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
+           //ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
+
+            //VisitCounter.updateVisits(DATABASE,SAVE,DEBUG)
         }
 
-        //VisitCounter.updateVisits(DATABASE,SAVE,DEBUG)
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "

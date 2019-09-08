@@ -105,7 +105,7 @@ public class MercadoLibre02 extends Thread {
     private int[] theIntervals = null;
 
     static String[] urls = new String[]
-            {"https://hogar.mercadolibre.com.ar/decoracion/[_SUBINTERVAL]",
+            {"https://hogar.mercadolibre.com.ar/adornos-decoracion-del/[_SUBINTERVAL]",
                     "https://listado.mercadolibre.com.ar/[_SUBINTERVAL]espejo",
                     "https://listado.mercadolibre.com.ar/[_SUBINTERVAL]alfombra"};
 
@@ -197,9 +197,10 @@ public class MercadoLibre02 extends Thread {
 
         if (!ONLY_ADD_NEW_PRODUCTS) {
            ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
+
+            VisitCounter.updateVisits(DATABASE, SAVE,DEBUG);
         }
 
-        VisitCounter.updateVisits(DATABASE, SAVE,DEBUG);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "

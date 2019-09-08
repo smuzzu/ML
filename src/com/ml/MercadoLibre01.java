@@ -90,7 +90,7 @@ public class MercadoLibre01  extends Thread {
     static Calendar globalCalendar2 = null;
 
     static int MAX_THREADS=14;//
-    static boolean OVERRIDE_TODAYS_RUN = true;
+    static boolean OVERRIDE_TODAYS_RUN = false;
     static boolean SAVE =true;
     static boolean DEBUG=false;
     static boolean FOLLOWING_DAY = false;
@@ -106,12 +106,16 @@ public class MercadoLibre01  extends Thread {
 
     static String[] urls = new String[]
             {
-                    "https://hogar.mercadolibre.com.ar/sala-estar-comedor/[_SUBINTERVAL]",
+                    //"https://hogar.mercadolibre.com.ar/sala-estar-comedor/[_SUBINTERVAL]",
+                    "https://hogar.mercadolibre.com.ar/muebles/[_SUBINTERVAL]",
                     "https://listado.mercadolibre.com.ar/industrias-oficinas/equipamiento-oficinas/",
-                    "https://hogar.mercadolibre.com.ar/muebles-oficinas/",
-                    "https://hogar.mercadolibre.com.ar/cocina/amoblamientos/",
-                    "https://hogar.mercadolibre.com.ar/jardines-exteriores/muebles-de-jardin/",
-                    "https://hogar.mercadolibre.com.ar/banos/muebles/",
+                    //"https://hogar.mercadolibre.com.ar/cocina/amoblamientos/",
+                    "https://listado.mercadolibre.com.ar/herramientas-y-construccion/mobiliario-cocinas/",
+                    "https://hogar.mercadolibre.com.ar/organizacion/",
+                    //"https://hogar.mercadolibre.com.ar/jardines-exteriores/muebles-de-jardin/",
+                    "https://hogar.mercadolibre.com.ar/jardines-exteriores-muebles-exterior/",
+                    //"https://hogar.mercadolibre.com.ar/banos/muebles/",
+                    "https://hogar.mercadolibre.com.ar/banos-vanitorys-botiquines-bano/",
 
                     "https://listado.mercadolibre.com.ar/perchero",
                     "https://listado.mercadolibre.com.ar/cesto",
@@ -120,43 +124,51 @@ public class MercadoLibre01  extends Thread {
                     "https://listado.mercadolibre.com.ar/_CustId_241751796",  //acacia
                     "https://listado.mercadolibre.com.ar/_CustId_233230004",  //misionlive
                     "https://listado.mercadolibre.com.ar/_CustId_191605678",  //primero+uno
-                    "https://hogar.mercadolibre.com.ar/articulos-limpieza-productos-limpiadores-alfombras/"         //limpia alfombras
+                    "https://listado.mercadolibre.com.ar/_CustId_77061780"    //marcaimport
             };
 
 
-    static int[][] intervals = new int[][]{{0, 99, 149, 240, 320, 399, 450, 530, 599, 660, 700, 790, 800, 890, 900, 950, 999, 1000,
-            1100, 1150, 1199, 1200, 1290, 1300, 1390, 1400, 1450, 1499, 1500, 1590, 1600, 1690, 1700, 1790, 1800, 1890, 1960, 1998, 1999,
-            2000, 2100, 2200, 2300, 2400, 2499, 2500, 2600, 2700, 2800, 2900, 2999, 3000, 3100, 3200, 3300, 3399, 3499, 3500, 3700, 3800,
-            3900, 3999, 4000, 4200, 4350, 4499, 4500, 4799, 4900, 4999, 5000, 5400, 5500, 5800, 5999, 6000, 6400, 6500, 6800, 6998, 7000,
-            7400, 7500, 7800, 7998, 8000, 8498, 8500, 8998, 9000, 9400, 9800, 9999, 10001, 10500, 11000, 11500, 11997, 11999, 12001, 12900,
-            13500, 14000, 14900, 15000, 16000, 17000, 18000, 19000, 20000, 22000, 24000, 26000, 29000, 35000, 45000, 2147483647}, //sala de estar comedor
+    static int[][] intervals = new int[][]{
+            {0,70,110,160,220,290,340,399,449,490,499,500,590,600,690,700,780,799,800,850,898,900,980,999,1000,1099,
+                    1100,1199,1200,1299,1301,1399,1401,1480,1499,1500,1590,1600,1601,1690,1700,1780,1799,1800,1899,1920,1980,
+                    1999,2000,2100,2180,2199,2201,2299,2301,2399,2401,2450,2499,2500,2599,2601,2699,2701,2799,2801,2899,2901,
+                    2980,2999,3000,3100,3199,3201,3299,3350,3400,3480,3499,3500,3580,3600,3601,3680,3700,3780,3799,3801,3899,
+                    3901,3980,3999,4000,4100,4180,4200,4280,4300,4400,4499,4500,4600,4700,4790,4850,4900,4970,4999,5000,5180,
+                    5280,5380,5480,5499,5500,5650,5790,5890,5980,5999,6000,6190,6300,6400,6499,6500,6650,6798,6898,6980,6999,
+                    7000,7200,7400,7499,7500,7700,7890,7950,7990,7999,8000,8200,8440,8499,8501,8750,8899,8950,8999,9000,9300,
+                    9499,9501,9750,9890,9997,9999,10000,10350,10500,10850,10998,11000,11400,11600,11900,11999,12000,12400,
+                    12500,12850,12998,13000,13480,13700,13999,14001,14499,14800,14999,15000,15500,15900,16000,16500,16900,
+                    17200,17700,17999,18001,18500,18998,19300,19850,19999,20001,20900,21400,21999,22499,23000,23800,24600,
+                    24999,25001,25999,26999,27999,28999,29999,31000,32500,34500,35500,37501,39900,42000,44500,47000,50000,
+                    56000,64000,75000,100000,170000, 2147483647}, //muebles para el hogar
 
-            {0, 69, 119, 199, 290, 375, 475, 549, 660, 799, 899, 999, 1150, 1300, 1499, 1650, 1850, 2000, 2350, 2590, 2990, 3350, 3800, 4350,
-                    4999, 5900, 6999, 8100, 9700, 12000, 17000, 26000, 45000, 2147483647}, // Equipamiento Oficina
+            {0,110,240,390,499,600,790,900,999,1180,1390,1500,1800,1999,2200,2499,2750,2999,3350,3700,4000,4500,4999,5400,
+                    5999,6600,7450,8000,8999,9999,11500,13500,15900,19999,27000,42000,100000,2147483647}, // Equipamiento Oficina
 
-            {0, 380, 610, 899, 1100, 1400, 1690, 1990, 2300, 2750, 3250, 3950, 4800, 5900, 7500, 9800, 14000, 22000, 2147483647}, // Muebles Oficina
+            {0, 600,1300,1850,2250,2550,2880,3190,3500,3900,4300,4750,5200,5700,6200,6850,7550,8400,9500,10900,12500,
+                    14500,17000,20000,25000,40000, 2147483647}, // Cocina
 
-            {0, 450, 900, 1299, 1600, 1990, 2350, 2750, 3190, 3700, 4300, 5000, 6000, 7000, 8000, 9600, 11500, 15000, 2147483647}, // Cocina
+            {4000, 4300, 5000, 5900, 6500, 7000, 7500, 8500, 9600, 11500, 13000, 15000, 18000, 24000, 35000, 2147483647}, // Organizacion
 
-            {0, 440, 700, 990, 1299, 1698, 2050, 2600, 3300, 4400, 6000, 9000, 14000, 20000, 35000, 2147483647}, // Jardin
+            {0, 440, 700, 990, 1299, 1698, 2050, 2600, 3300, 4300, 5000, 6000, 8000, 11000, 17000, 25000, 35000, 2147483647}, // Jardin y exterior
 
-            {0, 1200, 2300, 3500, 5000, 8000, 14000, 2147483647}, // Baño
+            {0, 3500,5500,7600,9900,13000,17100,28000, 2147483647}, // Baño
 
-            {0, 200, 350, 500, 740, 1000, 1550, 2500, 6000, 2147483647}, // Perchero
+            {0, 300,540,790,1100,1650,2500,4500,10000, 2147483647}, // Perchero
 
-            {0, 250, 550, 950, 1500, 2800, 2147483647}, // Cesto
+            {0, 500,1000,1800,3700,10000,2147483647}, // Cesto
 
-            {0, 700, 2147483647}, // Ordenador de Publico
+            {0, 2147483647}, // Ordenador de Publico
 
-            {0, 700, 2147483647}, // Paragüero
+            {0, 2147483647}, // Paragüero
 
-            {0, 700, 2147483647}, // Acacia
+            {0, 2147483647}, // Acacia
 
-            {0, 700, 2147483647}, // Misionlive
+            {0, 2147483647}, // Misionlive
 
-            {0, 700, 2147483647}, // Primero Uno
+            {0, 2147483647}, // Primero Uno
 
-            {0, 700, 2147483647}  // Limpia Alfombras
+            {0, 2147483647}  // marcaimport
     };
 
     private static void initVars() {
@@ -216,9 +228,11 @@ public class MercadoLibre01  extends Thread {
 
        if (!ONLY_ADD_NEW_PRODUCTS) {
            ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
+
+           VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
        }
 
-       VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
+
 
         String msg = "******************************************************\r\n"
                     +Counters.getGlobalPageCount() +" paginas procesadas\r\n "
