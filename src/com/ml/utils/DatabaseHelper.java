@@ -24,7 +24,17 @@ public class DatabaseHelper {
     private static PreparedStatement globalUpdateVisits = null;
 
     public static synchronized Connection getSelectConnection(String database){
-        if (globalSelectConnection==null) {
+
+        boolean resetConnection=globalSelectConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalSelectConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -48,7 +58,17 @@ public class DatabaseHelper {
 
 
     public static synchronized Connection getDisableProductConnection(String database){
-        if (globalDisableProductConnection==null) {
+
+        boolean resetConnection=globalDisableProductConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalDisableProductConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -73,7 +93,17 @@ public class DatabaseHelper {
 
 
     public static synchronized Connection getVisitUpdateConnection(String database){
-        if (globalVisitUpadteConnection==null) {
+
+        boolean resetConnection=globalVisitUpadteConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalVisitUpadteConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -97,7 +127,17 @@ public class DatabaseHelper {
     }
 
     public static synchronized Connection getAddProductConnection(String database){
-        if (globalAddProductConnection==null) {
+
+        boolean resetConnection=globalAddProductConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalAddProductConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -120,7 +160,16 @@ public class DatabaseHelper {
     }
 
     public static synchronized Connection getAddActivityConnection(String database){
-        if (globalAddActivityConnection ==null) {
+        boolean resetConnection=globalAddActivityConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalAddActivityConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -215,6 +264,7 @@ public class DatabaseHelper {
                     //connection reset
                     connection.close();
                     connection=null;
+                    connection=getAddActivityConnection(database);
 
                     //prepared statement's reset
                     globalInsertActivity=null;
