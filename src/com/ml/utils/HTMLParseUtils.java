@@ -49,12 +49,15 @@ public class HTMLParseUtils {
                 seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
             }
         } else {
-            sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL);
+            sellerPos1 = htmlStringFromProductPage.indexOf("reputation-info block");
             if (sellerPos1 > 0) {
-                sellerPos1 += 35;
-                sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
-                if (sellerPos2 > 0) {
-                    seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+                sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL,sellerPos1);
+                if (sellerPos1 > 0) {
+                    sellerPos1 += 35;
+                    sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
+                    if (sellerPos2 > 0) {
+                        seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+                    }
                 }
             }
         }

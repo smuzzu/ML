@@ -11,11 +11,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -63,7 +60,7 @@ public class MLSellerStatistics1 extends Thread {
     static boolean SAVE = true; //TODO CAMBIAR
     static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2019/08/01";
+    static String FECHA="2019/09/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -450,7 +447,7 @@ public class MLSellerStatistics1 extends Thread {
 
 
             String htmlStringWithoutUserComments=htmlString;
-            int commentPos1=htmlString.lastIndexOf("Opiniones de sus compradores");
+            int commentPos1=htmlString.indexOf("rating__wrapper");
             if (commentPos1>0){
                 htmlStringWithoutUserComments=htmlString.substring(0,commentPos1);  //without user comments
             }
@@ -1410,7 +1407,7 @@ public class MLSellerStatistics1 extends Thread {
                         }
                     }
                 }
-                if (visitsLastMonth == 0) {
+                if (visitsLastMonth == 0 && !noActivePublications) {
                     String msg = "No se pudieron recuperar visitas " + retries + " " + sellerUrl;
                     System.out.println(msg);
                     Logger.log(msg);
@@ -1538,7 +1535,7 @@ public class MLSellerStatistics1 extends Thread {
             }
 
         }
-        if (page==null){
+        if (!HttpUtils.isOK(page)){
             Logger.log("no funcionó ninguna url "+seller);
             int statusCode=getStatusCode(PROFILE_BASE_URL +formatSeller(seller),client);
             if (statusCode!=403) {//temporarlmente deshabilitado - lo bancamos un tiempo
