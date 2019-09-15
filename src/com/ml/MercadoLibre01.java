@@ -93,7 +93,7 @@ public class MercadoLibre01  extends Thread {
     static boolean OVERRIDE_TODAYS_RUN = false;
     static boolean SAVE =true;
     static boolean DEBUG=false;
-    static boolean FOLLOWING_DAY = false;
+    static boolean FOLLOWING_DAY = true;
     static boolean PRERVIOUS_DAY = false;
     static boolean ONLY_ADD_NEW_PRODUCTS = false;
     static int MINIMUM_SALES = 1;
@@ -148,7 +148,7 @@ public class MercadoLibre01  extends Thread {
             {0, 600,1300,1850,2250,2550,2880,3190,3500,3900,4300,4750,5200,5700,6200,6850,7550,8400,9500,10900,12500,
                     14500,17000,20000,25000,40000, 2147483647}, // Cocina
 
-            {4000, 4300, 5000, 5900, 6500, 7000, 7500, 8500, 9600, 11500, 13000, 15000, 18000, 24000, 35000, 2147483647}, // Organizacion
+            {4000, 4400, 4900, 5400, 5999, 6700, 7500, 8400, 9300, 10100, 11800, 13500, 15500, 18500, 24000, 35000, 2147483647}, // Organizacion
 
             {0, 440, 700, 990, 1299, 1698, 2050, 2600, 3300, 4300, 5000, 6000, 8000, 11000, 17000, 25000, 35000, 2147483647}, // Jardin y exterior
 
