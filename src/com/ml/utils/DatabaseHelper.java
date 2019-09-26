@@ -1,6 +1,11 @@
 package com.ml.utils;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
 
 public class DatabaseHelper {
@@ -10,13 +15,23 @@ public class DatabaseHelper {
     private static Connection globalDisableProductConnection = null;
     private static Connection globalVisitUpadteConnection = null;
     private static Connection globalAddProductConnection = null;
+    private static Connection globalAddDailyConnection = null;
+    private static Connection globalAddWeeklyConnection = null;
+    private static Connection globalAddMonthlyConnection = null;
     private static Connection globalAddActivityConnection = null;
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
     private static PreparedStatement globalSelectLastQuestion = null;
+    private static PreparedStatement globalSelectAllDaily = null;
+    private static PreparedStatement globalSelectLastDaily = null;
+    private static PreparedStatement globalSelectLastWeekly = null;
+    private static PreparedStatement globalSelectLastMonthly = null;
 
     private static PreparedStatement globalInsertProduct = null;
+    private static PreparedStatement globalInsertDaily = null;
+    private static PreparedStatement globalInsertWeekly = null;
+    private static PreparedStatement globalInsertMonthly = null;
     private static PreparedStatement globalInsertActivity = null;
     private static PreparedStatement globalRemoveActivity = null;
     private static PreparedStatement globalUpdateProduct = null;
@@ -157,6 +172,102 @@ public class DatabaseHelper {
             }
         }
         return globalAddProductConnection;
+    }
+
+    public static synchronized Connection getAddDailyConnection(String database){
+
+        boolean resetConnection=globalInsertDaily==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalInsertDaily.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        if (resetConnection) {
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "jdbc:postgresql://localhost:5432/"+database;
+            Properties props = new Properties();
+            props.setProperty("user", "postgres");
+            props.setProperty("password", "password");
+            try {
+                globalAddDailyConnection = DriverManager.getConnection(url, props);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make add daily connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalAddDailyConnection;
+    }
+
+    public static synchronized Connection getAddWeeklyConnection(String database){
+
+        boolean resetConnection=globalInsertWeekly==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalInsertWeekly.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        if (resetConnection) {
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "jdbc:postgresql://localhost:5432/"+database;
+            Properties props = new Properties();
+            props.setProperty("user", "postgres");
+            props.setProperty("password", "password");
+            try {
+                globalAddWeeklyConnection = DriverManager.getConnection(url, props);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make add Weekly connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalAddWeeklyConnection;
+    }
+
+    public static synchronized Connection getAddMonthlyConnection(String database){
+
+        boolean resetConnection=globalInsertMonthly==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalInsertMonthly.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        if (resetConnection) {
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "jdbc:postgresql://localhost:5432/"+database;
+            Properties props = new Properties();
+            props.setProperty("user", "postgres");
+            props.setProperty("password", "password");
+            try {
+                globalAddMonthlyConnection = DriverManager.getConnection(url, props);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make add Monthly connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalAddMonthlyConnection;
     }
 
     public static synchronized Connection getAddActivityConnection(String database){
@@ -305,6 +416,93 @@ public class DatabaseHelper {
         }
     }
 
+    public static synchronized void insertDaily(String database, Date date,String idProduct, long orders, long visits, long questions, boolean active, double price, String title) {
+
+        try{
+            if (globalInsertDaily ==null) {
+                Connection connection= getAddDailyConnection(database);
+                globalInsertDaily = connection.prepareStatement("INSERT INTO public.diario(fecha, idproducto, visitas, preguntas, ventas, activo, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+            }
+
+            globalInsertDaily.setDate(1,date);
+            globalInsertDaily.setString(2,idProduct);
+            globalInsertDaily.setLong(3,visits);
+            globalInsertDaily.setLong(4,questions);
+            globalInsertDaily.setLong(5,orders);
+            globalInsertDaily.setBoolean(6,active);
+            globalInsertDaily.setDouble(7,price);
+            globalInsertDaily.setString(8,title);
+
+            int registrosInsertados = globalInsertDaily.executeUpdate();
+
+            if (registrosInsertados!=1){
+                Logger.log("Couldn't insert daily record I");
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't insert daily record II");
+            Logger.log(e);
+        }
+    }
+
+    public static synchronized void insertWeekly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, long pauseDays, double price, String title) {
+
+        try{
+            if (globalInsertWeekly ==null) {
+                Connection connection= getAddWeeklyConnection(database);
+                globalInsertWeekly = connection.prepareStatement("INSERT INTO public.semanal(fecha, fecha2, idproducto, visitas, preguntas, ventas, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);");
+            }
+
+            globalInsertWeekly.setDate(1,date);
+            globalInsertWeekly.setDate(2,date2);
+            globalInsertWeekly.setString(3,idProduct);
+            globalInsertWeekly.setLong(4,visits);
+            globalInsertWeekly.setLong(5,questions);
+            globalInsertWeekly.setLong(6,orders);
+            globalInsertWeekly.setLong(7,pauseDays);
+            globalInsertWeekly.setDouble(8,price);
+            globalInsertWeekly.setString(9,title);
+
+
+            int registrosInsertados = globalInsertWeekly.executeUpdate();
+
+            if (registrosInsertados!=1){
+                Logger.log("Couldn't insert weekly record I");
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't insert weekly record II");
+            Logger.log(e);
+        }
+    }
+
+    public static synchronized void insertMonthly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, long pauseDays, double price, String title) {
+
+        try{
+            if (globalInsertMonthly ==null) {
+                Connection connection= getAddMonthlyConnection(database);
+                globalInsertMonthly = connection.prepareStatement("INSERT INTO public.mensual(fecha, fecha2, idproducto, visitas, preguntas, ventas, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);");
+            }
+
+            globalInsertMonthly.setDate(1,date);
+            globalInsertMonthly.setDate(2,date2);
+            globalInsertMonthly.setString(3,idProduct);
+            globalInsertMonthly.setLong(4,visits);
+            globalInsertMonthly.setLong(5,questions);
+            globalInsertMonthly.setLong(6,orders);
+            globalInsertMonthly.setLong(7,pauseDays);
+            globalInsertMonthly.setDouble(8,price);
+            globalInsertMonthly.setString(9,title);
+
+            int registrosInsertados = globalInsertMonthly.executeUpdate();
+
+            if (registrosInsertados!=1){
+                Logger.log("Couldn't insert monthly record I");
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't insert monthly record II");
+            Logger.log(e);
+        }
+    }
+
     public static synchronized void disableProduct(String productId,String database){
         int registrosModificados=0;
         try {
@@ -433,5 +631,101 @@ public class DatabaseHelper {
         }
         return lastQuestion;
     }
+
+    public static synchronized Date fetchLasLastDailyUpdate(String database) {
+        Date lastDaily=null;
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectLastDaily ==null) {
+                globalSelectLastDaily = connection.prepareStatement("SELECT fecha FROM public.diario order by fecha desc limit 1");
+            }
+
+            ResultSet rs = globalSelectLastDaily.executeQuery();
+            if (rs==null){
+                Logger.log("Couldn't get last daily record on database "+database);
+                return null;
+            }
+
+            if (rs.next()){
+                lastDaily=rs.getDate(1);
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't get last daily record on database II "+database);
+            Logger.log(e);
+        }
+        return lastDaily;
+    }
+
+    public static synchronized Date fetchLasLastWeeklyUpdate(String database) {
+        Date lastWeeklyDate=null;
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectLastWeekly ==null) {
+                globalSelectLastWeekly = connection.prepareStatement("SELECT fecha FROM public.semanal order by fecha desc limit 1");
+            }
+
+            ResultSet rs = globalSelectLastWeekly.executeQuery();
+            if (rs==null){
+                Logger.log("Couldn't get last Weekly record on database "+database);
+                return null;
+            }
+
+            if (rs.next()){
+                lastWeeklyDate=rs.getDate(1);
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't get last Weekly record on database II "+database);
+            Logger.log(e);
+        }
+        return lastWeeklyDate;
+    }
+
+    public static synchronized Date fetchLasLastMonthlyUpdate(String database) {
+        Date lastmonthlyDate=null;
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectLastMonthly ==null) {
+                globalSelectLastMonthly = connection.prepareStatement("SELECT fecha FROM public.mensual order by fecha desc limit 1");
+            }
+
+            ResultSet rs = globalSelectLastMonthly.executeQuery();
+            if (rs==null){
+                Logger.log("Couldn't get last Weekly record on database "+database);
+                return null;
+            }
+
+            if (rs.next()){
+                lastmonthlyDate=rs.getDate(1);
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't get last Weekly record on database II "+database);
+            Logger.log(e);
+        }
+        return lastmonthlyDate;
+    }
+
+    public static synchronized ResultSet fetchAllDailyUpdatesBetweenDates(String database, Date date1, Date date2) {
+        ResultSet result=null;
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectAllDaily ==null) {
+                globalSelectAllDaily = connection.prepareStatement("SELECT fecha, idproducto, visitas, preguntas, ventas, activo, precio, titulo FROM public.diario where fecha >=? and fecha <=? order by idproducto,fecha");
+            }
+            globalSelectAllDaily.setDate(1,date1);
+            globalSelectAllDaily.setDate(2,date2);
+
+            result = globalSelectAllDaily.executeQuery();
+            if (result==null){
+                Logger.log("Couldn't get all daily record on database "+database);
+                return null;
+            }
+
+        }catch(SQLException e){
+            Logger.log("Couldn't get all daily record on database II "+database);
+            Logger.log(e);
+        }
+        return result;
+    }
+
 
 }

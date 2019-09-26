@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.ml.utils.Logger;
 import com.ml.utils.HttpUtils;
@@ -166,6 +167,80 @@ public class VisitCounter extends Thread {
         httpClient=null;
 
     }
+
+    public synchronized static HashMap<String,Integer> processVisits(Date date1, Date date2, ArrayList<String> productIds, boolean DEBUG){
+        CloseableHttpClient httpClient=HttpUtils.buildHttpClient();
+
+        HashMap<String,Integer> result = new HashMap<String,Integer>();
+        ArrayList<String> zeroVisitsList=new ArrayList<String>();
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String strDate1 = dateFormat.format(date1);
+        String strDate2 = dateFormat.format(date2);
+        String dateOnQuery = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
+
+        int i=0;
+
+        while (i<productIds.size()) {
+            String allProductIDsStr="";
+            for (int j = 0; j < 50 && i < productIds.size(); j++) {
+                String productId=productIds.get(i);
+                allProductIDsStr+=productId+",";
+                i++;
+            }
+
+            allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
+            String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
+            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG);
+            if (!HttpUtils.isOK(htmlString)) {
+                // hacemos pausa por si es problema de red
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                try {
+                    httpClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                httpClient = null;
+                httpClient = HttpUtils.buildHttpClient();
+            }
+
+            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
+            boolean processItems=true;
+            int pos1=0;
+            int pos2=0;
+            String productId=null;
+            String quantityStr=null;
+            int quantity=0;
+            while (processItems) {
+                pos1 = htmlString.indexOf("MLA", pos1);
+                if (pos1 < 0) {
+                    processItems = false;
+                    continue;
+                }
+
+                pos2 = htmlString.indexOf("\"", pos1);
+                productId = htmlString.substring(pos1, pos2);
+                //productId = productId.substring(0, 3) + "-" + productId.substring(3);
+                pos1 = htmlString.indexOf("visits", pos1);
+                pos1 += 8;
+                pos2 = htmlString.indexOf(",", pos1);
+                quantityStr = htmlString.substring(pos1, pos2);
+                quantity = Integer.parseInt(quantityStr);
+
+
+                if (quantity == 0) {
+                    zeroVisitsList.add(productId);
+                }
+                result.put(productId,quantity);
+            }
+        }
+        return result;
+    }
+
 
     private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
         int count = 0;

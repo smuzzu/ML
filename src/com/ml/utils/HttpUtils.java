@@ -17,6 +17,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 public class HttpUtils {
 
     public static final String URLChanged="urlChanged|";
+    public static final String EXPIRED_TOKEN = "401|";
 
     public static CloseableHttpClient buildHttpClient() {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -46,6 +49,70 @@ public class HttpUtils {
                         .setConnectionManagerShared(true)
                         .build();
         return httpclient;
+    }
+
+
+    public static JSONObject getJsonObjectWithoutToken(String uRL, CloseableHttpClient httpClient) {
+
+        JSONObject jsonResponse=null;
+
+        String jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(uRL, httpClient, false);
+        if (isOK(jsonStringFromRequest)) {
+            jsonStringFromRequest = jsonStringFromRequest.substring(3);
+            if (jsonStringFromRequest.startsWith("[")){
+                jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
+            }
+            try {
+                jsonResponse = new JSONObject(jsonStringFromRequest);
+            }
+            catch (JSONException e){
+                e.printStackTrace();
+            }
+        }
+        return jsonResponse;
+    }
+
+    public static JSONObject getJsonObjectUsingToken(String uRL, CloseableHttpClient httpClient, String usuario) {
+
+        JSONObject jsonResponse=null;
+        String token= TokenUtils.getToken(usuario);
+        String urlWithToken = uRL + "&access_token=" + token;
+        String jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+        if (jsonStringFromRequest.equals(EXPIRED_TOKEN)) {
+            TokenUtils.refreshToken(httpClient,usuario);
+            token= TokenUtils.getToken(usuario);
+            urlWithToken = uRL + "&access_token=" + token;
+            jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+        }
+        if (!isOK(jsonStringFromRequest)){ //1 solo reintento
+            try {
+                Thread.sleep(5000);//aguantamos los trapos 5 segundos antes de reintentar
+            } catch (InterruptedException e) {
+                Logger.log(e);
+            }
+
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            httpClient = null;
+            httpClient = HttpUtils.buildHttpClient();
+            jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+        }
+        if (isOK(jsonStringFromRequest)) {
+            jsonStringFromRequest = jsonStringFromRequest.substring(3);
+            if (jsonStringFromRequest.startsWith("[")){
+                jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
+            }
+            try {
+                jsonResponse = new JSONObject(jsonStringFromRequest);
+            }
+            catch (JSONException e){
+                e.printStackTrace();
+            }
+        }
+        return jsonResponse;
     }
 
 
@@ -139,7 +206,7 @@ public class HttpUtils {
         return false;
     }
 
-    private static String getStringFromInputStream(InputStream is) {
+    public static String getStringFromInputStream(InputStream is) {
 
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
