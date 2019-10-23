@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class DatabaseHelper {
@@ -24,6 +25,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectTotalSold = null;
     private static PreparedStatement globalSelectLastQuestion = null;
     private static PreparedStatement globalSelectAllDaily = null;
+    private static PreparedStatement globalSelectValidProductsOnDates = null;
     private static PreparedStatement globalSelectLastDaily = null;
     private static PreparedStatement globalSelectLastWeekly = null;
     private static PreparedStatement globalSelectLastMonthly = null;
@@ -416,12 +418,12 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertDaily(String database, Date date,String idProduct, long orders, long visits, long questions, boolean active, double price, String title) {
+    public static synchronized void insertDaily(String database, Date date,String idProduct, long orders, long visits, long questions, boolean active, double price, String title, int ranking) {
 
         try{
             if (globalInsertDaily ==null) {
                 Connection connection= getAddDailyConnection(database);
-                globalInsertDaily = connection.prepareStatement("INSERT INTO public.diario(fecha, idproducto, visitas, preguntas, ventas, activo, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                globalInsertDaily = connection.prepareStatement("INSERT INTO public.diario(fecha, idproducto, visitas, preguntas, ventas, activo, precio, titulo, ranking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
             }
 
             globalInsertDaily.setDate(1,date);
@@ -432,6 +434,7 @@ public class DatabaseHelper {
             globalInsertDaily.setBoolean(6,active);
             globalInsertDaily.setDouble(7,price);
             globalInsertDaily.setString(8,title);
+            globalInsertDaily.setInt(9,ranking);
 
             int registrosInsertados = globalInsertDaily.executeUpdate();
 
@@ -444,12 +447,12 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertWeekly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, long pauseDays, double price, String title) {
+    public static synchronized void insertWeekly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, int ranking, long pauseDays, double price, String title) {
 
         try{
             if (globalInsertWeekly ==null) {
                 Connection connection= getAddWeeklyConnection(database);
-                globalInsertWeekly = connection.prepareStatement("INSERT INTO public.semanal(fecha, fecha2, idproducto, visitas, preguntas, ventas, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);");
+                globalInsertWeekly = connection.prepareStatement("INSERT INTO public.semanal(fecha, fecha2, idproducto, visitas, preguntas, ventas, ranking, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?);");
             }
 
             globalInsertWeekly.setDate(1,date);
@@ -458,9 +461,10 @@ public class DatabaseHelper {
             globalInsertWeekly.setLong(4,visits);
             globalInsertWeekly.setLong(5,questions);
             globalInsertWeekly.setLong(6,orders);
-            globalInsertWeekly.setLong(7,pauseDays);
-            globalInsertWeekly.setDouble(8,price);
-            globalInsertWeekly.setString(9,title);
+            globalInsertWeekly.setInt(7, ranking);
+            globalInsertWeekly.setLong(8,pauseDays);
+            globalInsertWeekly.setDouble(9,price);
+            globalInsertWeekly.setString(10,title);
 
 
             int registrosInsertados = globalInsertWeekly.executeUpdate();
@@ -474,12 +478,12 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertMonthly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, long pauseDays, double price, String title) {
+    public static synchronized void insertMonthly(String database, Date date, Date date2, String idProduct, long orders, long visits, long questions, int ranking, long pauseDays, double price, String title) {
 
         try{
             if (globalInsertMonthly ==null) {
                 Connection connection= getAddMonthlyConnection(database);
-                globalInsertMonthly = connection.prepareStatement("INSERT INTO public.mensual(fecha, fecha2, idproducto, visitas, preguntas, ventas, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);");
+                globalInsertMonthly = connection.prepareStatement("INSERT INTO public.mensual(fecha, fecha2, idproducto, visitas, preguntas, ventas, ranking, diasenpausa, precio, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?);");
             }
 
             globalInsertMonthly.setDate(1,date);
@@ -488,9 +492,10 @@ public class DatabaseHelper {
             globalInsertMonthly.setLong(4,visits);
             globalInsertMonthly.setLong(5,questions);
             globalInsertMonthly.setLong(6,orders);
-            globalInsertMonthly.setLong(7,pauseDays);
-            globalInsertMonthly.setDouble(8,price);
-            globalInsertMonthly.setString(9,title);
+            globalInsertMonthly.setInt(7,ranking);
+            globalInsertMonthly.setLong(8,pauseDays);
+            globalInsertMonthly.setDouble(9,price);
+            globalInsertMonthly.setString(10,title);
 
             int registrosInsertados = globalInsertMonthly.executeUpdate();
 
@@ -704,15 +709,44 @@ public class DatabaseHelper {
         return lastmonthlyDate;
     }
 
-    public static synchronized ResultSet fetchAllDailyUpdatesBetweenDates(String database, Date date1, Date date2) {
+    public static synchronized ArrayList<String> fetchValidProductsBetweenDates(String database, Date date1, Date date2, int minimunDays) {
+        ArrayList<String> result=new ArrayList<String>();
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectValidProductsOnDates ==null) {
+                globalSelectValidProductsOnDates = connection.prepareStatement("select idproducto from diario where fecha >= ? and fecha <= ? group by idproducto having count(*) >= ?");
+            }
+            globalSelectValidProductsOnDates.setDate(1,date1);
+            globalSelectValidProductsOnDates.setDate(2,date2);
+            globalSelectValidProductsOnDates.setLong(3,minimunDays);
+            ResultSet rs = globalSelectValidProductsOnDates.executeQuery();
+            if (result==null){
+                Logger.log("Couldn't get all daily valid productos record on database "+database);
+                return null;
+            }
+            while (rs.next()){
+                String productId=rs.getString(1);
+                result.add(productId);
+            }
+
+        }catch(SQLException e){
+            Logger.log("Couldn't get all daily valid productos record on database II "+database);
+            Logger.log(e);
+        }
+        return result;
+    }
+
+
+    public static synchronized ResultSet fetchAllDailyUpdatesBetweenDates(String database, Date date1, Date date2,String productId) {
         ResultSet result=null;
         Connection connection=DatabaseHelper.getSelectConnection(database);
         try{
             if (globalSelectAllDaily ==null) {
-                globalSelectAllDaily = connection.prepareStatement("SELECT fecha, idproducto, visitas, preguntas, ventas, activo, precio, titulo FROM public.diario where fecha >=? and fecha <=? order by idproducto,fecha");
+                globalSelectAllDaily = connection.prepareStatement("SELECT fecha, visitas, preguntas, ventas, ranking, activo, precio, titulo FROM public.diario where fecha >=? and fecha <=? and idproducto = ? order by fecha");
             }
             globalSelectAllDaily.setDate(1,date1);
             globalSelectAllDaily.setDate(2,date2);
+            globalSelectAllDaily.setString(3,productId);
 
             result = globalSelectAllDaily.executeQuery();
             if (result==null){

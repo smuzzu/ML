@@ -31,6 +31,7 @@ public class ProductInfo {
         String title;
         Date creationDate;
         String categoryId;
+        int ranking;
     }
 
     private static class Question {
@@ -49,6 +50,7 @@ public class ProductInfo {
     static long oneDayinMiliseconds = 86400000;
     static String DATABASE="ML3";
     static Date globalDate = null;
+    static boolean IGNORE_CATETORIES=false;
 
 
     private static JSONArray getUnAnsweredQuestions(CloseableHttpClient httpClient) {
@@ -147,7 +149,7 @@ public class ProductInfo {
         Logger.log(msg);
 
         HashMap<String,ArrayList<Question>> allTimeQuestionsHashMap = new HashMap<String,ArrayList<Question>>();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
 
         for (String productId : allProductIDsArrayList) {
 
@@ -173,6 +175,7 @@ public class ProductInfo {
                     question.productId=productId;
                     question.questionId=""+jsonQuestion.getInt("id");
                     String dateCreatedStr = jsonQuestion.getString("date_created");
+                    dateCreatedStr=dateCreatedStr.replace('T',' ');
                     java.util.Date parsedDate = null;
                     try {
                         parsedDate = dateFormat.parse(dateCreatedStr);
@@ -180,6 +183,16 @@ public class ProductInfo {
                         e.printStackTrace();
                     }
                     java.sql.Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
+
+                    if (dateCreatedStr.substring(11,13).equals("12") && dateCreatedStr.substring(24).equals("04:00")){ //fix para problema de las 13 hs
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.setTimeInMillis(parsedDate.getTime());
+                        if (calendar.get(Calendar.HOUR_OF_DAY)==1){
+                            calendar.set(Calendar.HOUR_OF_DAY,13);
+                            timestamp.setTime(calendar.getTimeInMillis());
+                        }
+                    }
+
                     question.dateCreated = new java.sql.Date(timestamp.getTime());
                     question.status = jsonQuestion.getString("status");
                     JSONObject fromJsonObject = jsonQuestion.getJSONObject("from");
@@ -187,6 +200,7 @@ public class ProductInfo {
                     if (jsonQuestion.get("answer") instanceof JSONObject) {
                         JSONObject answerJsonObject = answerJsonObject = jsonQuestion.getJSONObject("answer");
                         dateCreatedStr=answerJsonObject.getString("date_created");
+                        dateCreatedStr=dateCreatedStr.replace('T',' ');
                         try {
                             parsedDate = dateFormat.parse(dateCreatedStr);
                         } catch (ParseException e) {
@@ -232,8 +246,69 @@ public class ProductInfo {
         return itemsInOrdersArrayList;
     }
 
+    private static HashMap<Integer,Integer> getOrdersStatistics(CloseableHttpClient httpClient){
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
+                                                                   // 2018-06-08T20:21:27.000-04:00
+/*
+        HashMap<Integer,Integer> statistics = new HashMap<Integer, Integer>();
+        for (int i=0;i<24;i++){
+            statistics.put(i,0);
+        }*/
+        HashMap<Integer,Integer> statistics = new HashMap<Integer, Integer>();
+        for (int i=0;i<32;i++){
+            statistics.put(i,0);
+        }
+        //String dateOnQuery2Str = "&order.date_created.from=2019-06-24T15:53:04.000-03:00&order.date_created.to=2019-06-24T15:53:04.000-03:00";
 
-    private static ArrayList<Info> getVisitsAndQuestions(CloseableHttpClient httpClient, Date date, ArrayList<String> allProductIDsArrayList, HashMap<String,Info> allProductFixedDetailsHashMap,HashMap<String,ArrayList<Question>> allTimesQuestionsHashMap) {
+        //ArrayList<String> itemsInOrdersArrayList = new ArrayList<String>();
+        int totalOrders=999999;
+        int count=0;
+
+
+        for (int offset=0; offset<=totalOrders; offset+=50) {
+            String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(usuario) + "&order.status%20ne%20cancelled&order.status%20ne%20invalid&offset="+offset;
+            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, usuario);
+            if (offset==0){
+                JSONObject pagingObj = jsonOrders.getJSONObject("paging");
+                totalOrders=pagingObj.getInt("total");
+                String msg="total ventas registradas: "+totalOrders;
+                System.out.println(totalOrders);
+                Logger.log(msg);
+            }
+            JSONArray jsonOrdersArray = (JSONArray) jsonOrders.get("results");
+            for (Object orderObjectArray : jsonOrdersArray) {
+                JSONObject jsonOrder = (JSONObject) orderObjectArray;
+                String dateCreatedStr=jsonOrder.getString("date_created");
+                dateCreatedStr=dateCreatedStr.replace('T',' ');
+                try {
+                    java.util.Date dateCreated = dateFormat.parse(dateCreatedStr);
+                    int hour = dateCreated.getHours();
+                    if (dateCreatedStr.substring(11,13).equals("12") && dateCreatedStr.substring(24).equals("04:00")){
+                        hour=13;
+                    }
+                    int day = dateCreated.getDay();
+                    int dayOfMonth=dateCreated.getDate();
+
+                    int sales = statistics.get(dayOfMonth);
+                    sales++;
+                    statistics.put(dayOfMonth, sales);
+
+/*                    if (day>0 && day<6) {//S a D
+                        count++;
+                        int sales = statistics.get(hour);
+                        sales++;
+                        statistics.put(hour, sales);
+                    }*/
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        System.out.println("count: "+count);
+        return statistics;
+    }
+
+    private static ArrayList<Info> getVisitsAndQuestions(CloseableHttpClient httpClient, Date date, ArrayList<String> allProductIDsArrayList, HashMap<String,Info> allProductFixedDetailsHashMap,HashMap<String,ArrayList<Question>> allTimesQuestionsHashMap, HashMap<String,ArrayList> productsInCatetoriesHashMap) {
 
         ArrayList<Info> results=new ArrayList<Info>();
 
@@ -274,6 +349,14 @@ public class ProductInfo {
                 visits=totalQuestions;
             }
 
+            int ranking=2000;
+            if (productsInCatetoriesHashMap.containsKey(fixedProductDetails.categoryId)){
+                ArrayList<String> productsOnCategory = productsInCatetoriesHashMap.get(fixedProductDetails.categoryId);
+                if (productsOnCategory.contains(productId)){
+                    ranking=productsOnCategory.indexOf(productId);
+                }
+            }
+
             productId="MLA-"+productId.substring(3);
 
             Info info = new Info();
@@ -285,9 +368,10 @@ public class ProductInfo {
             info.active=fixedProductDetails.active;
             info.price=fixedProductDetails.price;
             info.title=fixedProductDetails.title;
+            info.ranking=ranking;
 
             results.add(info);
-            String msg = date.toString()+" "+productId+" visitas:"+visits+" preguntas:"+totalQuestions+" ventas:"+salesTotal+" activo:"+info.active+" precio:"+info.price+" descripcion:"+info.title;
+            String msg = date.toString()+" "+productId+" visitas:"+visits+" preguntas:"+totalQuestions+" ventas:"+salesTotal+" activo:"+info.active+" precio:"+info.price+" descripcion:"+info.title+" ranking:"+info.ranking;
             System.out.println(msg);
             Logger.log(msg);
         }
@@ -352,9 +436,17 @@ public class ProductInfo {
         ArrayList<String> allProductIDsArrayList = getAllProductIDs(httpClient);
         HashMap<String,Info> allProductFixedDetailsHashMap = getProductDetails(httpClient,allProductIDsArrayList);
 
+
+        ArrayList<String> categoriesArrayList = new ArrayList<String>();
+        if (!IGNORE_CATETORIES) {
+            categoriesArrayList = getCategories(allProductIDsArrayList, allProductFixedDetailsHashMap);
+        }
+
+        HashMap<String,ArrayList> productsInCatetoriesHashMap = getProductsInCategories(httpClient, categoriesArrayList);
+
         HashMap<String,ArrayList<Question>> allTimesQuestionsHashMap= getAllTimesQuestions(httpClient,allProductIDsArrayList);
 
-        processDaily(httpClient, todaysDate, lastDairyUpdate,allProductIDsArrayList,allProductFixedDetailsHashMap,allTimesQuestionsHashMap);
+        processDaily(httpClient, todaysDate, lastDairyUpdate,allProductIDsArrayList,allProductFixedDetailsHashMap,allTimesQuestionsHashMap,productsInCatetoriesHashMap);
 
         processWeekly(registrationDate, lastDairyUpdate);
 
@@ -362,7 +454,57 @@ public class ProductInfo {
 
     }
 
-    private static void processDaily(CloseableHttpClient httpClient, Date todaysDate, Date lastDairyUpdate, ArrayList<String> allProductIDsArrayList,HashMap<String,Info> allProductFixedDetailsHashMap, HashMap<String,ArrayList<Question>> allTimesQuestionsHashMap) {
+    private static HashMap<String,ArrayList> getProductsInCategories(CloseableHttpClient httpClient, ArrayList<String> categoriesArrayList) {
+        String msg="*********** Recorriendo Categorias:";
+        Logger.log(msg);
+        System.out.println(msg);
+        HashMap<String,ArrayList> productsInCatetoriesHashMap = new HashMap<String,ArrayList>();
+        for (String categoryID: categoriesArrayList){
+            String categoryUrl = "https://api.mercadolibre.com/categories/"+categoryID;
+            JSONObject categoryObject = HttpUtils.getJsonObjectWithoutToken(categoryUrl,httpClient);
+            JSONArray categoryPathArray = categoryObject.getJSONArray("path_from_root");
+            String categoryFullPath="";
+            for (int j=0; j<categoryPathArray.length(); j++){
+                JSONObject pathObject = categoryPathArray.getJSONObject(j);
+                String name = pathObject.getString("name");
+                categoryFullPath+=name+" / ";
+            }
+            categoryFullPath=categoryFullPath.substring(0,categoryFullPath.length()-3);
+
+            Logger.log(categoryFullPath);
+            System.out.println(categoryFullPath);
+
+            ArrayList<String> productsInCategoryArrayList = new ArrayList<String>();
+            Logger.log(categoryID);
+            int maxProductsInCategory=2000;
+            JSONObject jsonResponse = null;
+            for (int offset=0; offset<=maxProductsInCategory; offset+=50) {
+                String itemsInCategoryURL = "https://api.mercadolibre.com/sites/MLA/search?search_type=scan&category=" + categoryID + "&offset="+offset;
+                if (offset<=1000) {
+                    jsonResponse = HttpUtils.getJsonObjectWithoutToken(itemsInCategoryURL, httpClient);
+                }else {
+                    jsonResponse = HttpUtils.getJsonObjectUsingToken(itemsInCategoryURL, httpClient,usuario);
+                }
+                if (offset==0){
+                    JSONObject pagingObj = jsonResponse.getJSONObject("paging");
+                    int total=pagingObj.getInt("total");
+                    if (total<maxProductsInCategory){
+                        maxProductsInCategory=total;
+                    }
+                }
+                JSONArray resultsArray = jsonResponse.getJSONArray("results");
+                for (int i=0; i<resultsArray.length(); i++){
+                    JSONObject articleObject = resultsArray.getJSONObject(i);
+                    String productId = articleObject.getString("id");
+                    productsInCategoryArrayList.add(productId);
+                }
+            }
+            productsInCatetoriesHashMap.put(categoryID,productsInCategoryArrayList);
+        }
+        return productsInCatetoriesHashMap;
+    }
+
+    private static void processDaily(CloseableHttpClient httpClient, Date todaysDate, Date lastDairyUpdate, ArrayList<String> allProductIDsArrayList,HashMap<String,Info> allProductFixedDetailsHashMap, HashMap<String,ArrayList<Question>> allTimesQuestionsHashMap, HashMap<String,ArrayList> productsInCatetoriesHashMap) {
         String msg="*********** Proceso diario";
         System.out.println(msg);
         Logger.log(msg);
@@ -374,10 +516,10 @@ public class ProductInfo {
         for (long iterator=dailyStartDate.getTime(); iterator<=dailyEndDate.getTime(); iterator+=oneDayinMiliseconds) {
             Date date = new Date(iterator);
             System.out.println("Processing date: "+date);
-            infoArrayList.addAll(getVisitsAndQuestions(httpClient, date, allProductIDsArrayList, allProductFixedDetailsHashMap,allTimesQuestionsHashMap));
+            infoArrayList.addAll(getVisitsAndQuestions(httpClient, date, allProductIDsArrayList, allProductFixedDetailsHashMap,allTimesQuestionsHashMap, productsInCatetoriesHashMap));
         }
         for (Info info:infoArrayList){
-            DatabaseHelper.insertDaily(DATABASE, info.date,info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title);
+            DatabaseHelper.insertDaily(DATABASE, info.date,info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title, info.ranking);
         }
     }
 
@@ -392,87 +534,67 @@ public class ProductInfo {
         }
 
         Date weeklyStartDate=followingDayOfWeek(lastWeeklyUpdate,Calendar.MONDAY);
-        Date weeklyEndDate=previousOrSameDayOfWeek(lastDairyUpdate, Calendar.SUNDAY);
-        ResultSet rs = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE,weeklyStartDate,weeklyEndDate);
-        boolean finished=false;
-        Info weekInfo = new Info();
-        try {
-            finished=!rs.next();
-            if (!finished){
-                weekInfo.date = rs.getDate(1);
-                weekInfo.productId = rs.getString(2);
-                weekInfo.visits = rs.getLong(3);
-                weekInfo.questions = rs.getLong(4);
-                weekInfo.orders = rs.getLong(5);
-                weekInfo.active = rs.getBoolean(6);
-                weekInfo.price = rs.getDouble(7);
-                weekInfo.title = rs.getString(8);
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
+        Date weeklyEndDate=followingDayOfWeek(weeklyStartDate, Calendar.SUNDAY);
 
-        Date startDate=null;
-        Date followingSunday=null;
-        Date followingMonday=null;
-        String productId=null;
 
-        while (!finished) {
-            startDate=weekInfo.date;
-            followingSunday=followingDayOfWeek(startDate,Calendar.SUNDAY);
-            followingMonday=followingDayOfWeek(startDate,Calendar.MONDAY);
-            productId=weekInfo.productId;
-
-            long visits=0;
-            long questions=0;
-            long orders=0;
-            long pausedDays=0;
-            String title=null;
-            double price=0.0;
-
-            while (weekInfo.productId.equals(productId) && weekInfo.date.before(followingMonday) && !finished) {
-                visits+=weekInfo.visits;
-                questions+=weekInfo.questions;
-                orders+=weekInfo.orders;
-                if (!weekInfo.active){
-                    pausedDays++;
-                }
-                title=weekInfo.title;
-                price=weekInfo.price;
-
-                try {
-                    if (!rs.next()) {
-                        finished = true;
-                    } else {
-                        weekInfo.date = rs.getDate(1);
-                        weekInfo.productId = rs.getString(2);
-                        weekInfo.visits = rs.getLong(3);
-                        weekInfo.questions = rs.getLong(4);
-                        weekInfo.orders = rs.getLong(5);
-                        weekInfo.active = rs.getBoolean(6);
-                        weekInfo.price = rs.getDouble(7);
-                        weekInfo.title = rs.getString(8);
+        while (weeklyEndDate.before(lastDairyUpdate)) {
+            String msg2="Procesando semana "+weeklyStartDate+" "+weeklyEndDate;
+            System.out.println(msg2);
+            Logger.log(msg2);
+            try {
+                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate,5);
+                for (String productId : productsArrayList) {
+                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate, productId);
+                    long sumVisits=0;
+                    long sumQuestions=0;
+                    long sumSales=0;
+                    long sumPaused=0;
+                    int sumRanking=0;
+                    String title="";
+                    double price=0.0;
+                    int count=0;
+                    while (rs1.next()) {
+                        count++;
+                        Long visits = rs1.getLong(2);
+                        if (visits!=null) {
+                            sumVisits +=visits;
+                        }
+                        Long questions =rs1.getLong(3);
+                        if (questions!=null) {
+                            sumQuestions += questions;
+                        }
+                        Long sales = rs1.getLong(4);
+                        if (sales!=null) {
+                            sumSales += sales;
+                        }
+                        Integer ranking = rs1.getInt(5);
+                        if (ranking!=null) {
+                            sumRanking += ranking;
+                        }
+                        boolean active = rs1.getBoolean(6);
+                        if (!active){
+                            sumPaused++;
+                        }
+                        price=rs1.getDouble(7);
+                        title=rs1.getString(8);
 
                     }
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                    int ranking=sumRanking/count;
+                    if (ranking==0){
+                        ranking=-1;
+                    }
+                    DatabaseHelper.insertWeekly(DATABASE,weeklyStartDate,weeklyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title);
+
                 }
+            }catch (SQLException e){
+                String msg1 = "Exception in processWeekly";
+                Logger.log(msg1);
+                Logger.log(e);
+                System.out.println(msg1);
+                e.printStackTrace();
             }
-            /*
-            ArrayList<String> arrayListWithOneProductId= new ArrayList<String>();
-            String unformatedProductId=productId.substring(0,3)+productId.substring(4);
-            arrayListWithOneProductId.add(unformatedProductId);
-            HashMap<String,Integer> visitsHashMapWithOneProductId = VisitCounter.processVisits(startDate,followingSunday,arrayListWithOneProductId,false);
-            long visits2=visitsHashMapWithOneProductId.get(unformatedProductId);
-            if (visits<visits2){
-                boolean si=false;
-            } else {
-                boolean no=false;
-            }*/
-            msg = productId+" "+startDate.toString()+"/"+followingSunday.toString()+" visitas:"+visits+" preguntas:"+questions+" ventas:"+orders+" dias en pausa:"+pausedDays+" precio:"+price+" titulo:"+title;
-            System.out.println(msg);
-            Logger.log(msg);
-            DatabaseHelper.insertWeekly(DATABASE,startDate,followingSunday,productId,orders,visits,questions,pausedDays,price,title);
+            weeklyStartDate=followingDayOfWeek(weeklyEndDate,Calendar.MONDAY);
+            weeklyEndDate=followingDayOfWeek(weeklyStartDate, Calendar.SUNDAY);
         }
 
     }
@@ -482,79 +604,75 @@ public class ProductInfo {
         System.out.println(msg);
         Logger.log(msg);
 
-
         Date lastMonthlyUpdate = DatabaseHelper.fetchLasLastMonthlyUpdate(DATABASE);
         if (lastMonthlyUpdate==null){
             lastMonthlyUpdate=registrationDate;
         }
-        Date monthlyStartDate = firstDayNextMonth(lastMonthlyUpdate);
-        Date monthlyEndDate = lastDayPreviousMonth(lastDairyUpdate);
 
-        ResultSet rs = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE,monthlyStartDate,monthlyEndDate);
-        boolean finished=false;
-        Info monthInfo = new Info();
-        try {
-            finished=!rs.next();
-            if (!finished){
-                monthInfo.date = rs.getDate(1);
-                monthInfo.productId = rs.getString(2);
-                monthInfo.visits = rs.getLong(3);
-                monthInfo.questions = rs.getLong(4);
-                monthInfo.orders = rs.getLong(5);
-                monthInfo.active = rs.getBoolean(6);
-                monthInfo.price = rs.getDouble(7);
-                monthInfo.title = rs.getString(8);
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
+        Date monthlyStartDate=firstDayNextMonth(lastMonthlyUpdate);
+        Date monthlyEndDate=lastDayThisMonth(monthlyStartDate);
 
-        while (!finished) {
-            Date startDate=monthInfo.date;
-            Date firstDayNextMonth=firstDayNextMonth(startDate);
-            Date followingEndOfMonth=new Date(firstDayNextMonth.getTime()-oneDayinMiliseconds);
-            String productId=monthInfo.productId;
+        while (monthlyEndDate.before(lastDairyUpdate)) {
+            String msg2="Procesando mes "+monthlyStartDate+" "+monthlyEndDate;
+            System.out.println(msg2);
+            Logger.log(msg2);
+            try {
+                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate,20);
+                for (String productId : productsArrayList) {
+                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate, productId);
+                    long sumVisits=0;
+                    long sumQuestions=0;
+                    long sumSales=0;
+                    long sumPaused=0;
+                    int sumRanking=0;
+                    String title="";
+                    double price=0.0;
+                    int count=0;
+                    while (rs1.next()) {
+                        count++;
 
-            long visits=0;
-            long questions=0;
-            long orders=0;
-            long pausedDays=0;
-            String title=null;
-            double price=0.0;
-
-            while (monthInfo.productId.equals(productId) && monthInfo.date.before(firstDayNextMonth) && !finished) {
-                visits+=monthInfo.visits;
-                questions+=monthInfo.questions;
-                orders+=monthInfo.orders;
-                if (!monthInfo.active){
-                    pausedDays++;
-                }
-                title=monthInfo.title;
-                price=monthInfo.price;
-
-                try {
-                    if (!rs.next()) {
-                        finished = true;
-                    } else {
-                        monthInfo.date = rs.getDate(1);
-                        monthInfo.productId = rs.getString(2);
-                        monthInfo.visits = rs.getLong(3);
-                        monthInfo.questions = rs.getLong(4);
-                        monthInfo.orders = rs.getLong(5);
-                        monthInfo.active = rs.getBoolean(6);
-                        monthInfo.price = rs.getDouble(7);
-                        monthInfo.title = rs.getString(8);
+                        Long visits = rs1.getLong(2);
+                        if (visits!=null) {
+                            sumVisits +=visits;
+                        }
+                        Long questions =rs1.getLong(3);
+                        if (questions!=null) {
+                            sumQuestions += questions;
+                        }
+                        Long sales = rs1.getLong(4);
+                        if (sales!=null) {
+                            sumSales += sales;
+                        }
+                        Integer ranking = rs1.getInt(5);
+                        if (ranking!=null) {
+                            sumRanking += ranking;
+                        }
+                        boolean active = rs1.getBoolean(6);
+                        if (!active){
+                            sumPaused++;
+                        }
+                        price=rs1.getDouble(7);
+                        title=rs1.getString(8);
 
                     }
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                    int ranking=sumRanking/count;
+                    if (ranking==0){
+                        ranking=-1;
+                    }
+                    DatabaseHelper.insertMonthly(DATABASE,monthlyStartDate,monthlyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title);
+
                 }
+            }catch (SQLException e){
+                String msg1 = "Exception in processMonthly";
+                Logger.log(msg1);
+                Logger.log(e);
+                System.out.println(msg1);
+                e.printStackTrace();
             }
-            msg = productId+" "+startDate.toString()+"/"+followingEndOfMonth.toString()+" visitas:"+visits+" preguntas:"+questions+" ventas:"+orders+" dias en pausa:"+pausedDays+" precio:"+price+" titulo:"+title;
-            System.out.println(msg);
-            Logger.log(msg);
-            DatabaseHelper.insertMonthly(DATABASE,startDate,followingEndOfMonth,productId,orders,visits,questions,pausedDays,price,title);
+            monthlyStartDate=firstDayNextMonth(monthlyEndDate);
+            monthlyEndDate=lastDayThisMonth(monthlyStartDate);
         }
+
     }
 
     private static Date getRegistrationDate(CloseableHttpClient httpClient){
@@ -656,12 +774,12 @@ public class ProductInfo {
         return firstDayNextMonth;
     }
 
-    private static Date lastDayPreviousMonth(Date date){
-        Date lastDayPreviousMonth = null;
+    private static Date lastDayThisMonth(Date date){
+        Date lastDayThisMonth = null;
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        calendar.set(Calendar.DATE, calendar.getActualMinimum(Calendar.DAY_OF_MONTH));
-        lastDayPreviousMonth = new Date(calendar.getTime().getTime()-oneDayinMiliseconds);
-        return lastDayPreviousMonth;
+        calendar.set(Calendar.DATE, calendar.getActualMaximum(Calendar.DAY_OF_MONTH));
+        lastDayThisMonth = new Date(calendar.getTime().getTime());
+        return lastDayThisMonth;
     }
 }
