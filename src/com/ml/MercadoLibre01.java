@@ -89,13 +89,15 @@ public class MercadoLibre01  extends Thread {
     static Calendar globalCalendar1 = null;
     static Calendar globalCalendar2 = null;
 
-    static int MAX_THREADS=14;//
+    static int MAX_THREADS = 50;//14
     static boolean OVERRIDE_TODAYS_RUN = false;
     static boolean SAVE =true;
     static boolean DEBUG=false;
     static boolean FOLLOWING_DAY = true;
     static boolean PRERVIOUS_DAY = false;
     static boolean ONLY_ADD_NEW_PRODUCTS = false;
+    static boolean IGNORE_PAUSED = false;
+    static boolean IGNORE_VISITS = false;
     static int MINIMUM_SALES = 1;
     static String DATABASE = "ML1";
 
@@ -106,15 +108,11 @@ public class MercadoLibre01  extends Thread {
 
     static String[] urls = new String[]
             {
-                    //"https://hogar.mercadolibre.com.ar/sala-estar-comedor/[_SUBINTERVAL]",
                     "https://hogar.mercadolibre.com.ar/muebles/[_SUBINTERVAL]",
                     "https://listado.mercadolibre.com.ar/industrias-oficinas/equipamiento-oficinas/",
-                    //"https://hogar.mercadolibre.com.ar/cocina/amoblamientos/",
                     "https://listado.mercadolibre.com.ar/herramientas-y-construccion/mobiliario-cocinas/",
                     "https://hogar.mercadolibre.com.ar/organizacion/",
-                    //"https://hogar.mercadolibre.com.ar/jardines-exteriores/muebles-de-jardin/",
                     "https://hogar.mercadolibre.com.ar/jardines-exteriores-muebles-exterior/",
-                    //"https://hogar.mercadolibre.com.ar/banos/muebles/",
                     "https://hogar.mercadolibre.com.ar/banos-vanitorys-botiquines-bano/",
 
                     "https://listado.mercadolibre.com.ar/perchero",
@@ -200,7 +198,7 @@ public class MercadoLibre01  extends Thread {
 
 
 
-       for (int j=0; j<urls.length; j++) { //todo tiene que empezar de 0  prueba de hoy usamos j=10
+       for (int j=0; j<urls.length; j++) { //todo tiene que empezar de 0
             initVars();
 
             int numberOfThreads = (int) Math.round(intervals[j].length / 2.5);
@@ -227,11 +225,13 @@ public class MercadoLibre01  extends Thread {
         }
 
        if (!ONLY_ADD_NEW_PRODUCTS) {
+            if (!IGNORE_PAUSED) {
            ProductPageProcessor.processPossiblyPausedProducts(DATABASE, getGlobalDate(),globalProcesedProductList,SAVE,DEBUG);
-
+            }
+            if (!IGNORE_VISITS) {
            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
        }
-
+        }
 
 
         String msg = "******************************************************\r\n"
@@ -349,7 +349,7 @@ public class MercadoLibre01  extends Thread {
                     int resultSectionPos = htmlStringFromPage.indexOf("results-section");
                     String resultListHMTLData = null;
                     if (resultSectionPos == -1) {
-                        Logger.log("Error getting results-section on page " + page);
+                        Logger.log("Error getting results-section on page " + page +" "+ uRL);
                         Logger.log(htmlStringFromPage);
                         resultListHMTLData = htmlStringFromPage;
                     } else {
@@ -378,7 +378,6 @@ public class MercadoLibre01  extends Thread {
                         endInterval = true;
                     }
 
-                    int idPos1, idPos2 = 0;
                     for (String productUrl : productsURLArrayList) {
                         Counters.incrementGlobalProductCount();
 
@@ -421,57 +420,23 @@ public class MercadoLibre01  extends Thread {
                             Logger.log(runnerID+" I couldn't get the price on " + productUrl);
                         }
 
-                        boolean isUsed = HTMLParseUtils.isUsed2(productHTMLdata);
-
-                        int totalSold = 0;
-                        String htmlStringFromProductPage = null;
-
-                        if (!isUsed){
-                            totalSold=HTMLParseUtils.getTotalSold2(productHTMLdata);
-                        } else {
-                            htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
+                        String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
                             if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                                // hacemos pausa por si es problema de red
-                                try {
-                                    Thread.sleep(5000);
-                                } catch (InterruptedException e) {
-                                    Logger.log(e);
+                            String msg="All retries failed.  Ignoring this url "+uRL;
+                            System.out.println(msg);
+                            Logger.log(msg);
+                            continue;//salteamos este producto
                                 }
-                                Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
-                                try {
-                                    httpClient.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                                httpClient = null;
-                                httpClient = HttpUtils.buildHttpClient();
-                                continue; //ignoramos este item
-                            } else {
-                                totalSold = HTMLParseUtils.getTotalSold(htmlStringFromProductPage, productUrl);
+
+                        int totalSold = HTMLParseUtils.getTotalSold(htmlStringFromProductPage, productUrl);
                                 if (totalSold == -1) {//error
-                                    continue;
-                                }
-                            }
+                            String msg="totalSold unknown "+uRL;
+                            System.out.println(msg);
+                            Logger.log(msg);
+                            continue;//salteamos este producto
                         }
 
-
-                        int reviews = HTMLParseUtils.getReviews2(productHTMLdata);
-                        if (reviews<0){
-                            reviews=0;
-                            Logger.log(runnerID+" I couldn't get the reviews on " + productUrl);
-                        }
-
-                        double stars = 0.0;
-                        if (reviews>0){
-                            stars=HTMLParseUtils.getStars2(productHTMLdata);
-                            if (stars<0.0){
-                                stars=0.0;
-                                Logger.log(runnerID+" I couldn't get the stars on " + productUrl);
-                            }
-                        }
-
-
-                        String msg = runnerID+" processing page " + page + " | " + productId + " | " + totalSold + " | " + reviews + " | " + stars + " | " + price + " | " + title + " | " + productUrl;
+                        String msg = runnerID + " processing page " + page + " | " + productId + " | " + totalSold + " | " + price + " | " + title + " | " + productUrl;
                         System.out.println(msg);
 
                         if (totalSold >= MINIMUM_SALES) { //si no figura venta no le doy bola
@@ -484,31 +449,15 @@ public class MercadoLibre01  extends Thread {
                                         if (totalSold != previousTotalSold) { //actualizar
                                             int newSold = totalSold - previousTotalSold;
 
-                                            if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                                                htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
-                                                if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                                                    // hacemos pausa por si es problema de red
-                                                    try {
-                                                        Thread.sleep(5000);
-                                                    } catch (InterruptedException e) {
-                                                        Logger.log(e);
-                                                    }
-                                                    Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
-                                                    try {
-                                                        httpClient.close();
-                                                    } catch (IOException e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                    httpClient = null;
-                                                    httpClient = HttpUtils.buildHttpClient();
-                                                    continue;
-                                                    //ignoramos este item
-                                                }
-                                            }
-
                                             boolean officialStore=HTMLParseUtils.getOfficialStore(htmlStringFromProductPage);
 
                                             String seller=HTMLParseUtils.getSeller(htmlStringFromProductPage,officialStore,productUrl);
+
+                                            int reviews = HTMLParseUtils.getReviews(htmlStringFromProductPage,uRL);
+                                            double stars =0.0;
+                                            if (reviews>0) {
+                                                stars = HTMLParseUtils.getStars(htmlStringFromProductPage, productUrl);
+                                            }
 
                                             String lastQuestion=HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
@@ -531,27 +480,6 @@ public class MercadoLibre01  extends Thread {
                                     }
                                 }
                             } else { //agregar vendedor
-
-                                if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                                    htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient,DEBUG);
-                                    if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                                        // hacemos pausa por si es problema de red
-                                        try {
-                                            Thread.sleep(5000);
-                                        } catch (InterruptedException e) {
-                                            Logger.log(e);
-                                        }
-                                        Logger.log(runnerID + " hmlstring from page 2 is null " + uRL);
-                                        try {
-                                            httpClient.close();
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-                                        httpClient = HttpUtils.buildHttpClient();
-                                        continue;
-                                        //ignoramos este item
-                                    }
-                                }
 
                                 boolean officialStore=HTMLParseUtils.getOfficialStore(htmlStringFromProductPage);
 

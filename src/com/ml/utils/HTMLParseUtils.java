@@ -270,14 +270,13 @@ public class HTMLParseUtils {
             msg = "Cannot find stars on " + url;
             Logger.log(msg);
             System.out.println(msg);
+        }else{
+            stars = allStarsStr.split("star-icon-full").length - 1 * 1.0;
+            boolean halfStar = allStarsStr.indexOf("star-icon-half") > 0;
+            if (halfStar) {
+                stars += 0.5;
+            }
         }
-
-        stars = allStarsStr.split("star-icon-full").length - 1 * 1.0;
-        boolean halfStar = allStarsStr.indexOf("star-icon-half") > 0;
-        if (halfStar) {
-            stars += 0.5;
-        }
-
         return stars;
     }
 

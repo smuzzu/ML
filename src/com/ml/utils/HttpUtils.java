@@ -8,6 +8,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -40,6 +41,7 @@ public class HttpUtils {
                 .setConnectTimeout(40000) //40 seconds in milliseconds
                 .setConnectionRequestTimeout(40000)
                 .setSocketTimeout(40000)
+                .setCookieSpec(CookieSpecs.STANDARD)
                 .build();
 
         CloseableHttpClient httpclient =
@@ -47,6 +49,8 @@ public class HttpUtils {
                         .setDefaultCredentialsProvider(credentialsProvider)
                         .setDefaultRequestConfig(requestConfig)
                         .setConnectionManagerShared(true)
+                        .setMaxConnPerRoute(1000)
+                        .setMaxConnTotal(1000)
                         .build();
         return httpclient;
     }
@@ -147,11 +151,10 @@ public class HttpUtils {
 
             if (retry) {
                 try {
-                    Thread.sleep(5000);//aguantamos los trapos 5 segundos antes de reintentar
-                } catch (InterruptedException e) {
-                    Logger.log(e);
-                }
-
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
                     try {
                         client.close();
                     } catch (IOException e) {
@@ -159,7 +162,7 @@ public class HttpUtils {
                     }
                     client = null;
                     client = HttpUtils.buildHttpClient();
-                }
+            }
         }
 
         if (statusCode != 200) {
