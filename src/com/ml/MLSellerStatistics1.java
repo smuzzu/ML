@@ -60,7 +60,7 @@ public class MLSellerStatistics1 extends Thread {
     static boolean SAVE = true; //TODO CAMBIAR
     static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2019/09/01";
+    static String FECHA="2020/01/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -449,7 +449,11 @@ public class MLSellerStatistics1 extends Thread {
             String htmlStringWithoutUserComments=htmlString;
             int commentPos1=htmlString.indexOf("rating__wrapper");
             if (commentPos1>0){
-                htmlStringWithoutUserComments=htmlString.substring(0,commentPos1);  //without user comments
+                int comentsPos2=htmlString.indexOf("Ver todas",commentPos1);
+                if (comentsPos2>0) {
+                    int len = htmlString.length();
+                    htmlStringWithoutUserComments = htmlString.substring(0, commentPos1) + htmlString.substring(comentsPos2,len);  //without user comments
+                }
             }
 
             noReputation=htmlStringWithoutUserComments.indexOf("no tiene suficientes ventas para calcular su reputaci")!=-1;
@@ -1281,13 +1285,12 @@ public class MLSellerStatistics1 extends Thread {
                     }
                 }
 
-                int idPos1, idPos2 = 0;
                 int amount = 0;
-                int articles = 0;
-                for (String productUrl : productsURLArrayList) {
+                int countDown = 50;
+                int ponderation=0;
+                int totalPonderations = 0;
 
-                    idPos1 = productUrl.indexOf(ARTICLE_PREFIX);
-                    idPos2 = idPos1 + 13;
+                for (String productUrl : productsURLArrayList) {
 
                     int initPoint = htmlString.indexOf(productUrl);
                     int nextPoint = htmlString.length();//just for the last item #48 o #50 depending on the page layout
@@ -1335,7 +1338,7 @@ public class MLSellerStatistics1 extends Thread {
                         Logger.log(e);
                     }
 
-
+/*
                     double totalSold = 0;
                     int soldPos1 = productHTMLdata.indexOf("item__condition\">") + 17;
                     if (soldPos1 > 0) {//puede ser que no vendió o es usado
@@ -1358,14 +1361,16 @@ public class MLSellerStatistics1 extends Thread {
                                 }
                             }
                         }
-                    }
+                    }*/
 
-                    amount += price * totalSold;
-                    articles += totalSold;
+                    countDown--;
+                    ponderation=countDown^3;
+                    totalPonderations+=ponderation;
+                    amount += price * ponderation;
                 }
 
-                if (articles > 0) {
-                    estimatedSalePriceAverage = amount / articles;
+                if (totalPonderations > 0) {
+                    estimatedSalePriceAverage = amount / totalPonderations;
                 }
             }
 

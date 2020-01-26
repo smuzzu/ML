@@ -145,7 +145,11 @@ public class HttpUtils {
                 StatusLine statusline = response.getStatusLine();
                 if (statusline != null) {
                     statusCode = statusline.getStatusCode();
-                    retry = false;
+                    if (statusCode!=420) { //429=too many requests
+                        retry = false;
+                    } else {
+                        Logger.log("Http 420 en getHTMLStringFromPage intento #" + retries + " " + uRL);
+                    }
                 }
             }
 
@@ -243,7 +247,7 @@ public class HttpUtils {
         HttpRequest newRequest = httpRequestWrapper.getOriginal();
         RequestLine requestLine = newRequest.getRequestLine();
         String newURL = requestLine.getUri();
-        if (newURL == null || newURL.indexOf("NoIndex_True") > 0 || (newURL.indexOf("mercadolibre.com.ar") == -1 && newURL.indexOf("api.mercadolibre.com") == -1)) {
+        if (newURL == null || newURL.indexOf("NoIndex_True") > 0 || newURL.indexOf("redirectedFromVip") > 0 || (newURL.indexOf("mercadolibre.com.ar") == -1 && newURL.indexOf("api.mercadolibre.com") == -1)) {
             return true;
         }
         if (url.indexOf("MLA-")>0){
