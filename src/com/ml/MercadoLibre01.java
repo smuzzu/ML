@@ -119,10 +119,12 @@ public class MercadoLibre01  extends Thread {
                     "https://listado.mercadolibre.com.ar/cesto",
                     "https://listado.mercadolibre.com.ar/ordenador-de-publico",
                     "https://listado.mercadolibre.com.ar/paraguero",
+                    "https://hogar.mercadolibre.com.ar/genoud",
                     "https://listado.mercadolibre.com.ar/_CustId_241751796",  //acacia
                     "https://listado.mercadolibre.com.ar/_CustId_233230004",  //misionlive
                     "https://listado.mercadolibre.com.ar/_CustId_191605678",  //primero+uno
-                    "https://listado.mercadolibre.com.ar/_CustId_77061780"    //marcaimport
+                    "https://listado.mercadolibre.com.ar/_CustId_77061780",   //marcarimport
+                    "https://listado.mercadolibre.com.ar/_CustId_292512475"   //mundo+ofi-max
             };
 
 
@@ -160,13 +162,17 @@ public class MercadoLibre01  extends Thread {
 
             {0, 2147483647}, // Paragüero
 
+            {0, 2147483647}, // Genoud
+
             {0, 2147483647}, // Acacia
 
             {0, 2147483647}, // Misionlive
 
             {0, 2147483647}, // Primero Uno
 
-            {0, 2147483647}  // marcaimport
+            {0, 2147483647}, // marcarimport
+
+            {0, 2147483647}  //mundo+ofi-max
     };
 
     private static void initVars() {
