@@ -22,6 +22,7 @@ public class ProductInfo {
 
     private static class Info {
         Date date;
+        String user;
         String productId;
         long visits;
         long questions;
@@ -44,7 +45,7 @@ public class ProductInfo {
         String answerText;
     }
 
-    static final String usuario="ACACIAYLENGA";
+    static String usuario="SOMOS_MAS";
 
 
     static long oneDayinMiliseconds = 86400000;
@@ -104,6 +105,7 @@ public class ProductInfo {
         for (Object productIdÒbj : allProductIDsArrayList) {
             String productId = (String) productIdÒbj;
             Info productInfo = new Info();
+            productInfo.user=usuario;
             productInfo.productId=productId;
             String productDetailsUrl="https://api.mercadolibre.com/items/"+productId;
             JSONObject jsonProductDetail = HttpUtils.getJsonObjectWithoutToken(productDetailsUrl, httpClient);
@@ -361,6 +363,7 @@ public class ProductInfo {
 
             Info info = new Info();
             info.date=date;
+            info.user=usuario;
             info.productId=productId;
             info.visits=visits;
             info.questions=totalQuestions;
@@ -419,12 +422,22 @@ public class ProductInfo {
 
     public static void main(String[] args) {
 
+        if (args!=null && args.length>0){
+            String usuarioArg = args[0];
+            if (usuarioArg!=null && usuarioArg.length()>0){
+                usuario=usuarioArg;
+            }
+        }
+        String msg="*********** Procesando usuario: "+usuario;
+        Logger.log(msg);
+        System.out.println(msg);
+
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
         Date registrationDate=getRegistrationDate(httpClient);
         Date todaysDate = getGlobalDate();
         Date aYearAgo = new Date(todaysDate.getTime()-oneDayinMiliseconds*360);
-        Date lastDairyUpdate = DatabaseHelper.fetchLasLastDailyUpdate(DATABASE);
+        Date lastDairyUpdate = DatabaseHelper.fetchLasLastDailyUpdate(DATABASE,usuario);
         if (lastDairyUpdate==null){ //tabla vacia
             if (registrationDate.after(aYearAgo)) {
                 lastDairyUpdate = registrationDate;
@@ -519,7 +532,7 @@ public class ProductInfo {
             infoArrayList.addAll(getVisitsAndQuestions(httpClient, date, allProductIDsArrayList, allProductFixedDetailsHashMap,allTimesQuestionsHashMap, productsInCatetoriesHashMap));
         }
         for (Info info:infoArrayList){
-            DatabaseHelper.insertDaily(DATABASE, info.date,info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title, info.ranking);
+            DatabaseHelper.insertDaily(DATABASE, info.date,info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title, info.ranking, info.user);
         }
     }
 
@@ -528,7 +541,7 @@ public class ProductInfo {
         System.out.println(msg);
         Logger.log(msg);
 
-        Date lastWeeklyUpdate = DatabaseHelper.fetchLasLastWeeklyUpdate(DATABASE);
+        Date lastWeeklyUpdate = DatabaseHelper.fetchLasLastWeeklyUpdate(DATABASE,usuario);
         if (lastWeeklyUpdate==null){
             lastWeeklyUpdate=registrationDate;
         }
@@ -542,9 +555,9 @@ public class ProductInfo {
             System.out.println(msg2);
             Logger.log(msg2);
             try {
-                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate,5);
+                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate,5, usuario);
                 for (String productId : productsArrayList) {
-                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate, productId);
+                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, weeklyStartDate, weeklyEndDate, productId, usuario);
                     long sumVisits=0;
                     long sumQuestions=0;
                     long sumSales=0;
@@ -583,7 +596,7 @@ public class ProductInfo {
                     if (ranking==0){
                         ranking=-1;
                     }
-                    DatabaseHelper.insertWeekly(DATABASE,weeklyStartDate,weeklyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title);
+                    DatabaseHelper.insertWeekly(DATABASE,weeklyStartDate,weeklyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title,usuario);
 
                 }
             }catch (SQLException e){
@@ -596,7 +609,6 @@ public class ProductInfo {
             weeklyStartDate=followingDayOfWeek(weeklyEndDate,Calendar.MONDAY);
             weeklyEndDate=followingDayOfWeek(weeklyStartDate, Calendar.SUNDAY);
         }
-
     }
 
     private static void processMonthly(Date registrationDate, Date lastDairyUpdate) {
@@ -604,7 +616,7 @@ public class ProductInfo {
         System.out.println(msg);
         Logger.log(msg);
 
-        Date lastMonthlyUpdate = DatabaseHelper.fetchLasLastMonthlyUpdate(DATABASE);
+        Date lastMonthlyUpdate = DatabaseHelper.fetchLasLastMonthlyUpdate(DATABASE, usuario);
         if (lastMonthlyUpdate==null){
             lastMonthlyUpdate=registrationDate;
         }
@@ -617,9 +629,9 @@ public class ProductInfo {
             System.out.println(msg2);
             Logger.log(msg2);
             try {
-                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate,20);
+                ArrayList<String> productsArrayList = DatabaseHelper.fetchValidProductsBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate,20, usuario);
                 for (String productId : productsArrayList) {
-                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate, productId);
+                    ResultSet rs1 = DatabaseHelper.fetchAllDailyUpdatesBetweenDates(DATABASE, monthlyStartDate, monthlyEndDate, productId,usuario);
                     long sumVisits=0;
                     long sumQuestions=0;
                     long sumSales=0;
@@ -659,7 +671,7 @@ public class ProductInfo {
                     if (ranking==0){
                         ranking=-1;
                     }
-                    DatabaseHelper.insertMonthly(DATABASE,monthlyStartDate,monthlyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title);
+                    DatabaseHelper.insertMonthly(DATABASE,monthlyStartDate,monthlyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title,usuario);
 
                 }
             }catch (SQLException e){

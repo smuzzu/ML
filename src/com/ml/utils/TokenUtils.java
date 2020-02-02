@@ -36,6 +36,12 @@ public class TokenUtils {
     static String appIdACACIAYLENGA = "4747672705070272";
     static String appSecretACACIAYLENGA = "uiG40hwEV02Yto8edjCh8sv0kb4BIGz5";
 
+    static String SOMOS_MAS="SOMOS_MAS";
+    static String idClienteSOMOS_MAS = "67537324";
+    static String tokenFileSOMOS_MAS="C:"+File.separator+"centro"+File.separator+"tokenSomosMas.txt";
+    static String appIdSOMOS_MAS = "2799572367447893";
+    static String appSecretSOMOS_MAS = "TTNJrRQwILKSuPnv4VlE0huxtSkwpsFe";
+
     static String token = null;
     static String refresh_token = null;
 
@@ -46,6 +52,10 @@ public class TokenUtils {
         }else {
             if (user.equals(ACACIAYLENGA)){
                 tokenFile=tokenFileACACIAYLENGA;
+            }else{
+                if (user.equals("SOMOS_MAS")){
+                    tokenFile=tokenFileSOMOS_MAS;
+                }
             }
         }
         StringBuilder contentBuilder = new StringBuilder();
@@ -81,7 +91,14 @@ public class TokenUtils {
                 appId=appIdACACIAYLENGA;
                 appSecret=appSecretACACIAYLENGA;
                 tokenFile=tokenFileACACIAYLENGA;
+            }else{
+                if (user.equals(SOMOS_MAS)){
+                    appId=appIdSOMOS_MAS;
+                    appSecret=appSecretSOMOS_MAS;
+                    tokenFile=tokenFileSOMOS_MAS;
+                }
             }
+
         }
 
         String fileStr = getFileStr(user);
@@ -168,6 +185,10 @@ public class TokenUtils {
         } else {
             if (user.equals(ACACIAYLENGA)){
                 return idClienteACACIAYLENGA;
+            } else {
+                if (user.equals("SOMOS_MAS")){
+                    return  idClienteSOMOS_MAS;
+                }
             }
         }
         return idCliente;
