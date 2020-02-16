@@ -586,6 +586,30 @@ public class DatabaseHelper {
         return lastUpdate;
     }
 
+    public static ArrayList<String> fetchProductsLike(String searchString, String database) {
+        String productId=null;
+        ArrayList<String> resultArrayList = new ArrayList<String>();
+        globalSelectConnection=null; //necesito resetear para cambiar de bases de datos
+        Connection connection=DatabaseHelper.getSelectConnection(database);
+        try{
+            globalSelectProduct = connection.prepareStatement("SELECT id FROM public.productos WHERE url like '%"+searchString+"%'");
+
+            ResultSet rs = globalSelectProduct.executeQuery();
+            if (rs==null){
+                Logger.log("Couldn't get searchString "+searchString);
+            }
+            while (rs.next()){
+                productId=rs.getString(1);
+                resultArrayList.add(productId);
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't searchString II "+searchString);
+            Logger.log(e);
+        }
+        return resultArrayList;
+    }
+
+
 
     public static synchronized int fetchTotalSold(String productId, String database) {
         int totalSold=0;
