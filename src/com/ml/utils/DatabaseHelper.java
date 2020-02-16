@@ -20,6 +20,7 @@ public class DatabaseHelper {
     private static Connection globalAddWeeklyConnection = null;
     private static Connection globalAddMonthlyConnection = null;
     private static Connection globalAddActivityConnection = null;
+    private static Connection globalCloudUpaateConnection = null;
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
@@ -39,6 +40,10 @@ public class DatabaseHelper {
     private static PreparedStatement globalUpdateProduct = null;
     private static PreparedStatement globalDisableProduct=null;            ;
     private static PreparedStatement globalUpdateVisits = null;
+
+    private static String globalCloudUrl = "jdbc:postgresql://rajje.db.elephantsql.com:5432/bivpmkkk";
+    private static String globalCloudUser = "bivpmkkk";
+    private static String globalCouldPassword = "TMpI5v0Gja7W974bDtDiF1RYenKW8-6f";
 
     public static synchronized Connection getSelectConnection(String database){
 
@@ -72,6 +77,75 @@ public class DatabaseHelper {
         }
         return globalSelectConnection;
     }
+
+    public static synchronized Connection getCloudSelectConnection(){
+
+        boolean resetConnection=globalSelectConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalSelectConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
+            Properties props = new Properties();
+            props.setProperty("user", globalCloudUser);
+            props.setProperty("password", globalCouldPassword);
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                globalSelectConnection = DriverManager.getConnection(globalCloudUrl,props);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make a selectCloud connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalSelectConnection;
+    }
+
+
+    public static synchronized Connection getCloudUpdateConnection(){
+
+        boolean resetConnection=globalCloudUpaateConnection==null;
+        if (!resetConnection){
+            try {
+                resetConnection=globalCloudUpaateConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
+
+            Properties props = new Properties();
+            props.setProperty("user", globalCloudUser);
+            props.setProperty("password", globalCouldPassword);
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            try {
+                globalCloudUpaateConnection = DriverManager.getConnection(globalCloudUrl,props);
+                globalCloudUpaateConnection.setAutoCommit(true);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make a globalCloudUpdateConnection connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalCloudUpaateConnection;
+    }
+
 
 
     public static synchronized Connection getDisableProductConnection(String database){
