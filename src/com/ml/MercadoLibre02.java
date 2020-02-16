@@ -111,7 +111,8 @@ public class MercadoLibre02 extends Thread {
              "https://hogar.mercadolibre.com.ar/adornos-decoracion-del-cuadros-carteles-espejos/",
              "https://hogar.mercadolibre.com.ar/textiles-decoracion-alfombras-carpetas/",
              "https://listado.mercadolibre.com.ar/hafele_DisplayType_G",
-             "https://listado.mercadolibre.com.ar/genoud_DisplayType_G"};
+             "https://listado.mercadolibre.com.ar/genoud_DisplayType_G",
+             "https://hogar.mercadolibre.com.ar/fark_DisplayType_G"};
 
 
     static int[][] intervals = new int[][]{
@@ -132,6 +133,8 @@ public class MercadoLibre02 extends Thread {
             {0, 400, 750, 1400, 2300, 3500, 7000, 14000, 30000, 2147483647},
 
             {0, 1000, 2147483647},
+
+            {0, 2147483647},
 
             {0, 2147483647}
 

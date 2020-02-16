@@ -124,7 +124,8 @@ public class MercadoLibre01  extends Thread {
                     "https://listado.mercadolibre.com.ar/_CustId_233230004",  //misionlive
                     "https://listado.mercadolibre.com.ar/_CustId_191605678",  //primero+uno
                     "https://listado.mercadolibre.com.ar/_CustId_77061780",   //marcarimport
-                    "https://listado.mercadolibre.com.ar/_CustId_292512475"   //mundo+ofi-max
+                    "https://listado.mercadolibre.com.ar/_CustId_292512475",  //mundo+ofi-max
+                    "https://listado.mercadolibre.com.ar/_CustId_75186672"    //herrajes+castelmax
             };
 
 
@@ -172,7 +173,9 @@ public class MercadoLibre01  extends Thread {
 
             {0, 2147483647}, // marcarimport
 
-            {0, 2147483647}  //mundo+ofi-max
+            {0, 2147483647}, //mundo+ofi-max
+
+            {0, 2147483647}  //herrajes+castelmax
     };
 
     private static void initVars() {
