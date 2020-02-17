@@ -1,4 +1,4 @@
-package com.ml;
+package com.ml.utils;
 
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
@@ -19,7 +19,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 
-public class MLMessenger {
+public class MessagesAndSalesHelper {
 
 
     //static final String usuario="ACACIAYLENGA";
