@@ -1,4 +1,4 @@
-package com.ml;
+package com.ml.utils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpRequest;
@@ -30,13 +30,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Properties;
 
-import com.ml.utils.Logger;
-import com.ml.utils.HttpUtils;
-
 /**
  * Created by Muzzu on 6/20/2018.
  */
-public class MLSellerStatistics1 extends Thread {
+public class SalesAndMessagesHelper extends Thread {
 
     static Connection globalSelectConnection = null;
     static Connection globalUpadteConnection = null;
@@ -1757,7 +1754,7 @@ public class MLSellerStatistics1 extends Thread {
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
         for (int i=0; i< MAX_THREADS; i++) {
-            MLSellerStatistics1 thread1 = new MLSellerStatistics1();
+            SalesAndMessagesHelper thread1 = new SalesAndMessagesHelper();
             threadArrayList.add(thread1);
             thread1.start();
         }
