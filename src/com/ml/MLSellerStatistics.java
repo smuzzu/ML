@@ -1,5 +1,7 @@
-package com.ml.utils;
+package com.ml;
 
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpRequest;
 import org.apache.http.RequestLine;
@@ -33,7 +35,7 @@ import java.util.Properties;
 /**
  * Created by Muzzu on 6/20/2018.
  */
-public class SalesAndMessagesHelper extends Thread {
+public class MLSellerStatistics extends Thread {
 
     static Connection globalSelectConnection = null;
     static Connection globalUpadteConnection = null;
@@ -1754,7 +1756,7 @@ public class SalesAndMessagesHelper extends Thread {
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
         for (int i=0; i< MAX_THREADS; i++) {
-            SalesAndMessagesHelper thread1 = new SalesAndMessagesHelper();
+            MLSellerStatistics thread1 = new MLSellerStatistics();
             threadArrayList.add(thread1);
             thread1.start();
         }
