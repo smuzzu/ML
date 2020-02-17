@@ -2,6 +2,8 @@ package com.ml;
 
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.Order;
+import com.ml.utils.Message;
 import com.ml.utils.TokenUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -9,78 +11,25 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+
 
 public class MLMessenger {
 
-    private static class Order {
-        long id;
-        Date dateCreated;
-        String paymentStatus;
-        String shippingStatus;
-        char shippingType; // A 'ACORDAR' acordar con el vendedor
-                             // D 'CORREO_DOMICILIO' correo (normal a domicilio)
-                             // R 'CORREO_RETIRA' retira en el correo
-                             // F 'FLEX'<-flex (radpido a domicilio)
-        boolean delivered;
-        boolean waitingForWithdrawal;
-        boolean cancelled;
-        boolean refunded;
-        boolean timeoutFulfilled;
-        boolean finished;
-        boolean multiItem;
 
-        String buyerNickName;
-        String buyerFirstName;
-        String buyerLastName;
-        String buyerEmail;
-        String buyerPhone;
-        String buyerDocNumber;
-
-        String buyerAddressState;
-        String buyerAddressCity;
-        String buyerAddressZip;
-        String buyerAddressStreet;
-
-        String receivedFeedbackRating;
-        String receivedFeedbackComment;
-
-        String paymentMethod;
-        String paymentAmount;
-        boolean paymentInstallments;
-
-        String productId;
-        String productTitle;
-        String productVariation;
-
-        ArrayList<Message> messageArrayList;
-
-        private static final char ACORDAR='A';
-        private static final char CORREO_A_DOMICILIO='D';
-        private static final char CORREO_RETIRA='R';
-        private static final char FLEX='F';
-
-
-
-    }
-
-    private static class Message{
-        String id;
-        String text;
-        char direction; // E=Enviado   R=Recibido
-    }
-
-    static final String usuario="ACACIAYLENGA";
+    //static final String usuario="ACACIAYLENGA";
     //static final String usuario="QUEFRESQUETE";
 
 
-    private static ArrayList<Order>  fetchOrders(boolean messagesOnly){
+    public static ArrayList<Order>  requestOrdersAndMessages(boolean messagesOnly, boolean ordersOnly, String user){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
-        Date dateLimit= sixDaysBefore();
+
         int totalOrders=Integer.MAX_VALUE;
 
         ArrayList<Order> orderArrayList = new ArrayList<Order>();
@@ -124,7 +73,7 @@ public class MLMessenger {
             boolean finished=false;
             int offset=0;
             while (!finished) {
-                String feedbackUrl = "https://www.mercadolibre.com.ar/perfil/api/feedback/askForFeedback?userIdentifier=nickname%3D" + usuario + "&rating=all&limit=200&offset=" + offset + "&role=seller";
+                String feedbackUrl = "https://www.mercadolibre.com.ar/perfil/api/feedback/askForFeedback?userIdentifier=nickname%3D" + user + "&rating=all&limit=200&offset=" + offset + "&role=seller";
                 JSONObject feedbacksObj = HttpUtils.getJsonObjectWithoutToken(feedbackUrl, httpClient);
                 JSONArray feedbacksArray = feedbacksObj.getJSONArray("feedbacks");
                 for (Object feedbackObject : feedbacksArray){
@@ -159,10 +108,9 @@ public class MLMessenger {
 
         for (int ordersOffset=0; ordersOffset<=totalOrders; ordersOffset+=50) {
 
-            String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(usuario) + "&sort=date_desc&offset="+ordersOffset;
-            //String ordersUrl = "https://api.mercadolibre.com/orders/search/archived?seller=" + TokenUtils.getIdCliente(usuario) + "&sort=date_desc&offset="+offset;
+            String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset="+ordersOffset;
 
-            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, usuario);
+            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user);
             if (ordersOffset==0){
                 JSONObject pagingObj = jsonOrders.getJSONObject("paging");
                 totalOrders=pagingObj.getInt("total");
@@ -174,6 +122,7 @@ public class MLMessenger {
             for (Object orderObject : jsonOrdersArray) {
                 startTime=System.currentTimeMillis();
                 Order order = new Order();
+                order.user=user;
                 order.delivered=false;
                 order.waitingForWithdrawal=false;
                 order.cancelled=false;
@@ -181,10 +130,11 @@ public class MLMessenger {
                 order.finished=false;
                 order.timeoutFulfilled =false;
                 order.multiItem=false;
-                order.buyerEmail=null;
                 order.messageArrayList=new ArrayList<Message>();
                 order.paymentMethod ="";
                 order.paymentInstallments=false;
+
+                order.productVariation="N/A";
 
                 order.buyerEmail="N/A";
                 order.buyerAddressState="N/A";
@@ -197,15 +147,23 @@ public class MLMessenger {
 
                 String buyerId=null;
 
-
                 JSONObject jsonOrder = (JSONObject) orderObject;
 
                 String dateCreatedStr=jsonOrder.getString("date_created");
                 dateCreatedStr=dateCreatedStr.replace('T',' ');
+
+                String dateUpdatedStr=jsonOrder.getString("last_updated");
+                dateUpdatedStr=dateUpdatedStr.replace('T',' ');
+
+
+
                 Date dateCreated=null;
                 try {
                     java.util.Date dateCreated2 = dateFormat.parse(dateCreatedStr);
-                    order.dateCreated=new Date(dateCreated2.getTime());
+                    order.creationTimestamp =new Timestamp(dateCreated2.getTime());
+
+                    java.util.Date dateUpdated2 = dateFormat.parse(dateUpdatedStr);
+                    order.updateTimestamp =new Timestamp(dateUpdated2.getTime());
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -241,12 +199,13 @@ public class MLMessenger {
                     buyerId=""+buyerObject.getInt("id");
                 }
 
-                String orderUrl2 = "https://api.mercadolibre.com/orders/" + order.id + "?";
-                JSONObject jsonOrder2 = HttpUtils.getJsonObjectUsingToken(orderUrl2, httpClient, usuario);
-                if (jsonOrder2.has("fulfilled") && !jsonOrder2.isNull("fulfilled") && jsonOrder2.getBoolean("fulfilled")) {
-                    order.finished = true;
+                order.fulfilled=false;
+                if (jsonOrder.has("fulfilled")){
+                    if (!jsonOrder.isNull("fulfilled")){
+                        order.fulfilled=jsonOrder.getBoolean("fulfilled");
+                    }
                 }
-
+                order.finished=order.fulfilled;
 
                 JSONArray itemsArray = jsonOrder.getJSONArray("order_items");
                 order.multiItem=itemsArray.length()>1;
@@ -260,11 +219,13 @@ public class MLMessenger {
                         //asumimos si hay 2 variation la primera es fruta y la que vale es la segunda
                         variationObject = variationsArray.getJSONObject(1);
                     }
-                    order.productVariation=variationObject.getString("value_name");
-                    if (Character.isDigit(order.productVariation.charAt(0)) && order.productVariation.charAt(1)=='.'){
+                    order.productVariationName=variationObject.getString("name");
+                    order.productVariationValue=variationObject.getString("value_name");
+                    if (Character.isDigit(order.productVariationValue.charAt(0)) && order.productVariationValue.charAt(1)=='.'){
                         //cocinamos esto de 1.Negro 2.Gris etc
-                        order.productVariation=order.productVariation.substring(2);
+                        order.productVariationValue=order.productVariationValue.substring(2);
                     }
+                    order.productVariation=order.productVariationName+" "+order.productVariationValue;
                 }
 
                 JSONArray paymentsArray = jsonOrder.getJSONArray("payments");
@@ -303,13 +264,14 @@ public class MLMessenger {
                         }
                     }
                     if (shippingObj.has("receiver_address")){
-                        JSONObject receiverAddressObj = shippingObj.getJSONObject("receiver_address");
-                        order.buyerAddressState=receiverAddressObj.getJSONObject("state").getString("name");
-                        order.buyerAddressCity=receiverAddressObj.getJSONObject("city").getString("name");
-                        order.buyerAddressZip=receiverAddressObj.getString("zip_code");
-                        order.buyerAddressStreet=receiverAddressObj.getString("address_line");
+                        if (!shippingObj.isNull("receiver_address")) {
+                            JSONObject receiverAddressObj = shippingObj.getJSONObject("receiver_address");
+                            order.buyerAddressState = receiverAddressObj.getJSONObject("state").getString("name");
+                            order.buyerAddressCity = receiverAddressObj.getJSONObject("city").getString("name");
+                            order.buyerAddressZip = receiverAddressObj.getString("zip_code");
+                            order.buyerAddressStreet = receiverAddressObj.getString("address_line");
+                        }
                     }
-
 
                     if (order.shippingStatus.equals("to_be_agreed") && !order.delivered && !order.cancelled){
                         for (int i=0; i<paymentsArray.length(); i++){
@@ -328,6 +290,16 @@ public class MLMessenger {
                             }
                         }
                     }
+                }
+
+                order.orderStatus=Order.VENDIDO;
+                if (order.fulfilled){
+                    order.orderStatus=Order.ENTREGADO;
+                }else {
+                    if (order.cancelled){
+                        order.orderStatus=Order.CANCELADO;
+                    }
+                    //todo RECLAMO
                 }
 
                 if (!messagesOnly) {
@@ -364,10 +336,14 @@ public class MLMessenger {
                 if (!feedbackObj.isNull("purchase")) {
                     JSONObject purchaseObject = feedbackObj.getJSONObject("purchase");
                     if (purchaseObject.has("rating")) {
-                        order.receivedFeedbackRating = purchaseObject.getString("rating");
+                        if (!purchaseObject.isNull("rating")) {
+                            order.receivedFeedbackRating = purchaseObject.getString("rating");
+                        }
                     }
                     if (purchaseObject.has("message")){
-                        order.receivedFeedbackComment = purchaseObject.getString("message");
+                        if (!purchaseObject.isNull("message")) {
+                            order.receivedFeedbackComment = purchaseObject.getString("message");
+                        }
                     }
                 }
 
@@ -384,50 +360,49 @@ public class MLMessenger {
                 }
 
                 //messages
-                long packId = order.id;
-                if (!jsonOrder.isNull("pack_id")) {
-                    packId=jsonOrder.getLong("pack_id");
-                }
-                int totalMessages=Integer.MAX_VALUE;
-                for (int messagesOffset=0; messagesOffset<=totalMessages; messagesOffset+=10) {
-                    String messagesUrl = "https://api.mercadolibre.com/messages/packs/"+packId + "/sellers/" + TokenUtils.getIdCliente(usuario) + "?offset=" + messagesOffset;
-                    startTime2=System.currentTimeMillis();
-                    JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, usuario);
-                    elapsedTime2=System.currentTimeMillis()-startTime2;
-                    if (elapsedTime2>=tooMuchTime){
-                        httpClient=HttpUtils.buildHttpClient();
+                if (!ordersOnly) {
+                    long packId = order.id;
+                    if (!jsonOrder.isNull("pack_id")) {
+                        packId = jsonOrder.getLong("pack_id");
                     }
-                    if (messagesOffset==0){
-                        JSONObject pagingObj = jsonMessages.getJSONObject("paging");
-                        totalMessages=pagingObj.getInt("total");
-                    }
-                    JSONArray jsonMessagesArray = jsonMessages.getJSONArray("messages");
-                    for (Object messageObject : jsonMessagesArray) {
-                        JSONObject messageJsonObject = (JSONObject)messageObject;
-                        Message message = new Message();
-                        message.id=messageJsonObject.getString("id");
-                        message.text=messageJsonObject.getString("text");
-                        String fromId = messageJsonObject.getJSONObject("from").getString("user_id");
-                        if (fromId.equals(TokenUtils.getIdCliente(usuario))){
-                            message.direction='E';
-                            if (order.buyerEmail.equals("N/A")){
-                                order.buyerEmail=messageJsonObject.getJSONObject("to").getString("email");
-                            }
-                        }else {
-                            message.direction='R';
-                            if (order.buyerEmail.equals("N/A")){
-                                order.buyerEmail=messageJsonObject.getJSONObject("from").getString("email");
-                            }
+                    int totalMessages = Integer.MAX_VALUE;
+                    for (int messagesOffset = 0; messagesOffset <= totalMessages; messagesOffset += 10) {
+                        String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user) + "?offset=" + messagesOffset;
+                        startTime2 = System.currentTimeMillis();
+                        JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user);
+                        elapsedTime2 = System.currentTimeMillis() - startTime2;
+                        if (elapsedTime2 >= tooMuchTime) {
+                            httpClient = HttpUtils.buildHttpClient();
                         }
-                        order.messageArrayList.add(message);
+                        if (messagesOffset == 0) {
+                            JSONObject pagingObj = jsonMessages.getJSONObject("paging");
+                            totalMessages = pagingObj.getInt("total");
+                        }
+                        JSONArray jsonMessagesArray = jsonMessages.getJSONArray("messages");
+                        for (Object messageObject : jsonMessagesArray) {
+                            JSONObject messageJsonObject = (JSONObject) messageObject;
+                            Message message = new Message();
+                            message.id = messageJsonObject.getString("id");
+                            message.text = messageJsonObject.getString("text");
+                            String fromId = messageJsonObject.getJSONObject("from").getString("user_id");
+                            if (fromId.equals(TokenUtils.getIdCliente(user))) {
+                                message.direction = 'E';
+                                if (order.buyerEmail.equals("N/A")) {
+                                    order.buyerEmail = messageJsonObject.getJSONObject("to").getString("email");
+                                }
+                            } else {
+                                message.direction = 'R';
+                                if (order.buyerEmail.equals("N/A")) {
+                                    order.buyerEmail = messageJsonObject.getJSONObject("from").getString("email");
+                                }
+                            }
+                            order.messageArrayList.add(message);
+                        }
                     }
                 }
-
                 orderArrayList.add(order);
 
-                //if (orderArrayList.size()>20) break; //todo sacar !!!!!!!!!!!!!!!!!!!!!!!!!
-
-                System.out.println(order.dateCreated+" "+ order.buyerNickName+ " "+order.buyerAddressState+","+order.buyerAddressCity);
+                System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.buyerNickName+ " "+order.buyerAddressState+","+order.buyerAddressCity);
                 elapsedTime=System.currentTimeMillis()-startTime;
                 if (elapsedTime>=tooMuchTime){
                     httpClient=HttpUtils.buildHttpClient();
@@ -467,7 +442,7 @@ public class MLMessenger {
         }
 
         String orderRecord=
-                "\""+order.id+"\",\""+order.dateCreated+"\",\""+paid+"\",\""+order.shippingStatus+"\",\""+shippingTypeDesc+"\",\""+
+                "\""+order.id+"\",\""+order.creationTimestamp +"\",\""+order.updateTimestamp +"\",\""+order.orderStatus+"\",\""+paid+"\",\""+order.shippingStatus+"\",\""+shippingTypeDesc+"\",\""+
                         order.delivered+"\",\""+order.waitingForWithdrawal+"\",\""+order.cancelled+"\",\""+order.refunded+"\",\""+order.timeoutFulfilled+"\",\""+order.finished+"\",\""+order.multiItem+"\",\""+
                         order.buyerNickName+"\",\""+order.buyerFirstName+"\",\""+order.buyerLastName+"\",\""+order.buyerEmail+"\",\""+order.buyerPhone+"\",\""+order.buyerDocNumber+"\",\""+
                         order.buyerAddressState+"\",\""+order.buyerAddressCity+"\",\""+order.buyerAddressZip+"\",\""+order.buyerAddressStreet+"\",\""+
@@ -490,7 +465,7 @@ public class MLMessenger {
 
 
         String orderRecord=
-                "\"Order Id\",\"Fecha\",\"Pagado\",\"Estado Envio\",\"Tipo de Envio\",\""+
+                "\"Order Id\",\"Creacion\",\"Actualizacion\",\"Estado\",\"Pagado\",\"Estado Envio\",\"Tipo de Envio\",\""+
                         "Entregado\",\"Esperando en el Correo\",\"Cancelado\",\"Reembolsado\",\"Completada por Vencimiento\",\"Completada\",\"Varios Items\",\""+
                         "Apodo\",\"Nombre\",\"Apellido\",\"Email\",\"Telefono\",\"Dni\",\""+
                         "Provincia\",\"Ciudad\",\"Codigo Postal\",\"Calle\",\""+
@@ -498,11 +473,11 @@ public class MLMessenger {
                         "Medio de Pago\",\"Importe\",\"Cuotas\",\""+
                         "Codigo Producto\",\"Titulo de Publicacion\",\"Variante de Producto\",\"Mensajes\";";
         System.out.println(orderRecord);
-        Logger.log(orderRecord);
+        //Logger.log(orderRecord);
     }
 
     public static void main(String args[]){
-        ArrayList<Order> orderArrayList = fetchOrders(false);
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false,"ACACIAYLENGA");
         for (Order order:orderArrayList){
             printOrder(order);
         }

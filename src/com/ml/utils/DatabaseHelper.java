@@ -6,7 +6,11 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+
 import java.util.ArrayList;
+import java.util.Calendar;
+
 import java.util.Properties;
 
 public class DatabaseHelper {
@@ -20,7 +24,7 @@ public class DatabaseHelper {
     private static Connection globalAddWeeklyConnection = null;
     private static Connection globalAddMonthlyConnection = null;
     private static Connection globalAddActivityConnection = null;
-    private static Connection globalCloudUpaateConnection = null;
+    private static Connection globalCloudSalesUpdateConnection = null;
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
@@ -30,13 +34,16 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastDaily = null;
     private static PreparedStatement globalSelectLastWeekly = null;
     private static PreparedStatement globalSelectLastMonthly = null;
+    private static PreparedStatement globalSelectSales = null;
 
     private static PreparedStatement globalInsertProduct = null;
     private static PreparedStatement globalInsertDaily = null;
     private static PreparedStatement globalInsertWeekly = null;
     private static PreparedStatement globalInsertMonthly = null;
     private static PreparedStatement globalInsertActivity = null;
+    private static PreparedStatement globalInsertSale = null;
     private static PreparedStatement globalRemoveActivity = null;
+    private static PreparedStatement globalRemoveSale = null;
     private static PreparedStatement globalUpdateProduct = null;
     private static PreparedStatement globalDisableProduct=null;            ;
     private static PreparedStatement globalUpdateVisits = null;
@@ -78,7 +85,7 @@ public class DatabaseHelper {
         return globalSelectConnection;
     }
 
-    public static synchronized Connection getCloudSelectConnection(){
+    public static synchronized Connection getCloudSalesSelectConnection(){
 
         boolean resetConnection=globalSelectConnection==null;
         if (!resetConnection){
@@ -112,12 +119,12 @@ public class DatabaseHelper {
     }
 
 
-    public static synchronized Connection getCloudUpdateConnection(){
+    public static synchronized Connection getCloudSalesUpdateConnection(){
 
-        boolean resetConnection=globalCloudUpaateConnection==null;
+        boolean resetConnection= globalCloudSalesUpdateConnection ==null;
         if (!resetConnection){
             try {
-                resetConnection=globalCloudUpaateConnection.isClosed();
+                resetConnection= globalCloudSalesUpdateConnection.isClosed();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -135,15 +142,15 @@ public class DatabaseHelper {
                 e.printStackTrace();
             }
             try {
-                globalCloudUpaateConnection = DriverManager.getConnection(globalCloudUrl,props);
-                globalCloudUpaateConnection.setAutoCommit(true);
+                globalCloudSalesUpdateConnection = DriverManager.getConnection(globalCloudUrl,props);
+                globalCloudSalesUpdateConnection.setAutoCommit(true);
             } catch (SQLException e) {
                 Logger.log("I couldn't make a globalCloudUpdateConnection connection");
                 Logger.log(e);
                 e.printStackTrace();
             }
         }
-        return globalCloudUpaateConnection;
+        return globalCloudSalesUpdateConnection;
     }
 
 
@@ -584,6 +591,96 @@ public class DatabaseHelper {
         }
     }
 
+    public static void insertSale(int id, Timestamp saleDate, String state, String shippingType, boolean notified, int user) {
+        Connection updateConnection = getCloudSalesUpdateConnection();
+
+        Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
+
+        try{
+            if (globalInsertSale ==null) {
+                globalInsertSale = updateConnection.prepareStatement("insert into public.ventas(id,fechaventa,fechaactualizacion,estado,tipoenvio,notificado,usuario) values (?,?,?,?,?,?,?)");
+            }
+
+            globalInsertSale.setInt(1,id);
+            globalInsertSale.setTimestamp(2,saleDate);
+            globalInsertSale.setTimestamp(3,lastUpdate);
+            globalInsertSale.setString(4,state);
+            globalInsertSale.setString(5,shippingType);
+            globalInsertSale.setBoolean(6,notified);
+            globalInsertSale.setInt(7,user);
+
+            int insertedRecords = globalInsertSale.executeUpdate();
+            if (insertedRecords!=1){
+                Logger.log("Couln't insert a record in sales table id="+id);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Cannot insert a record in sales table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+    public static void updateSale(int id, String state, String shippingType, Boolean notified) {
+        Connection updateConnection = DatabaseHelper.getCloudSalesUpdateConnection();
+
+        Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
+
+        if (notified==null){
+            notified=false;
+        }
+
+        String queryStr="";
+        if (state!=null){
+            queryStr+=" estado='"+state+"',";
+        }
+        if (shippingType!=null){
+            queryStr+=" tipoenvio='"+shippingType+"',";
+        }
+
+        try{
+            PreparedStatement ps = updateConnection.prepareStatement("update public.ventas set " +queryStr+
+                    "notificado=?, fechaactualizacion=? where id=?");
+
+            ps.setBoolean(1,notified);
+            ps.setTimestamp(2,lastUpdate);
+            ps.setInt(3,id);
+
+            int updatedRecords = ps.executeUpdate();
+            if (updatedRecords!=1){
+                Logger.log("Couln't update a record in sales table id="+id);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("update a record in sales table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+
+    public static void removeSale(int id) {
+        Connection updateConnection = getCloudSalesUpdateConnection();
+
+
+        try{
+            if (globalRemoveSale ==null) {
+                globalRemoveSale = updateConnection.prepareStatement("delete from public.ventas where id=?");
+            }
+
+            globalRemoveSale.setInt(1,id);
+
+            int removedRecords = globalRemoveSale.executeUpdate();
+            if (removedRecords!=1){
+                Logger.log("Couln't delete a record in sales table id="+id);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Cannot delete a record in sales table II id="+id);
+            Logger.log(e);
+        }
+    }
+
     public static synchronized void disableProduct(String productId,String database){
         int registrosModificados=0;
         try {
@@ -632,6 +729,28 @@ public class DatabaseHelper {
             e.printStackTrace();
         }
 
+    }
+
+    public static ResultSet fetchSales() {
+
+        ResultSet resultSet = null;
+        Connection selectConnection = getCloudSalesSelectConnection();
+
+        try{
+            if (globalSelectSales ==null) {
+                globalSelectSales = selectConnection.prepareStatement("SELECT id,fechaventa,fechaactualizacion,estado,tipoenvio,notificado,usuario FROM public.ventas order by id");
+            }
+
+            resultSet = globalSelectSales.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get sales");
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get last sales II");
+            Logger.log(e);
+        }
+        return resultSet;
     }
 
 

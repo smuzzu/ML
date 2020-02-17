@@ -8,26 +8,33 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashMap;
 
 public class SalesChecker {
 
     static String usuario = "ACACIAYLENGA";
+    //static String usuario ="SOMOS_MAS";
+    //static String usuario ="QUEFRESQUETE";
 
-    private static HashMap<Integer,Integer> getOrders(CloseableHttpClient httpClient){
+    //Estados de la Orden
+    private static final String VENDIDO = "V";
+    private static final String ENTREGADO = "E";
+    private static final String RECLAMO = "R";
+    private static final String CANCELADO = "C";
+
+    //Tipos de Envio
+    private static final String CORREO = "C";
+    private static final String FLEX = "F";
+    private static final String NO_HAY_ENVIO = "N"; //sin envio o "acordar"
+
+    private static void getOrders(CloseableHttpClient httpClient){
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
 
-        HashMap<Integer,Integer> statistics = new HashMap<Integer, Integer>();
-        for (int i=0;i<32;i++){
-            statistics.put(i,0);
-        }
         int totalOrders=999999;
-        int count=0;
-
 
         for (int offset=0; offset<=totalOrders; offset+=50) {
             String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(usuario) + "&order.status%20ne%20cancelled&order.status%20ne%20invalid&offset="+offset;
@@ -42,6 +49,7 @@ public class SalesChecker {
             JSONArray jsonOrdersArray = (JSONArray) jsonOrders.get("results");
             for (Object orderObjectArray : jsonOrdersArray) {
                 JSONObject jsonOrder = (JSONObject) orderObjectArray;
+                long orderId=jsonOrder.getLong("id");
                 String dateCreatedStr=jsonOrder.getString("date_created");
                 dateCreatedStr=dateCreatedStr.replace('T',' ');
                 try {
@@ -50,26 +58,76 @@ public class SalesChecker {
                     if (dateCreatedStr.substring(11,13).equals("12") && dateCreatedStr.substring(24).equals("04:00")){
                         hour=13;
                     }
-                    int day = dateCreated.getDay();
-                    int dayOfMonth=dateCreated.getDate();
-
-                    int sales = statistics.get(dayOfMonth);
-                    sales++;
-                    statistics.put(dayOfMonth, sales);
-
-/*                    if (day>0 && day<6) {//S a D
-                        count++;
-                        int sales = statistics.get(hour);
-                        sales++;
-                        statistics.put(hour, sales);
-                    }*/
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
+                JSONObject buyerJsonObject=jsonOrder.getJSONObject("buyer");
+                String nickName = buyerJsonObject.getString("nickname");
+                String firstName = buyerJsonObject.getString("first_name");
+                String lastName = buyerJsonObject.getString("last_name");
+                boolean fulfilled=false;
+                if (!jsonOrder.isNull("fulfilled")) {
+                    fulfilled=jsonOrder.getBoolean("fulfilled");
+                }
+                String orderStatus=jsonOrder.getString("status");
+
+
+                String[] itemsArray = new String[3];
+
+                JSONArray orderItemsArray = jsonOrder.getJSONArray("order_items");
+                int itemCount = 0;
+                for (Object orderItemObject : orderItemsArray) {
+                    JSONObject jsonItem = (JSONObject) orderItemObject;
+                    int itemQuantity = jsonItem.getInt("quantity");
+                    JSONObject jsonItem2 = jsonItem.getJSONObject("item");
+                    String itemId = jsonItem2.getString("id");
+                    String itemTitle = jsonItem2.getString("title");
+                    String itemCategoryId = jsonItem2.getString("category_id");
+                    String itemVariation = null;
+                    if (!jsonItem2.isNull("variation_attributes")) {
+                        JSONArray variationAtributesArray=jsonItem2.getJSONArray("variation_attributes");
+                        if (variationAtributesArray.length()>0) {
+                            JSONObject variationMap = (JSONObject) jsonItem2.getJSONArray("variation_attributes").get(0);
+                            String variationName = variationMap.getString("name");
+                            String variationValue = variationMap.getString("value_name");
+                            itemVariation = variationName + ": " + variationValue;
+                            boolean b=false;
+                        }
+                    }
+                    itemsArray[itemCount] = itemId + " " + itemQuantity + " " + itemTitle + " " + itemCategoryId + " " + itemVariation;
+                    itemCount++;
+
+                }
+
+                String shippingType ="no shipping type";
+
+                JSONObject shippingJsonObject=jsonOrder.getJSONObject("shipping");
+                String shippingStatus="N/A";
+                if (shippingJsonObject.has("status")) {
+                    shippingStatus=shippingJsonObject.getString("status");
+                }
+                if (shippingJsonObject.has("shipping_option")) {
+                    JSONObject shippingOptionJsonObject = shippingJsonObject.getJSONObject("shipping_option");
+
+
+                    shippingType = shippingOptionJsonObject.getString("name");
+                }else {
+                    shippingType="Acordar con Vendedor";
+                }
+
+
+                System.out.println(orderId+" "+fulfilled+" "+orderStatus+" "+dateCreatedStr+" " +nickName+" "+firstName+" "+lastName+" "+shippingType+" "+shippingStatus+" "+itemsArray[0]);
+                //System.out.println(orderId+" "+shippingType);
+                if (itemsArray[1]!=null){
+                    System.out.println("esta ordern tiene mas items");
+                    for (String itemLine:itemsArray){
+                        System.out.println(itemsArray);
+                    }
+                }
+
+
             }
         }
-        System.out.println("count: "+count);
-        return statistics;
     }
 
     public static void main(String[] args) {
@@ -85,115 +143,30 @@ public class SalesChecker {
         System.out.println(msg);
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+        getOrders(httpClient);
 
-
-
-        Timestamp creationDate = new Timestamp(Calendar.getInstance().getTimeInMillis());
-        int id = 3;
-        String state="K";
-        updateSale(id,state);
-
-        getAllOrders();
 
     }
 
-    private static void updateSale(int id, String newState) {
-        Connection updateConnection = DatabaseHelper.getCloudUpdateConnection();
-        PreparedStatement ps = null;
-        Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
-
-        try{
-            if (ps ==null) {
-                ps = updateConnection.prepareStatement("update public.ventas set estado=?, fechaactualizacion=? where id=?");
-            }
-
-            ps.setString(1,newState);
-            ps.setTimestamp(2,lastUpdate);
-            ps.setInt(3,id);
-
-            int updatedRecords = ps.executeUpdate();
-            if (updatedRecords!=1){
-                Logger.log("Couln't update a record in sales table id="+id);
-            }
-            }catch(SQLException e){
-                Logger.log("update a record in sales table II id="+id);
-                Logger.log(e);
-            }
-    }
-
-    private static void insertSale(int id, Timestamp saleDate, String state) {
-        Connection updateConnection = DatabaseHelper.getCloudUpdateConnection();
-        PreparedStatement ps = null;
-        Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
-
-        try{
-            if (ps ==null) {
-                ps = updateConnection.prepareStatement("insert into public.ventas(id,fechaventa,fechaactualizacion,estado) values (?,?,?,?)");
-            }
-
-            ps.setInt(1,id);
-            ps.setTimestamp(2,saleDate);
-            ps.setTimestamp(3,lastUpdate);
-            ps.setString(4,state);
-
-            int insertedRecords = ps.executeUpdate();
-            if (insertedRecords!=1){
-                Logger.log("Couln't insert a record in sales table id="+id);
-            }
-
-        }catch(SQLException e){
-            Logger.log("Cannot insert a record in sales table II id="+id);
-            Logger.log(e);
-        }
-    }
 
 
-    private static void deleteSale(int id) {
-        Connection updateConnection = DatabaseHelper.getCloudUpdateConnection();
-        PreparedStatement ps = null;
-        Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
-
-        try{
-            if (ps ==null) {
-                ps = updateConnection.prepareStatement("delete from public.ventas where id=?");
-            }
-
-            ps.setInt(1,id);
-
-            int removedRecords = ps.executeUpdate();
-            if (removedRecords!=1){
-                Logger.log("Couln't delete a record in sales table id="+id);
-            }
-
-        }catch(SQLException e){
-            Logger.log("Cannot delete a record in sales table II id="+id);
-            Logger.log(e);
-        }
-    }
-
-    private static void getAllOrders() {
+    private static void listAllOrders() {
         //recuperar las ordenes
 
-        Connection selectConnection = DatabaseHelper.getCloudSelectConnection();
-        PreparedStatement ps = null;
+        ResultSet rs = DatabaseHelper.fetchSales();
 
         try{
-            if (ps ==null) {
-                ps = selectConnection.prepareStatement("SELECT id,fechaventa,fechaactualizacion,estado FROM public.ventas order by id");
-            }
-
-            ResultSet rs = ps.executeQuery();
-            if (rs==null){
-                Logger.log("Couldn't get sales");
-            }
             while (rs.next()){
                 int id=rs.getInt(1);
                 Timestamp creationDate = rs.getTimestamp(2);
                 Timestamp updateDate = rs.getTimestamp(3);
                 String state = rs.getString(4);
-                System.out.println("id "+id+" "+creationDate+" "+updateDate+" "+state);
+                String tipoEnvio=rs.getString(5);
+                boolean notificado=rs.getBoolean(6);
+                System.out.println("id "+id+" "+creationDate+" "+updateDate+" "+state+" "+tipoEnvio+" "+notificado);
             }
             }catch(SQLException e){
+                e.printStackTrace();
                 Logger.log("Couldn't get last sales II");
                 Logger.log(e);
             }

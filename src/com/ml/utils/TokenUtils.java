@@ -78,6 +78,22 @@ public class TokenUtils {
         return token;
     }
 
+    public static int getUserNumber(String user) {
+        int userNumber = 0;
+        if (user.equals(QUEFRESQUETE)) {
+            userNumber = 1;
+        } else {
+            if (user.equals(ACACIAYLENGA)) {
+                userNumber = 2;
+            } else {
+                if (user.equals("SOMOS_MAS")) {
+                    userNumber = 3;
+                }
+            }
+        }
+        return userNumber;
+    }
+
     public static synchronized void refreshToken(CloseableHttpClient httpClient,String user) {
         String appId=null;
         String appSecret=null;
