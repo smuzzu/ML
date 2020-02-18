@@ -47,6 +47,8 @@ public class Order {
     public String productVariationName;
     public String productVariationValue;
 
+    public boolean notified;
+
     public ArrayList<Message> messageArrayList;
 
     //shippingType
@@ -60,5 +62,17 @@ public class Order {
     public static final char ENTREGADO='E';
     public static final char RECLAMO='R';
     public static final char CANCELADO='C';
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
+        Order orderParam = (Order) obj;
+        return id == orderParam.id;
+    }
 
 }

@@ -421,7 +421,7 @@ public class MessagesAndSalesHelper {
         return orderArrayList;
     }
 
-    private static void printOrder(Order order){
+    public static void printOrder(Order order){
 
         String shippingTypeDesc="N/A";
         if (order.shippingType==Order.ACORDAR){
