@@ -213,7 +213,64 @@ public class TokenUtils {
 
 
     public static void main(String[] args){
-        getToken(QUEFRESQUETE);
+        String token="APP_USR-1292869017866771-021901-7eaaea661bee02be7146f6e19fcbd411-75607661";
+        String refreshToken="TG-5e4ab5c249808f00060c40e9-75607661";
+
+        char[] chares = new char[1000];
+        for (int i=0; i<1000; i++){
+            Double decimalNumber =  (Math.random() * ( 127 - 32 )) + 32;
+            int number = decimalNumber.intValue();
+            chares[i]=(char)number;
+        }
+        String str1 = String.valueOf(chares);
+        System.out.println(str1);
+        String str2 = encode(str1);
+        System.out.println(str2);
+        String str3 = decode(str2);
+        System.out.println(str3);
+
+        if (str1.equals(str3)){
+            boolean genial=false;
+            System.out.println(" son iguales");
+        }
+
+        //getToken(QUEFRESQUETE);
+    }
+
+    private static String encode(String str){
+        char[] charArray=str.toCharArray();
+        int z=0;
+        for (int i=0; i<charArray.length; i++){
+            z++;
+            if (z==96){
+                z=1;
+            }
+            int newValue = charArray[i]+z;
+            if (newValue>127){
+                newValue-=95;
+            }
+            charArray[i]=(char)newValue;
+        }
+        String result=String.valueOf(charArray);
+        return result;
+    }
+
+    private static String decode(String str){
+        char[] charArray=str.toCharArray();
+        int z=0;
+        for (int i=0; i<charArray.length; i++){
+            z++;
+            if (z==96){
+                z=1;
+            }
+            int newValue = charArray[i]-z;
+            if (newValue<32){
+                newValue+=95;
+            }
+            charArray[i]=(char)newValue;
+        }
+        String result=String.valueOf(charArray);
+        return result;
     }
 
 }

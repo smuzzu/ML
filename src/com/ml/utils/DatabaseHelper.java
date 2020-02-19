@@ -591,7 +591,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static void insertSale(int id, Timestamp saleDate, String state, String shippingType, boolean notified, int user) {
+    public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, boolean notified, int userNumber) {
         Connection updateConnection = getCloudSalesUpdateConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
@@ -600,14 +600,13 @@ public class DatabaseHelper {
             if (globalInsertSale ==null) {
                 globalInsertSale = updateConnection.prepareStatement("insert into public.ventas(id,fechaventa,fechaactualizacion,estado,tipoenvio,notificado,usuario) values (?,?,?,?,?,?,?)");
             }
-
-            globalInsertSale.setInt(1,id);
+            globalInsertSale.setLong(1,id);
             globalInsertSale.setTimestamp(2,saleDate);
             globalInsertSale.setTimestamp(3,lastUpdate);
             globalInsertSale.setString(4,state);
             globalInsertSale.setString(5,shippingType);
             globalInsertSale.setBoolean(6,notified);
-            globalInsertSale.setInt(7,user);
+            globalInsertSale.setInt(7,userNumber);
 
             int insertedRecords = globalInsertSale.executeUpdate();
             if (insertedRecords!=1){
@@ -621,7 +620,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static void updateSale(int id, String state, String shippingType, Boolean notified) {
+    public static void updateSale(long id, String state, String shippingType, Boolean notified) {
         Connection updateConnection = DatabaseHelper.getCloudSalesUpdateConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
@@ -644,7 +643,7 @@ public class DatabaseHelper {
 
             ps.setBoolean(1,notified);
             ps.setTimestamp(2,lastUpdate);
-            ps.setInt(3,id);
+            ps.setLong(3,id);
 
             int updatedRecords = ps.executeUpdate();
             if (updatedRecords!=1){
@@ -658,7 +657,7 @@ public class DatabaseHelper {
     }
 
 
-    public static void removeSale(int id) {
+    public static void removeSale(long id) {
         Connection updateConnection = getCloudSalesUpdateConnection();
 
 
@@ -667,7 +666,7 @@ public class DatabaseHelper {
                 globalRemoveSale = updateConnection.prepareStatement("delete from public.ventas where id=?");
             }
 
-            globalRemoveSale.setInt(1,id);
+            globalRemoveSale.setLong(1,id);
 
             int removedRecords = globalRemoveSale.executeUpdate();
             if (removedRecords!=1){

@@ -9,13 +9,20 @@ public class Order {
     public Timestamp creationTimestamp;
     public Timestamp updateTimestamp;
     public String paymentStatus;
+
+    public long shippingId;
     public String shippingStatus;
-    public String user;
+    public String shippingTrackingNumber;
+    public String shippingCurrier;
+
+    public String sellerName;
+    public int sellerId;
     public char orderStatus;
     public char shippingType;
     public boolean delivered;
     public boolean waitingForWithdrawal;
     public boolean cancelled;
+    public boolean returned;
     public boolean refunded;
     public boolean timeoutFulfilled;
     public boolean finished;
@@ -42,6 +49,7 @@ public class Order {
     public boolean paymentInstallments;
 
     public String productId;
+    public String productCategoryId;
     public String productTitle;
     public String productVariation;
     public String productVariationName;
@@ -50,12 +58,14 @@ public class Order {
     public boolean notified;
 
     public ArrayList<Message> messageArrayList;
+    public long packId; //for messages
 
     //shippingType
     public static final char ACORDAR='A';
     public static final char CORREO_A_DOMICILIO='D';
     public static final char CORREO_RETIRA='R';
     public static final char FLEX='F';
+    public static final char UNKNOWN=' ';
 
     //orderStatus
     public static final char VENDIDO='V';
