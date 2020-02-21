@@ -71,9 +71,19 @@ public class TokenUtils {
 
     public static synchronized String getToken(String user){
         if (token==null){
-            String fileStr = getFileStr(user);
-            int eolPos=fileStr.indexOf("\n");
-            token=fileStr.substring(0,eolPos);
+            String encodedToken=DatabaseHelper.fetchTokenOnCloud(user);
+            if (encodedToken==null){
+                String fileStr = getFileStr(user);
+                int eolPos1 = fileStr.indexOf("\n");
+                int eolPos2 = fileStr.length()-1;
+                token = fileStr.substring(0, eolPos1);
+                String theRefreshToken = fileStr.substring(eolPos1+1,eolPos2);
+                encodedToken=encode(token);
+                String encodedRefreshToken=encode(theRefreshToken);
+                DatabaseHelper.addTokenOnCloud(user,encodedToken,encodedRefreshToken);
+            }else {
+                token=decode(encodedToken);
+            }
         }
         return token;
     }
@@ -117,10 +127,15 @@ public class TokenUtils {
 
         }
 
-        String fileStr = getFileStr(user);
-        int eolPos1 = fileStr.indexOf("\n")+1;
-        int eolPos2 = fileStr.length()-1;
-        refresh_token = fileStr.substring(eolPos1,eolPos2);
+        String encodedRefreshToken=DatabaseHelper.fetchRefreshTokenOnCloud(user);
+        if (encodedRefreshToken==null) {
+            String fileStr = getFileStr(user);
+            int eolPos1 = fileStr.indexOf("\n") + 1;
+            int eolPos2 = fileStr.length() - 1;
+            refresh_token = fileStr.substring(eolPos1, eolPos2);
+        }else {
+            refresh_token=decode(encodedRefreshToken);
+        }
 
         String tokenURL = "https://api.mercadolibre.com/oauth/token?grant_type=refresh_token"
                 + "&client_id=" + appId
@@ -192,6 +207,10 @@ public class TokenUtils {
             System.out.println(e);
             Logger.log(e);
         }
+
+        String encodedToken=encode(token);
+        encodedRefreshToken=encode(refresh_token);
+        DatabaseHelper.updateTokenOnCloud(user,encodedToken,encodedRefreshToken);
     }
 
     public static String getIdCliente(String user){
@@ -213,28 +232,16 @@ public class TokenUtils {
 
 
     public static void main(String[] args){
-        String token="APP_USR-1292869017866771-021901-7eaaea661bee02be7146f6e19fcbd411-75607661";
-        String refreshToken="TG-5e4ab5c249808f00060c40e9-75607661";
+        String userName="ACACIAYLENGA";
 
-        char[] chares = new char[1000];
-        for (int i=0; i<1000; i++){
-            Double decimalNumber =  (Math.random() * ( 127 - 32 )) + 32;
-            int number = decimalNumber.intValue();
-            chares[i]=(char)number;
-        }
-        String str1 = String.valueOf(chares);
-        System.out.println(str1);
-        String str2 = encode(str1);
-        System.out.println(str2);
-        String str3 = decode(str2);
-        System.out.println(str3);
+/*
+        String token = DatabaseHelper.fetchTokenOnCloud(userName);
+        String refrehsToken=DatabaseHelper.fetchRefreshTokenOnCloud(userName);
+        DatabaseHelper.addTokenOnCloud(userName,"t1","t2");
+        token=DatabaseHelper.fetchTokenOnCloud(userName);
 
-        if (str1.equals(str3)){
-            boolean genial=false;
-            System.out.println(" son iguales");
-        }
-
-        //getToken(QUEFRESQUETE);
+ */
+        getToken(userName);
     }
 
     private static String encode(String str){

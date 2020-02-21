@@ -15,7 +15,10 @@ public class GoogleMailSenderUtil {
     //static final String adressList = "sebamuzzu2@gmail.com, to_username_b@yahoo.com";
     static final String adressList = "sebamuzzu2@gmail.com";
 
-    public static void sendMail(String subject, String text){
+    public static void sendMail(String subject, String text,String destinationAddress){
+        if (destinationAddress==null || destinationAddress.isEmpty()){
+            destinationAddress=adressList;
+        }
         Properties prop = new Properties();
         prop.put("mail.smtp.host", "smtp.gmail.com");
         prop.put("mail.smtp.port", "587");
@@ -28,14 +31,12 @@ public class GoogleMailSenderUtil {
                         return new PasswordAuthentication(username, password);
                     }
                 });
-
         try {
-
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress("fromasdasdasdasd@gmail.com"));
             message.setRecipients(
                     MimeMessage.RecipientType.TO,
-                    InternetAddress.parse(adressList)
+                    InternetAddress.parse(destinationAddress)
             );
             message.setSubject(subject);
             message.setText(text);
@@ -47,7 +48,10 @@ public class GoogleMailSenderUtil {
         } catch (MessagingException e) {
             e.printStackTrace();
         }
+    }
 
+    public static void sendMail(String subject, String text){
+        sendMail(subject,text,null);
     }
 
 

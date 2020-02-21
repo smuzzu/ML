@@ -443,8 +443,13 @@ public class MessagesAndSalesHelper {
         String url = "https://api.mercadolibre.com/shipments/"+order.shippingId+"?";
         JSONObject shippingInfoJsonObject = HttpUtils.getJsonObjectUsingToken(url,httpClient,user);
         if (shippingInfoJsonObject!=null) {
-            order.shippingTrackingNumber = shippingInfoJsonObject.getString("tracking_number");
-            order.shippingCurrier = shippingInfoJsonObject.getString("tracking_method");
+            if (shippingInfoJsonObject.has("tracking_number") && !shippingInfoJsonObject.isNull("tracking_number")) {
+                order.shippingTrackingNumber = shippingInfoJsonObject.getString("tracking_number");
+            }
+            if (shippingInfoJsonObject.has("tracking_method") && !shippingInfoJsonObject.isNull("tracking_method")) {
+                order.shippingCurrier = shippingInfoJsonObject.getString("tracking_method");
+            }
+
         }
         return order;
     }

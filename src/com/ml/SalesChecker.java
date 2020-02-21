@@ -15,9 +15,9 @@ import java.util.ArrayList;
 
 public class SalesChecker {
 
-    //static String usuario = "ACACIAYLENGA";
+    static String usuario = "ACACIAYLENGA";
     //static String usuario ="SOMOS_MAS";
-    static String usuario ="QUEFRESQUETE";
+    //static String usuario ="QUEFRESQUETE";
 
     public static void main(String[] args) {
 

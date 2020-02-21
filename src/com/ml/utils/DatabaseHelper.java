@@ -18,13 +18,13 @@ public class DatabaseHelper {
     private static Connection globalSelectConnection = null;
 
     private static Connection globalDisableProductConnection = null;
-    private static Connection globalVisitUpadteConnection = null;
+    private static Connection globalVisitUpdateConnection = null;
     private static Connection globalAddProductConnection = null;
     private static Connection globalAddDailyConnection = null;
     private static Connection globalAddWeeklyConnection = null;
     private static Connection globalAddMonthlyConnection = null;
     private static Connection globalAddActivityConnection = null;
-    private static Connection globalCloudSalesUpdateConnection = null;
+    private static Connection globalCloudConnection = null;
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
@@ -35,6 +35,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastWeekly = null;
     private static PreparedStatement globalSelectLastMonthly = null;
     private static PreparedStatement globalSelectSales = null;
+    private static PreparedStatement globalSelectToken = null;
 
     private static PreparedStatement globalInsertProduct = null;
     private static PreparedStatement globalInsertDaily = null;
@@ -47,10 +48,15 @@ public class DatabaseHelper {
     private static PreparedStatement globalUpdateProduct = null;
     private static PreparedStatement globalDisableProduct=null;            ;
     private static PreparedStatement globalUpdateVisits = null;
+    private static PreparedStatement globalUpdateToken = null;
 
     private static String globalCloudUrl = "jdbc:postgresql://rajje.db.elephantsql.com:5432/bivpmkkk";
     private static String globalCloudUser = "bivpmkkk";
     private static String globalCouldPassword = "TMpI5v0Gja7W974bDtDiF1RYenKW8-6f";
+
+    private static boolean fetchTokenOnCloudFailureNotified =false;
+    private static boolean updateTokenOnCloudFailureNotified =false;
+    private static boolean cloudConnectionCreationFailureNotified=false;
 
     public static synchronized Connection getSelectConnection(String database){
 
@@ -85,46 +91,13 @@ public class DatabaseHelper {
         return globalSelectConnection;
     }
 
-    public static synchronized Connection getCloudSalesSelectConnection(){
 
-        boolean resetConnection=globalSelectConnection==null;
+    public static synchronized Connection getCloudConnection(){
+
+        boolean resetConnection= globalCloudConnection ==null;
         if (!resetConnection){
             try {
-                resetConnection=globalSelectConnection.isClosed();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (resetConnection) {
-            Properties props = new Properties();
-            props.setProperty("user", globalCloudUser);
-            props.setProperty("password", globalCouldPassword);
-
-            try {
-                Class.forName("org.postgresql.Driver");
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                globalSelectConnection = DriverManager.getConnection(globalCloudUrl,props);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make a selectCloud connection");
-                Logger.log(e);
-                e.printStackTrace();
-            }
-        }
-        return globalSelectConnection;
-    }
-
-
-    public static synchronized Connection getCloudSalesUpdateConnection(){
-
-        boolean resetConnection= globalCloudSalesUpdateConnection ==null;
-        if (!resetConnection){
-            try {
-                resetConnection= globalCloudSalesUpdateConnection.isClosed();
+                resetConnection= globalCloudConnection.isClosed();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -141,18 +114,39 @@ public class DatabaseHelper {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            try {
-                globalCloudSalesUpdateConnection = DriverManager.getConnection(globalCloudUrl,props);
-                globalCloudSalesUpdateConnection.setAutoCommit(true);
-            } catch (SQLException e) {
-                Logger.log("I couldn't make a globalCloudUpdateConnection connection");
-                Logger.log(e);
-                e.printStackTrace();
+
+            int retries=0;
+            boolean connected=false;
+
+            while (!connected && retries<5) {
+                retries++;
+                try {
+                    globalCloudConnection = DriverManager.getConnection(globalCloudUrl, props);
+                    globalCloudConnection.setAutoCommit(true);
+                    connected=true;
+                } catch (SQLException e) {
+                    Logger.log("I couldn't make a globalCloudConnection connection");
+                    Logger.log(e);
+                    e.printStackTrace();
+                }
+                if (!connected){
+                    try{
+                        Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
+                    String msg = "Couldn't get cloud connection, retry #"+retries;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                }
+            }
+            if (!connected && !cloudConnectionCreationFailureNotified){
+                cloudConnectionCreationFailureNotified=true;
+                GoogleMailSenderUtil.sendMail("No se pudo establecer conecion con la base de datos cloud !!!","","sebamuzzu@gmail.com");
             }
         }
-        return globalCloudSalesUpdateConnection;
+        return globalCloudConnection;
     }
-
 
 
     public static synchronized Connection getDisableProductConnection(String database){
@@ -192,10 +186,10 @@ public class DatabaseHelper {
 
     public static synchronized Connection getVisitUpdateConnection(String database){
 
-        boolean resetConnection=globalVisitUpadteConnection==null;
+        boolean resetConnection= globalVisitUpdateConnection ==null;
         if (!resetConnection){
             try {
-                resetConnection=globalVisitUpadteConnection.isClosed();
+                resetConnection= globalVisitUpdateConnection.isClosed();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -213,15 +207,15 @@ public class DatabaseHelper {
             props.setProperty("user", "postgres");
             props.setProperty("password", "password");
             try {
-                globalVisitUpadteConnection = DriverManager.getConnection(url, props);
-                globalVisitUpadteConnection.setAutoCommit(true);
+                globalVisitUpdateConnection = DriverManager.getConnection(url, props);
+                globalVisitUpdateConnection.setAutoCommit(true);
             } catch (SQLException e) {
                 Logger.log("I couldn't make an update connection");
                 Logger.log(e);
                 e.printStackTrace();
             }
         }
-        return globalVisitUpadteConnection;
+        return globalVisitUpdateConnection;
     }
 
     public static synchronized Connection getAddProductConnection(String database){
@@ -592,7 +586,7 @@ public class DatabaseHelper {
     }
 
     public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, boolean notified, int userNumber) {
-        Connection updateConnection = getCloudSalesUpdateConnection();
+        Connection updateConnection = getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
 
@@ -621,7 +615,7 @@ public class DatabaseHelper {
     }
 
     public static void updateSale(long id, String state, String shippingType, Boolean notified) {
-        Connection updateConnection = DatabaseHelper.getCloudSalesUpdateConnection();
+        Connection updateConnection =getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
 
@@ -658,7 +652,7 @@ public class DatabaseHelper {
 
 
     public static void removeSale(long id) {
-        Connection updateConnection = getCloudSalesUpdateConnection();
+        Connection updateConnection = getCloudConnection();
 
 
         try{
@@ -730,10 +724,149 @@ public class DatabaseHelper {
 
     }
 
+    public static String fetchTokenOnCloud(String userName){
+        String token=null;
+        int retries=0;
+        while (token==null && retries<5) {
+            retries++;
+            int userNumber = TokenUtils.getUserNumber(userName);
+            Connection selectConnection = getCloudConnection();
+            try {
+                if (globalSelectToken == null) {
+                    globalSelectToken = selectConnection.prepareStatement("SELECT t1 FROM public.sopa where usuario=?");
+                }
+                globalSelectToken.setInt(1, userNumber);
+                ;
+
+                ResultSet resultSet = globalSelectToken.executeQuery();
+                if (resultSet == null) {
+                    Logger.log("Couldn't get token on sopa");
+                }
+                if (resultSet.next()) {
+                    token = resultSet.getString(1);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Logger.log("Couldn't get token on sopa III");
+                Logger.log(e);
+            }
+            if (token==null){
+                try{
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                String msg = "Couldn't get token con clould, retry #"+retries;
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+        }
+        if (token==null && !fetchTokenOnCloudFailureNotified){
+            fetchTokenOnCloudFailureNotified=true;
+            GoogleMailSenderUtil.sendMail("No se pudo recuperar el token de "+userName+" on cloud","","sebamuzzu@gmail.com");
+        }
+        return token;
+    }
+
+    public static String fetchRefreshTokenOnCloud(String userName){
+        String refreshToken=null;
+        int userNumber=TokenUtils.getUserNumber(userName);
+        Connection selectConnection = getCloudConnection();
+        try{
+            PreparedStatement refreshTokenPreparedStatement = selectConnection.prepareStatement("SELECT t2 FROM public.sopa where usuario=?");
+            refreshTokenPreparedStatement.setInt(1,userNumber);;
+
+            ResultSet resultSet = refreshTokenPreparedStatement.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get refresh token on sopa");
+            }
+            if (resultSet.next()){
+                refreshToken=resultSet.getString(1);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get token on sopa III");
+            Logger.log(e);
+        }
+        return refreshToken;
+    }
+
+
+    public static void addTokenOnCloud(String userName, String token, String refreshToken){
+
+        int userNumber=TokenUtils.getUserNumber(userName);
+        Connection updateConnection =  getCloudConnection();
+
+        try{
+            PreparedStatement addTokenPreparedStatement = updateConnection.prepareStatement("insert into public.sopa(usuario,t1,t2) values(?,?,?)");
+
+            addTokenPreparedStatement.setInt(1,userNumber);
+            addTokenPreparedStatement.setString(2,token);
+            addTokenPreparedStatement.setString(3,refreshToken);
+
+            int updatedRecords=addTokenPreparedStatement.executeUpdate();
+
+            if (updatedRecords!=1){
+                Logger.log("Error adding token on Could "+userNumber+" "+ token + " " +refreshToken);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get token on sopa III");
+            Logger.log(e);
+        }
+    }
+
+    public static void updateTokenOnCloud(String userName, String token, String refreshToken){
+        boolean completed = false;
+        int retries =0;
+        while (!completed && retries<5) {
+            retries++;
+            int userNumber = TokenUtils.getUserNumber(userName);
+            Connection updateConnection = getCloudConnection();
+            try {
+                if (globalUpdateToken == null) {
+                    globalUpdateToken = updateConnection.prepareStatement("update public.sopa set t1=?,t2=? where usuario=?");
+                }
+                globalUpdateToken.setString(1, token);
+                globalUpdateToken.setString(2, refreshToken);
+                globalUpdateToken.setInt(3, userNumber);
+
+                int updatedRecords = globalUpdateToken.executeUpdate();
+
+                if (updatedRecords != 1) {
+                    Logger.log("Error adding token on Could " + userNumber + " " + token + " " + refreshToken);
+                }else {
+                    completed=true;
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Logger.log("Couldn't get token on sopa III");
+                Logger.log(e);
+            }
+            if (!completed){
+                try{
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                String msg = "Couldn't update token con clould, retry #"+retries;
+                System.out.println(msg);
+                Logger.log(msg);
+            }
+        }
+        if (!completed && updateTokenOnCloudFailureNotified){
+            updateTokenOnCloudFailureNotified=true;
+            GoogleMailSenderUtil.sendMail("No se pudo actualizar el token de "+userName+" on cloud","","sebamuzzu@gmail.com");
+        }
+    }
+
+
     public static ResultSet fetchSales() {
 
         ResultSet resultSet = null;
-        Connection selectConnection = getCloudSalesSelectConnection();
+        Connection selectConnection = getCloudConnection();
 
         try{
             if (globalSelectSales ==null) {
