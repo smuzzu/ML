@@ -15,7 +15,6 @@ import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
-import com.ml.utils.ProductPageProcessor;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,9 +25,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
  * Created by Muzzu on 11/12/2017.
  */
 
-public class MercadoLibre06b extends Thread {
+public class MercadoLibre06Empresas extends Thread {
 
-    MercadoLibre06b(String custId, int[] intervals) {
+    MercadoLibre06Empresas(String custId, int[] intervals) {
         this.custId = custId;
         this.theIntervals = intervals;
     }
@@ -110,6 +109,10 @@ public class MercadoLibre06b extends Thread {
                     "LACASA+DELFARO",
                     "AMITOSAI+STORES",
                     "BABY+KINGDOM",
+                    "PLANETAZENOK",
+                    "PRESTIGIO+STORE",
+                    "SALES+COM",
+                    "PINTURERIASREX",
 
                     "DAGOSTINA+VANITORYS",
                     "GALARDI-MUEBLES",
@@ -155,6 +158,11 @@ public class MercadoLibre06b extends Thread {
                     "INTERMARBLE-SRL",
                     "CEGEVAHOGAR",
                     "BAIRES+4",
+                    "TISERA",
+                    "QUIEROESO+YA",
+                    "MUEBLESLANUS",
+                    "MORSHOP",
+                    "NEWMO",
                     "BALL_SELLINGS",
                     "AMOBLAMIENTOS+A.S",
                     "MUEBO",
@@ -195,65 +203,74 @@ public class MercadoLibre06b extends Thread {
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 2147483647},  //LACASA+DELFARO
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //AMITOSAI+STORES
             {0, 1500, 2500, 2147483647},  //BABY+KINGDOM
+            {0, 5000, 2147483647},//PLANETAZENOK
+            {0, 5000, 2147483647},//PRESTIGIO+STORE
+            {0, 5000, 2147483647},//SALES+COM
+            {0, 5000, 2147483647},//PINTURERIASREX
 
             {0, 2147483647}, //DAGOSTINA+VANITORYS
-            {0, 2147483647},  //GALARDI-MUEBLES
+            {0, 2147483647}, //GALARDI-MUEBLES
             {0, 2147483647}, //ELEGANCE_JARDIN
-            {0, 2147483647},  //CHESTER-MANIA
+            {0, 2147483647}, //CHESTER-MANIA
             {0, 2147483647}, //DEBORAOCHOTECO
-            {0, 2147483647},  //DEBUENDISE%C3%91O
+            {0, 2147483647}, //DEBUENDISE%C3%91O
             {0, 2147483647}, //GUIK+DESIGN
-            {0, 2147483647},   //ELECTROMEDINA
+            {0, 2147483647}, //ELECTROMEDINA
 
             {0, 2147483647}, //SASI36787
             {0, 2147483647}, //.COLGALO.COMO.QUIERAS.
-            {0, 2147483647},  //AC-TEC
+            {0, 2147483647}, //AC-TEC
             {0, 2147483647}, //ALAVUELTA+CERAMICOS
 
             {0, 2147483647}, //GREENDECO
             {0, 2147483647}, //SHESHU+WEB
             {0, 2147483647}, //DISTRITOBLANCO
-            {0, 2147483647},  //N2M-ELECTRONICA
+            {0, 2147483647}, //N2M-ELECTRONICA
             {0, 2147483647}, //ARGENSHOP+BSAS
             {0, 2147483647}, //CASAANDREA+LOCAL
             {0, 2147483647}, //INTER+VENT
-            {0, 2147483647},  //DECOR+ITUZAINGO
+            {0, 2147483647}, //DECOR+ITUZAINGO
             {0, 2147483647}, //GUIRNALDA+DELUCES
             {0, 2147483647}, //VENTAIMPORTACION
             {0, 2147483647}, //CONFORTSURSA
-            {0, 2147483647},  //MLAT_ARG
+            {0, 2147483647}, //MLAT_ARG
             {0, 2147483647}, //ELECTROLED+SA
-            {0, 2147483647},   //DANPER+COMPLEMENTOS
-            {0, 2147483647},  //MI-BIOMBO-ES-TU-BIOMBO
-            {0, 2147483647},  //PUFFYFIACAS
+            {0, 2147483647}, //DANPER+COMPLEMENTOS
+            {0, 2147483647}, //MI-BIOMBO-ES-TU-BIOMBO
+            {0, 2147483647}, //PUFFYFIACAS
             {0, 2147483647}, //ARBOVERDE.SA
             {0, 2147483647}, //CARELLI+COMPANY
-            {0, 2147483647},  //ESCANDINAVIA+ARG
-            {0, 2147483647},  //VST+ONLINE
-            {0, 2147483647},  //ELMUNDODELASCAJAS
+            {0, 2147483647}, //ESCANDINAVIA+ARG
+            {0, 2147483647}, //VST+ONLINE
+            {0, 2147483647}, //ELMUNDODELASCAJAS
             {0, 2147483647}, //COLOMBRARO+ONLINE
-            {0, 2147483647},  //SUFERRETERIAONLINE
+            {0, 2147483647}, //SUFERRETERIAONLINE
             {0, 2147483647}, //OTHERBRANDS
-            {0, 2147483647},  //CAPRICHOSA+CAROLA
+            {0, 2147483647}, //CAPRICHOSA+CAROLA
             {0, 2147483647}, //PLASTICHEMONDO
             {0, 2147483647}, //IMPERIO+DESIGN
-            {0, 2147483647},  //INTERMARBLE-SRL
-            {0, 2147483647},  //CEGEVAHOGAR
-            {0, 2147483647},  //BAIRES+4
-            {0, 2147483647},  //BALL_SELLINGS
-            {0, 2147483647},  //AMOBLAMIENTOS+A.S
-            {0, 2147483647},  //MUEBO
-            {0, 2147483647},  //GLOBAL+GROUP10
+            {0, 2147483647}, //INTERMARBLE-SRL
+            {0, 2147483647}, //CEGEVAHOGAR
+            {0, 2147483647}, //BAIRES+4
+            {0, 2147483647}, //TISERA
+            {0, 2147483647}, //QUIEROESO+YA
+            {0, 2147483647}, //MUEBLESLANUS
+            {0, 2147483647}, //MORSHOP
+            {0, 2147483647}, //NEWMO
+            {0, 2147483647}, //BALL_SELLINGS
+            {0, 2147483647}, //AMOBLAMIENTOS+A.S
+            {0, 2147483647}, //MUEBO
+            {0, 2147483647}, //GLOBAL+GROUP10
             {0, 2147483647}, //DAMPLAST-RAMOS
-            {0, 2147483647},  //MOBILARG
-            {0, 2147483647},  //INTEGRAL+DECO
+            {0, 2147483647}, //MOBILARG
+            {0, 2147483647}, //INTEGRAL+DECO
             {0, 2147483647}, //Desillas
-            {0, 2147483647},  //LIVINGSTYLEDESIGN
-            {0, 2147483647},  //SU-OFFICE
-            {0, 2147483647},  //MUNDO+SHOPS
+            {0, 2147483647}, //LIVINGSTYLEDESIGN
+            {0, 2147483647}, //SU-OFFICE
+            {0, 2147483647}, //MUNDO+SHOPS
             {0, 2147483647}, //LEATHERPLAST_MUEBLES
-            {0, 2147483647},  //INSUOFFICE
-            {0, 2147483647} //AMV-TIENDA+ONLINE
+            {0, 2147483647}, //INSUOFFICE
+            {0, 2147483647}  //AMV-TIENDA+ONLINE
 
     };
 
@@ -289,7 +306,7 @@ public class MercadoLibre06b extends Thread {
         for (int j = 0; j < sellers.length; j++) { //todo tiene que empezar de 0
 
 
-            MercadoLibre06b thread1 = new MercadoLibre06b(sellers[j], intervals[j]);
+            MercadoLibre06Empresas thread1 = new MercadoLibre06Empresas(sellers[j], intervals[j]);
 
 
             int retries = 0;

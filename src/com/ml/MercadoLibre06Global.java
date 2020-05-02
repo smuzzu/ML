@@ -15,7 +15,6 @@ import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
-import com.ml.utils.ProductPageProcessor;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,9 +25,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
  * Created by Muzzu on 11/12/2017.
  */
 
-public class MercadoLibre06c extends Thread {
+public class MercadoLibre06Global extends Thread {
 
-    MercadoLibre06c(String baseURL, int[] intervals) {
+    MercadoLibre06Global(String baseURL, int[] intervals) {
         this.baseURL = baseURL;
         this.theIntervals = intervals;
     }
@@ -358,7 +357,7 @@ public class MercadoLibre06c extends Thread {
             //globalBaseURL=urls[j];
             //golbalIntervals=intervals[j];
 
-            MercadoLibre06c thread1 = new MercadoLibre06c(urls[j], intervals[j]);
+            MercadoLibre06Global thread1 = new MercadoLibre06Global(urls[j], intervals[j]);
             threadArrayList.add(thread1);
             thread1.start();
 
