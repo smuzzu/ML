@@ -194,9 +194,11 @@ public class MessagesAndSalesHelper {
                     }
                     order.buyerFirstName=humanNameFormater(buyerObject.getString("first_name"));
                     order.buyerLastName=humanNameFormater(buyerObject.getString("last_name"));
-                    JSONObject phoneObj=buyerObject.getJSONObject("phone");
-                    if (!phoneObj.isNull("number")) {
-                        order.buyerPhone = phoneObj.getString("number");
+                    if (buyerObject.has("phone")) {
+                        JSONObject phoneObj = buyerObject.getJSONObject("phone");
+                        if (!phoneObj.isNull("number")) {
+                            order.buyerPhone = phoneObj.getString("number");
+                        }
                     }
                     JSONObject billingInfoObj = buyerObject.getJSONObject("billing_info");
                     if (!billingInfoObj.isNull("doc_number")) {
@@ -292,6 +294,14 @@ public class MessagesAndSalesHelper {
                             order.buyerAddressCity = receiverAddressObj.getJSONObject("city").getString("name");
                             order.buyerAddressZip = receiverAddressObj.getString("zip_code");
                             order.buyerAddressStreet = receiverAddressObj.getString("address_line");
+                            if (order.buyerPhone==null){
+                                if (receiverAddressObj.has("receiver_phone")){
+                                    if (!receiverAddressObj.isNull("receiver_phone")){
+                                        order.buyerPhone=receiverAddressObj.getString("receiver_phone");
+                                    }
+                                }
+                            }
+
                         }
                     }
                 }
