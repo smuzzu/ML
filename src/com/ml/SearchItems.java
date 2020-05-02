@@ -12,10 +12,10 @@ import java.util.ArrayList;
 public class SearchItems {
 
     public static void main(String[] args) {
-        String searchTerms="fark";
+        String searchTerms="dib";
 
         int priceInterval=200;
-        int maxPrice=5000;
+        int maxPrice=8000;
 
         int totalIntervals= (int)Math.round(maxPrice/priceInterval*1.0)+1;
         String priceArray[]=new String[totalIntervals];
@@ -53,7 +53,7 @@ public class SearchItems {
                     System.out.println(msg);
                     Logger.log(msg);
                     if (totalItems>1000){
-                        msg = "Rango demasiado grande " + priceRangeId + " contiene " + totalItems +" items.  Por favor corrija los rangos y reintente";
+                        msg = "Rango demasiado grande " + priceRangeId + " contiene " + totalItems + " items.  Por favor corrija los rangos y reintente";
                         System.out.println(msg);
                         Logger.log(msg);
                         System.exit(0);
@@ -61,13 +61,15 @@ public class SearchItems {
 
                 }
 
-                JSONArray jsonSearchArray = (JSONArray) jsonSearchDetails.get("results");
-                for (Object searchObjectArray : jsonSearchArray) {
-                    JSONObject searchItem = (JSONObject) searchObjectArray;
-                    String itemId = searchItem.getString("id");
-                    String formattedId = "MLA-" + itemId.substring(3);
-                    if (!idArrayList.contains(formattedId)) {
-                        idArrayList.add(formattedId);
+                if (jsonSearchDetails != null) {
+                    JSONArray jsonSearchArray = (JSONArray) jsonSearchDetails.get("results");
+                    for (Object searchObjectArray : jsonSearchArray) {
+                        JSONObject searchItem = (JSONObject) searchObjectArray;
+                        String itemId = searchItem.getString("id");
+                        String formattedId = "MLA-" + itemId.substring(3);
+                        if (!idArrayList.contains(formattedId)) {
+                            idArrayList.add(formattedId);
+                        }
                     }
                 }
             }
