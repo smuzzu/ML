@@ -557,9 +557,19 @@ public class MercadoLibre06Global extends Thread {
                     String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
                     if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                         String msg = "All retries failed.  Ignoring this url " + uRL;
-                        System.out.println(msg);
-                        Logger.log(msg);
-                        continue;//salteamos este producto
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            Logger.log(e);
+                        }
+                        try {
+                            httpClient.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        httpClient=null;
+                        httpClient = HttpUtils.buildHttpClient();
+                        continue;//salteamos
                     }
 
                     int totalSold = HTMLParseUtils.getTotalSold(htmlStringFromProductPage, productUrl);
