@@ -1,11 +1,14 @@
 package com.ml.utils;
 
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
 public class GoogleMailSenderUtil {
@@ -15,7 +18,7 @@ public class GoogleMailSenderUtil {
     //static final String adressList = "sebamuzzu2@gmail.com, to_username_b@yahoo.com";
     static final String adressList = "sebamuzzu2@gmail.com";
 
-    public static void sendMail(String subject, String text,String destinationAddress){
+    public static boolean sendMail(String subject, String text,String destinationAddress, String []attachmets){
         if (destinationAddress==null || destinationAddress.isEmpty()){
             destinationAddress=adressList;
         }
@@ -33,30 +36,66 @@ public class GoogleMailSenderUtil {
                 });
         try {
             MimeMessage message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("fromasdasdasdasd@gmail.com"));
+            try {
+                message.setFrom(new InternetAddress("beatrizdassieu@gmail.com","Galperin"));
+            } catch (UnsupportedEncodingException e) {
+                String errorMsg="UnsupportedEncodingException sending email=" + subject;
+                System.out.println(errorMsg);
+                Logger.log(errorMsg);
+                Logger.log(e);
+                e.printStackTrace();
+            }
             message.setRecipients(
                     MimeMessage.RecipientType.TO,
                     InternetAddress.parse(destinationAddress)
             );
             message.setSubject(subject);
-            message.setText(text);
+
+            // Create a multipar message
+            Multipart multipart = new MimeMultipart();
+
+            // body
+            BodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(text);
+            multipart.addBodyPart(messageBodyPart);
+
+            if (attachmets!=null){
+                for (int i=0; i<attachmets.length; i++){
+                    String attachment=attachmets[i];
+                    if (attachment!=null && !attachment.isEmpty()){
+                        messageBodyPart = new MimeBodyPart();
+                        DataSource source = new FileDataSource(attachment);
+                        messageBodyPart.setDataHandler(new DataHandler(source));
+                        messageBodyPart.setFileName(attachment);
+                        multipart.addBodyPart(messageBodyPart);
+                    }
+                }
+            }
+
+            // Send the complete message parts
+            message.setContent(multipart);
 
             Transport.send(message);
 
-            System.out.println("Done");
 
         } catch (MessagingException e) {
+            String errorMsg="exception sending email=" + subject;
+            System.out.println(errorMsg);
+            Logger.log(errorMsg);
+            Logger.log(e);
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    public static void sendMail(String subject, String text){
-        sendMail(subject,text,null);
+    public static void sendMail(String subject, String text, String destinationAddress){
+        sendMail(subject,text,destinationAddress,null);
     }
 
 
     public static void main(String[] args) {
-        sendMail("vendiste papa 2!","Dear Mail Crawler,\n\n Please do not spam my email!");
+        sendMail("vendiste papa 2!","Dear Mail Crawler,\n\n Please do not spam my email!",null);
     }
 
 }

@@ -12,7 +12,10 @@ import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestWrapper;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -21,10 +24,7 @@ import org.apache.http.protocol.HttpContext;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 
 public class HttpUtils {
@@ -212,6 +212,149 @@ public class HttpUtils {
         }
         return false;
     }
+
+    public static boolean putJsonOnURL(CloseableHttpClient client, String uRL, JSONObject jsonObject, String usuario){
+        String token = TokenUtils.getToken(usuario);
+        String urlWithToken = uRL + "&access_token=" + token;
+        HttpPost httpPut = new HttpPost(urlWithToken);
+        String strContent=jsonObject.toString();
+        //strContent=strContent.substring(1,strContent.length()-1);//volamos las llaves {}
+        StringEntity requestEntity = new StringEntity(
+                strContent,
+                ContentType.APPLICATION_JSON);
+        httpPut.setEntity(requestEntity);
+
+        CloseableHttpResponse response = null;
+        HttpContext context = new BasicHttpContext();
+
+        int retries = 0;
+        boolean retry = true;
+        int statusCode = 0;
+
+        while (retry && retries < 3) {
+            retries++;
+            try {
+                response = client.execute(httpPut, context);
+            } catch (IOException e) {
+                response = null;
+                Logger.log("Error en putJsonOnURL intento #" + retries + " " + uRL);
+                Logger.log(e);
+            }
+
+            if (response != null) {
+                StatusLine statusline = response.getStatusLine();
+                if (statusline != null) {
+                    statusCode = statusline.getStatusCode();
+                    if (statusCode!=420) { //429=too many requests
+                        retry = false;
+                    } else {
+                        Logger.log("Http 420 en putJsonOnURL intento #" + retries + " " + uRL);
+                    }
+                }
+            }
+
+            if (retry) {
+                try {
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                client = null;
+                client = HttpUtils.buildHttpClient();
+            }
+        }
+
+        if (statusCode != 200) {
+            String msgStr = "Error in putJsonOnURL http="+statusCode;
+            System.out.println(msgStr);
+            Logger.log(msgStr);
+            return false; //error on put
+        }
+
+        return true; //put successfull
+    }
+
+
+    public static boolean downloadFile(CloseableHttpClient httpClient, String fileUrl, String filePath){
+        HttpGet httpGet = new HttpGet(fileUrl);
+
+        CloseableHttpResponse response = null;
+        HttpContext context = new BasicHttpContext();
+
+        int retries = 0;
+        boolean retry = true;
+        int statusCode = 0;
+
+        while (retry && retries < 5) {
+            retries++;
+            try {
+                response = httpClient.execute(httpGet, context);
+            } catch (IOException e) {
+                response = null;
+                Logger.log("Error downloading pdf intento #" + retries + " " + fileUrl);
+                Logger.log(e);
+            }
+
+            if (response != null) {
+                StatusLine statusline = response.getStatusLine();
+                if (statusline != null) {
+                    statusCode = statusline.getStatusCode();
+                    if (statusCode!=420) { //429=too many requests
+                        retry = false;
+                    } else {
+                        Logger.log("Http 420 downloading pdf intento #" + retries + " " + fileUrl);
+                    }
+                }
+            }
+
+            if (retry) {
+                try {
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                try {
+                    httpClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                httpClient = null;
+                httpClient = HttpUtils.buildHttpClient();
+            }
+        }
+
+        if (statusCode != 200) {
+            String errorMsg="error downloading label file http=" + statusCode + " " + fileUrl;
+            System.out.println(errorMsg);
+            Logger.log(errorMsg);
+            return false;
+        }
+
+        InputStream is = null;
+        try {
+            is = response.getEntity().getContent();
+            FileOutputStream fos = new FileOutputStream(new File(filePath));
+            int inByte;
+            while((inByte = is.read()) != -1)
+                fos.write(inByte);
+            is.close();
+            fos.close();
+        } catch (IOException e) {
+            String errorMsg="error downloading label file 2 "+ filePath;
+            System.out.println(errorMsg);
+            Logger.log(errorMsg);
+            e.printStackTrace();
+            Logger.log(e);
+            return false;
+        }
+        return true;
+    }
+
 
     public static String getStringFromInputStream(InputStream is) {
 

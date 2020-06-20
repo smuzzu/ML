@@ -36,6 +36,12 @@ public class Order {
     public String buyerPhone;
     public String buyerDocNumber;
 
+    public String billingDniCuit;
+    public String billingName;
+    public String billingAddressLine1;
+    public String billingAddressLine2;
+    public String billingAddressLine3;
+
     public String buyerAddressState;
     public String buyerAddressCity;
     public String buyerAddressZip;
@@ -51,9 +57,13 @@ public class Order {
     public String productId;
     public String productCategoryId;
     public String productTitle;
-    public String productVariation;
-    public String productVariationName;
-    public String productVariationValue;
+    public long   productVariationId;
+    public String productVariationText;
+    public String productVariationName1;
+    public String productVariationValue1;
+    public String productVariationName2;
+    public String productVariationValue2;
+
 
     public boolean notified;
 
