@@ -9,9 +9,6 @@ import com.ml.utils.Order;
 import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-import org.json.JSONArray;  //todo mover a http
-import org.json.JSONObject; //todo mover a http
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -59,16 +56,11 @@ public class SalesChecker {
 
                     String labelFileName=null;
                     if (!shipping.equals("Retira")){ //con envio
-//                        labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
+                        labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
                     }
 
                     String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
-                    JSONObject publicationJsonObject=MessagesAndSalesHelper.getPublication(onlineOrder.productId,httpClient);
-
-                    String productLink =publicationJsonObject.getString("permalink");
-
-                    String productVariationPictureUrl=getPictureUrl(publicationJsonObject,onlineOrder.productVariationId);
-                    String photoFilePath=downloadPhoto(httpClient,productVariationPictureUrl);
+                    String photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureURL);
 
                     String[] attachments = new String[2];
                     attachments[0]=photoFilePath;
@@ -84,14 +76,38 @@ public class SalesChecker {
                         //primer mensaje al usuario debe ser diferenciado.
                     }
                     String mailTitle="VENDISTE "+letraUser+" "+onlineOrder.productTitle+" "+onlineOrder.id;
-                    String mailBody=onlineOrder.creationTimestamp+" "+saleDetails+"\n\n"+"Envío: "+shipping+"\n\n"+
-                            productLink+"\n\n"+onlineOrder.productVariationText;
+
+                    String mailBody=onlineOrder.creationTimestamp+" "+saleDetails+"<br/><br/><br/>"
+
+                            +"<b>Producto:</b><br/>"
+                            +onlineOrder.productTitle+"<br/>"
+                            +onlineOrder.productVariationText+"<br/>";
+
+                            if (onlineOrder.productQuantity>1) {
+                                mailBody += "<b>CANTIDAD: " + onlineOrder.productQuantity + "</b><br/>";
+                            }else {
+                                mailBody += "Cantidad: " + onlineOrder.productQuantity + "<br/>";
+                            }
+                            if (onlineOrder.multiItem){
+                                mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, CONSULTAR EN INTERNET</b><br/>";
+                            }
+                            mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName
+
+                            +"<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
+                    if (onlineOrder.shippingAddressLine1!=null && !onlineOrder.shippingAddressLine1.isEmpty()){
+                        mailBody+=onlineOrder.shippingReceiverName+"<br/>"+
+                                onlineOrder.shippingAddressLine1+"<br/>"+
+                                onlineOrder.shippingAddressLine2+"<br/>"+
+                                onlineOrder.shippingAddressLine3;
+
+                    }
+
                     if (usuario.equals(ACACIA)){//facturar
-                        mailBody+="\n\nDatos para la Factura:\n"+
-                                onlineOrder.billingName+"\n"+
-                                onlineOrder.billingDniCuit+"\n"+
-                                onlineOrder.billingAddressLine1+"\n"+
-                                onlineOrder.billingAddressLine2+"\n"+
+                        mailBody+="<br/><br/><b>Factura:</b><br/>"+
+                                onlineOrder.billingName+"<br/>"+
+                                onlineOrder.billingDniCuit+"<br/>"+
+                                onlineOrder.billingAddressLine1+"<br/>"+
+                                onlineOrder.billingAddressLine2+"<br/>"+
                                 onlineOrder.billingAddressLine3;
                     }
 
@@ -117,48 +133,15 @@ public class SalesChecker {
 
     }
 
+/*
     private static void markLabelAsPrinted(CloseableHttpClient httpClient, long shippingId){
         String shippingUrl = "https://api.mercadolibre.com/shipments/" + shippingId + "?";
         JSONObject shippingJsonObject = new JSONObject();
         shippingJsonObject.put("substatus", "printed");
         HttpUtils.putJsonOnURL(httpClient,shippingUrl,shippingJsonObject,usuario);
     }
+*/
 
-
-    private static String getPictureUrl(JSONObject publicationJsonObject, long onlineOrderVariationId){
-        String pictureId=null;
-        String url=null;
-        if (onlineOrderVariationId!=0) {
-            JSONArray variationsArray = publicationJsonObject.getJSONArray("variations");
-            for (int i = 0; i < variationsArray.length(); i++) {
-                JSONObject variation = variationsArray.getJSONObject(i);
-                long id = variation.getLong("id");
-                if (id == onlineOrderVariationId) {
-                    JSONArray jsonArrayPictureIds = variation.getJSONArray("picture_ids");
-                    pictureId = jsonArrayPictureIds.getString(0);
-                    break;
-                }
-            }
-            JSONArray picturesArray=publicationJsonObject.getJSONArray("pictures");
-            for (int i=0; i<picturesArray.length(); i++) {
-                JSONObject pictureObject = picturesArray.getJSONObject(i);
-                String id = pictureObject.getString("id");
-                if (id.equals(pictureId)){
-                    url=pictureObject.getString("url");
-                    break;
-                }
-            }
-            if (url.endsWith("-O.jpg")){//reemplazando por el thumbnail
-                url=url.substring(0,url.indexOf("-O.jpg"))+"-I.jpg";
-            }
-        }else {
-            url=publicationJsonObject.getString("thumbnail");
-        }
-
-
-        return url;
-
-    }
 
     private static String downloadLabel(CloseableHttpClient httpClient, long shippingId){
         long minutes=System.currentTimeMillis()/1000/60;

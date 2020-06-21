@@ -10,15 +10,19 @@ public class Order {
     public Timestamp updateTimestamp;
     public String paymentStatus;
 
-    public long shippingId;
+    public long   shippingId;
+    public String shippingReceiverName;
     public String shippingStatus;
     public String shippingTrackingNumber;
     public String shippingCurrier;
+    public String shippingAddressLine1;
+    public String shippingAddressLine2;
+    public String shippingAddressLine3;
 
-    public String sellerName;
-    public int sellerId;
-    public char orderStatus;
-    public char shippingType;
+    public String  sellerName;
+    public int     sellerId;
+    public char    orderStatus;
+    public char    shippingType;
     public boolean delivered;
     public boolean waitingForWithdrawal;
     public boolean cancelled;
@@ -29,7 +33,10 @@ public class Order {
     public boolean fulfilled;
     public boolean multiItem;
 
-    public String buyerNickName;
+    public String userNickName;
+    public String userCity;
+    public String userState;
+
     public String buyerFirstName;
     public String buyerLastName;
     public String buyerEmail;
@@ -46,6 +53,7 @@ public class Order {
     public String buyerAddressCity;
     public String buyerAddressZip;
     public String buyerAddressStreet;
+    public String buyerAddressComments;
 
     public String receivedFeedbackRating;
     public String receivedFeedbackComment;
@@ -57,12 +65,15 @@ public class Order {
     public String productId;
     public String productCategoryId;
     public String productTitle;
+    public int    productQuantity;
+    public String productPictureURL;
     public long   productVariationId;
     public String productVariationText;
     public String productVariationName1;
     public String productVariationValue1;
     public String productVariationName2;
     public String productVariationValue2;
+    public String publicationURL;
 
 
     public boolean notified;

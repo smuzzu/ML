@@ -56,7 +56,8 @@ public class GoogleMailSenderUtil {
 
             // body
             BodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setText(text);
+            //messageBodyPart.setText(text);
+            messageBodyPart.setContent(text,"text/html");
             multipart.addBodyPart(messageBodyPart);
 
             if (attachmets!=null){

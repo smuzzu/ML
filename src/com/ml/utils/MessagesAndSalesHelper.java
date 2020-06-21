@@ -184,13 +184,13 @@ public class MessagesAndSalesHelper {
 
                 if (jsonOrder.has("buyer")) {
                     JSONObject buyerObject = jsonOrder.getJSONObject("buyer");
-                    order.buyerNickName=buyerObject.getString("nickname");
-                    if (usersInOrders.containsKey(order.buyerNickName)){
-                        int orderCount = usersInOrders.get(order.buyerNickName);
+                    order.userNickName =buyerObject.getString("nickname");
+                    if (usersInOrders.containsKey(order.userNickName)){
+                        int orderCount = usersInOrders.get(order.userNickName);
                         orderCount++;
-                        usersInOrders.replace(order.buyerNickName,orderCount);
+                        usersInOrders.replace(order.userNickName,orderCount);
                     }else {
-                        usersInOrders.put(order.buyerNickName,1);
+                        usersInOrders.put(order.userNickName,1);
                     }
                     order.buyerFirstName=humanNameFormater(buyerObject.getString("first_name"));
                     order.buyerLastName=humanNameFormater(buyerObject.getString("last_name"));
@@ -215,18 +215,24 @@ public class MessagesAndSalesHelper {
                 }
                 order.finished=order.fulfilled;
 
-                JSONArray itemsArray = jsonOrder.getJSONArray("order_items");
-                order.multiItem=itemsArray.length()>1;
-                JSONObject itemObject = itemsArray.getJSONObject(0).getJSONObject("item");
-                order.productId=itemObject.getString("id");
-                order.productCategoryId=itemObject.getString("category_id");
-                order.productTitle=itemObject.getString("title");
-                order.productVariationId=0;//no variation
-                if (!itemObject.isNull("variation_id")) {
-                    order.productVariationId = itemObject.getLong("variation_id");
+                if (jsonOrder.has("permalink")) {
+                    order.publicationURL = jsonOrder.getString("permalink");
                 }
 
-                JSONArray variationsArray = itemObject.getJSONArray("variation_attributes");
+                JSONArray itemsArray = jsonOrder.getJSONArray("order_items");
+                order.multiItem=itemsArray.length()>1;
+                JSONObject itemObject = itemsArray.getJSONObject(0);
+                order.productQuantity=itemObject.getInt("quantity");
+                JSONObject itemObject2 = itemObject.getJSONObject("item");
+                order.productId=itemObject2.getString("id");
+                order.productCategoryId=itemObject2.getString("category_id");
+                order.productTitle=itemObject2.getString("title");
+                order.productVariationId=0;//no variation
+                if (!itemObject2.isNull("variation_id")) {
+                    order.productVariationId = itemObject2.getLong("variation_id");
+                }
+
+                JSONArray variationsArray = itemObject2.getJSONArray("variation_attributes");
                 if (variationsArray.length()>0){
                     JSONObject variationObject = variationsArray.getJSONObject(0);
                     variationObject = variationsArray.getJSONObject(0);
@@ -253,6 +259,10 @@ public class MessagesAndSalesHelper {
                         order.productVariationText +=" " + order.productVariationName2 + " " + order.productVariationValue2;
                     }
                 }
+
+                String url = "https://api.mercadolibre.com/items/"+order.productId;
+                JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient);
+                order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId);
 
                 JSONArray paymentsArray = jsonOrder.getJSONArray("payments");
                 if (paymentsArray.length()>0) {
@@ -318,10 +328,14 @@ public class MessagesAndSalesHelper {
                             if (shippingObj.has("receiver_address")) {
                                 if (!shippingObj.isNull("receiver_address")) {
                                     JSONObject receiverAddressObj = shippingObj.getJSONObject("receiver_address");
+                                    order.shippingReceiverName=receiverAddressObj.getString("receiver_name");
                                     order.buyerAddressState = receiverAddressObj.getJSONObject("state").getString("name");
                                     order.buyerAddressCity = receiverAddressObj.getJSONObject("city").getString("name");
                                     order.buyerAddressZip = receiverAddressObj.getString("zip_code");
                                     order.buyerAddressStreet = receiverAddressObj.getString("address_line");
+                                    if (receiverAddressObj.has("comment") && !receiverAddressObj.isNull("comment")) {
+                                        order.buyerAddressComments = receiverAddressObj.getString("comment");
+                                    }
                                     if (order.buyerPhone == null) {
                                         if (receiverAddressObj.has("receiver_phone")) {
                                             if (!receiverAddressObj.isNull("receiver_phone")) {
@@ -330,6 +344,9 @@ public class MessagesAndSalesHelper {
                                         }
                                     }
                                 }
+                                order.shippingAddressLine1 = humanNameFormater(order.buyerAddressStreet);
+                                order.shippingAddressLine2 = "CP " + order.buyerAddressZip + " - " + humanNameFormater(order.buyerAddressCity + ", " + order.buyerAddressState);
+                                order.shippingAddressLine3 = order.buyerAddressComments;
                             }
                         }
                     }
@@ -337,68 +354,61 @@ public class MessagesAndSalesHelper {
 
                 String billingInfoUrl="https://api.mercadolibre.com/orders/"+order.id+"/billing_info?";
                 JSONObject billingInfoObject=HttpUtils.getJsonObjectUsingToken(billingInfoUrl,httpClient,user);
-                JSONObject billingInfoObject2=billingInfoObject.getJSONObject("billing_info");
-                String billingDocType = "";
-                String billingDocNUmber="";
-                String billingFirstName="";
-                String billingLastName="";
-                String billingStreetName="";
-                String billingStreetNumber="";
-                String billingZipCode="";
-                String billingCity="";
-                String billingState="";
-                String billingComments="";
-                if (billingInfoObject2!=null) {
-                    billingDocType=billingInfoObject2.getString("doc_type");
-                    billingDocNUmber=billingInfoObject2.getString("doc_number");
-                    JSONArray additionalInfo=billingInfoObject2.getJSONArray("additional_info");
-                    if (additionalInfo!=null){
-                        for (int i=0; i<additionalInfo.length(); i++){
-                            JSONObject infoObject=additionalInfo.getJSONObject(i);
-                            if (infoObject!=null) {
-                                String type = infoObject.getString("type");
-                                String value = infoObject.getString("value");
-                                if (type!=null && !type.isEmpty()){
-                                    if (value!=null && !value.isEmpty()){
+                if (billingInfoObject!=null) {
+                    JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
+                    String billingDocType = "";
+                    String billingDocNUmber = "";
+                    String billingFirstName = "";
+                    String billingLastName = "";
+                    String billingStreetName = "";
+                    String billingStreetNumber = "";
+                    String billingZipCode = "";
+                    String billingCity = "";
+                    String billingState = "";
+                    String billingComments = "";
+                    if (billingInfoObject2 != null) {
+                        billingDocType = billingInfoObject2.getString("doc_type");
+                        billingDocNUmber = billingInfoObject2.getString("doc_number");
+                        JSONArray additionalInfo = billingInfoObject2.getJSONArray("additional_info");
+                        if (additionalInfo != null) {
+                            for (int i = 0; i < additionalInfo.length(); i++) {
+                                JSONObject infoObject = additionalInfo.getJSONObject(i);
+                                if (infoObject != null) {
+                                    String type = infoObject.getString("type");
+                                    String value = infoObject.getString("value");
+                                    if (type != null && !type.isEmpty()) {
+                                        if (value != null && !value.isEmpty()) {
 
-                                       if (type.equals("FIRST_NAME")){
-                                            billingFirstName=value;
-                                       }else
-                                        if (type.equals("LAST_NAME")){
-                                            billingLastName=value;
-                                        }else
-                                        if (type.equals("STREET_NAME")){
-                                            billingStreetName=value;
-                                        }else
-                                        if (type.equals("STREET_NUMBER")){
-                                            billingStreetNumber=value;
-                                        }else
-                                        if (type.equals("ZIP_CODE")){
-                                            billingZipCode=value;
-                                        }else
-                                        if (type.equals("CITY_NAME")){
-                                            billingCity=value;
-                                        }else
-                                        if (type.equals("STATE_NAME")){
-                                            billingState=value;
-                                        }else
-                                        if (type.equals("COMMENT")){
-                                            billingComments=value;
+                                            if (type.equals("FIRST_NAME")) {
+                                                billingFirstName = value;
+                                            } else if (type.equals("LAST_NAME")) {
+                                                billingLastName = value;
+                                            } else if (type.equals("STREET_NAME")) {
+                                                billingStreetName = value;
+                                            } else if (type.equals("STREET_NUMBER")) {
+                                                billingStreetNumber = value;
+                                            } else if (type.equals("ZIP_CODE")) {
+                                                billingZipCode = value;
+                                            } else if (type.equals("CITY_NAME")) {
+                                                billingCity = value;
+                                            } else if (type.equals("STATE_NAME")) {
+                                                billingState = value;
+                                            } else if (type.equals("COMMENT")) {
+                                                billingComments = value;
+                                            }
+
                                         }
-
                                     }
                                 }
                             }
+                            order.billingDniCuit = billingDocType + " " + billingDocNUmber;
+                            order.billingName = humanNameFormater(billingFirstName + " " + billingLastName);
+                            order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
+                            order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
+                            order.billingAddressLine3 = billingComments;
                         }
-                        order.billingDniCuit=billingDocType+" "+billingDocNUmber;
-                        order.billingName=humanNameFormater(billingFirstName+" "+billingLastName);
-                        order.billingAddressLine1=humanNameFormater(billingStreetName)+" "+billingStreetNumber;
-                        order.billingAddressLine2="CP "+billingZipCode+" - "+humanNameFormater(billingCity+", "+billingState);
-                        order.billingAddressLine3=billingComments;
                     }
-
                 }
-
 
                 order.orderStatus=Order.VENDIDO;
                 if (order.fulfilled || order.delivered){
@@ -411,26 +421,30 @@ public class MessagesAndSalesHelper {
                 }
 
                 if (!messagesOnly) {
-                    if ((order.buyerAddressState == null || order.buyerAddressCity == null) && buyerId != null) {
-                        String buyerUrl = "https://api.mercadolibre.com/users/" + buyerId;
-                        JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient);
-                        JSONObject addressObj = buyerObj.getJSONObject("address");
+                    String buyerUrl = "https://api.mercadolibre.com/users/" + buyerId;
+                    JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient);
+                    JSONObject addressObj = buyerObj.getJSONObject("address");
 
-                        String stateId = null;
-                        if (!addressObj.isNull("state")) {
-                            stateId = addressObj.getString("state");
-                            if (!stateHashMap.containsKey(stateId)) {
-                                String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
-                                JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient);
-                                String stateName = stateObj.getString("name");
-                                stateHashMap.put(stateId, stateName);
-                            }
-                            order.buyerAddressState = stateHashMap.get(stateId);
+                    String stateId = null;
+                    if (!addressObj.isNull("state")) {
+                        stateId = addressObj.getString("state");
+                        if (!stateHashMap.containsKey(stateId)) {
+                            String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
+                            JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient);
+                            String stateName = stateObj.getString("name");
+                            stateHashMap.put(stateId, stateName);
                         }
-                        if (!addressObj.isNull("city")) {
-                            order.buyerAddressCity = addressObj.getString("city");
-                        }
+                        order.userState = stateHashMap.get(stateId);
                     }
+                    if (!addressObj.isNull("city")) {
+                        order.userCity = addressObj.getString("city");
+                    }
+                }
+
+                //todo esto sirve?
+                if ((order.buyerAddressState == null || order.buyerAddressCity == null)) { //todo es necesario?
+                    order.buyerAddressState=order.userState;
+                    order.buyerAddressCity=order.userCity;
                 }
 
 
@@ -480,7 +494,7 @@ public class MessagesAndSalesHelper {
                 }
                 orderArrayList.add(order);
 
-                System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.buyerNickName+ " "+order.buyerAddressState+","+order.buyerAddressCity);
+                System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.userNickName + " "+order.buyerAddressState+","+order.buyerAddressCity);
                 elapsedTime=System.currentTimeMillis()-startTime;
                 if (elapsedTime>=tooMuchTime){
                     httpClient=HttpUtils.buildHttpClient();
@@ -496,13 +510,51 @@ public class MessagesAndSalesHelper {
 
         //adding feedback messages
         for (Order order:orderArrayList) {
-            int numberOfOrders = usersInOrders.get(order.buyerNickName);
-            if (numberOfOrders == 1 && userFeedbackMessages.containsKey(order.buyerNickName)) {
-                order.receivedFeedbackComment = userFeedbackMessages.get(order.buyerNickName);
+            int numberOfOrders = usersInOrders.get(order.userNickName);
+            if (numberOfOrders == 1 && userFeedbackMessages.containsKey(order.userNickName)) {
+                order.receivedFeedbackComment = userFeedbackMessages.get(order.userNickName);
             }
         }
 
         return orderArrayList;
+    }
+
+    public static String getOrderPictureUrl(JSONObject publicationJsonObject, long onlineOrderVariationId){
+        String pictureId=null;
+        String url=null;
+        if (publicationJsonObject!=null) {
+            if (onlineOrderVariationId != 0) { //si eligió una variante tenemos que poner esa foto, else foto general
+                JSONArray variationsArray = publicationJsonObject.getJSONArray("variations");
+                for (int i = 0; i < variationsArray.length(); i++) {
+                    JSONObject variation = variationsArray.getJSONObject(i);
+                    long id = variation.getLong("id");
+                    if (id == onlineOrderVariationId) {
+                        JSONArray jsonArrayPictureIds = variation.getJSONArray("picture_ids");
+                        pictureId = jsonArrayPictureIds.getString(0);
+                        break;
+                    }
+                }
+                JSONArray picturesArray = publicationJsonObject.getJSONArray("pictures");
+
+                for (int i = 0; i < picturesArray.length(); i++) {
+                    JSONObject pictureObject = picturesArray.getJSONObject(i);
+                    String id = pictureObject.getString("id");
+                    if (id.equals(pictureId)) {
+                        url = pictureObject.getString("url");
+                        break;
+                    }
+                }
+                if (url != null && url.endsWith("-O.jpg")) {//reemplazando por el thumbnail
+                    url = url.substring(0, url.indexOf("-O.jpg")) + "-I.jpg";
+                }
+            } else {
+                url = publicationJsonObject.getString("thumbnail");
+            }
+        }else {
+            boolean b=false;
+        }
+        return url;
+
     }
 
     public static ArrayList<Message> getAllMessagesOnOrder(long packId, String user, CloseableHttpClient httpClient){
@@ -541,12 +593,6 @@ public class MessagesAndSalesHelper {
     }
 
 
-    public static JSONObject getPublication(String idProducto, CloseableHttpClient httpClient){
-        String url = "https://api.mercadolibre.com/items/"+idProducto;
-        JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient);
-        return publicationJsonObject;
-    }
-
     public static void printOrder(Order order){
 
         String shippingTypeDesc="N/A";
@@ -570,7 +616,7 @@ public class MessagesAndSalesHelper {
         String orderRecord=
                 "\""+order.id+"\",\""+order.creationTimestamp +"\",\""+order.updateTimestamp +"\",\""+order.orderStatus+"\",\""+paid+"\",\""+order.shippingStatus+"\",\""+shippingTypeDesc+"\",\""+
                         order.delivered+"\",\""+order.waitingForWithdrawal+"\",\""+order.cancelled+"\",\""+order.refunded+"\",\""+order.timeoutFulfilled+"\",\""+order.finished+"\",\""+order.multiItem+"\",\""+
-                        order.buyerNickName+"\",\""+order.buyerFirstName+"\",\""+order.buyerLastName+"\",\""+order.buyerEmail+"\",\""+order.buyerPhone+"\",\""+order.buyerDocNumber+"\",\""+
+                        order.userNickName +"\",\""+order.buyerFirstName+"\",\""+order.buyerLastName+"\",\""+order.buyerEmail+"\",\""+order.buyerPhone+"\",\""+order.buyerDocNumber+"\",\""+
                         order.buyerAddressState+"\",\""+order.buyerAddressCity+"\",\""+order.buyerAddressZip+"\",\""+order.buyerAddressStreet+"\",\""+
                         order.receivedFeedbackRating+"\",\""+order.receivedFeedbackComment+"\",\""+
                         order.paymentMethod+"\",\""+order.paymentAmount+"\",\""+order.paymentInstallments+"\",\""+
