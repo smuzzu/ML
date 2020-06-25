@@ -585,7 +585,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, boolean notified, int userNumber) {
+    public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, boolean mailSent, int userNumber, boolean chatSent) {
         Connection updateConnection = getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
@@ -599,8 +599,9 @@ public class DatabaseHelper {
             globalInsertSale.setTimestamp(3,lastUpdate);
             globalInsertSale.setString(4,state);
             globalInsertSale.setString(5,shippingType);
-            globalInsertSale.setBoolean(6,notified);
+            globalInsertSale.setBoolean(6,mailSent);
             globalInsertSale.setInt(7,userNumber);
+            globalInsertSale.setBoolean(8,chatSent);
 
             int insertedRecords = globalInsertSale.executeUpdate();
             if (insertedRecords!=1){
@@ -614,13 +615,17 @@ public class DatabaseHelper {
         }
     }
 
-    public static void updateSale(long id, String state, String shippingType, Boolean notified) {
+    public static void updateSale(long id, String state, String shippingType, Boolean mailSent, Boolean chatSent) {
         Connection updateConnection =getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
 
-        if (notified==null){
-            notified=false;
+        if (mailSent==null){
+            mailSent=false;
+        }
+
+        if (chatSent==null){
+            chatSent=false;
         }
 
         String queryStr="";
@@ -633,9 +638,9 @@ public class DatabaseHelper {
 
         try{
             PreparedStatement ps = updateConnection.prepareStatement("update public.ventas set " +queryStr+
-                    "notificado=?, fechaactualizacion=? where id=?");
+                    "mailEnviado=?, fechaactualizacion=?, chatEnviado=? where id=?");
 
-            ps.setBoolean(1,notified);
+            ps.setBoolean(1,mailSent);
             ps.setTimestamp(2,lastUpdate);
             ps.setLong(3,id);
 
@@ -870,7 +875,7 @@ public class DatabaseHelper {
 
         try{
             if (globalSelectSales ==null) {
-                globalSelectSales = selectConnection.prepareStatement("SELECT id,fechaventa,fechaactualizacion,estado,tipoenvio,notificado,usuario FROM public.ventas order by id");
+                globalSelectSales = selectConnection.prepareStatement("SELECT id,fechaventa,fechaactualizacion,estado,tipoenvio,mailEnviado,usuario,chatEnviado FROM public.ventas order by id");
             }
 
             resultSet = globalSelectSales.executeQuery();

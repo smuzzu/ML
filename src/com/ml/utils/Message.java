@@ -5,4 +5,8 @@ public class Message {
     public String text;
     public char direction; // E=Enviado   R=Recibido
     public String buyerEmail;
+
+    public String toStringForReport(){
+        return this.direction+":"+this.text;
+    }
 }

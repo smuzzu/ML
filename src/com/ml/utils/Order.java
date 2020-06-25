@@ -1,10 +1,11 @@
 package com.ml.utils;
 
 
+import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-public class Order {
+public class Order implements Comparable<Order> {
     public long id;
     public Timestamp creationTimestamp;
     public Timestamp updateTimestamp;
@@ -13,6 +14,7 @@ public class Order {
     public long   shippingId;
     public String shippingReceiverName;
     public String shippingStatus;
+    public String shippingOptionNameDescription;
     public String shippingTrackingNumber;
     public String shippingCurrier;
     public String shippingAddressLine1;
@@ -32,6 +34,7 @@ public class Order {
     public boolean finished;
     public boolean fulfilled;
     public boolean multiItem;
+    public boolean pending;
 
     public String userNickName;
     public String userCity;
@@ -67,6 +70,7 @@ public class Order {
     public String productTitle;
     public int    productQuantity;
     public String productPictureURL;
+    public String productKeyAttributes;
     public long   productVariationId;
     public String productVariationText;
     public String productVariationName1;
@@ -76,13 +80,16 @@ public class Order {
     public String publicationURL;
 
 
-    public boolean notified;
+    public boolean mailSent;
+    public boolean chatSent;
 
-    public ArrayList<Message> messageArrayList;
     public long packId; //for messages
+    public ArrayList<Message> messageArrayList;
+
 
     //shippingType
     public static final char ACORDAR='A';
+    public static final char PERSONALIZADO='P';
     public static final char CORREO_A_DOMICILIO='D';
     public static final char CORREO_RETIRA='R';
     public static final char FLEX='F';
@@ -93,6 +100,25 @@ public class Order {
     public static final char ENTREGADO='E';
     public static final char RECLAMO='R';
     public static final char CANCELADO='C';
+
+    private static String[] productKeyAttributesList = new String[]
+    {
+        "WIDTH",
+        "LENGTH",
+        "HEIGHT",
+        "DEPTH"
+    };
+
+    public static boolean isProductKeyAttribute(String idAttribute){
+        boolean result=false;
+        for (String attribute:productKeyAttributesList){
+            if (attribute.equals(idAttribute)){
+                result=true;
+                break;
+            }
+        }
+        return result;
+    }
 
     @Override
     public boolean equals(Object obj) {
@@ -105,5 +131,62 @@ public class Order {
         Order orderParam = (Order) obj;
         return id == orderParam.id;
     }
+
+    public String getPrintableCSVHeader(){
+        String result = "";
+        Field[] allFields = this.getClass().getDeclaredFields();
+        for (Field field : allFields){
+            String name=field.getName();
+            if (name.equals("ACORDAR")){
+                break; //aca empiezan los metadatos
+            }
+            result+= name+",";
+        }
+        result=result.substring(0,result.length()-1);
+        return result;
+    }
+
+    public String getPrintableCSVValues(){
+        String result = "";
+        Field[] allFields = this.getClass().getDeclaredFields();
+        for (Field field : allFields){
+            String name=field.getName();
+            if (name.equals("ACORDAR")){
+                break; //aca empiezan los metadatos
+            }
+            Object valueObj =null;
+            try {
+                valueObj =field.get(this);
+
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }String value = "";
+            if (name.equals("messageArrayList")){
+                ArrayList<Message> messageArrayList = (ArrayList) valueObj;
+                for (Message message: messageArrayList){
+                    value+=message.toStringForReport()+"\n";
+                }
+                value=value.replaceAll("\"", "'");
+                value = "\""+value+"\"";
+            }else {
+                if (valueObj != null) {
+                    value = valueObj.toString();
+                    value=value.replaceAll("\"", "'");
+                }
+            }
+            value=value.replaceAll(",", " ");
+            result+=value+",";
+
+        }
+        result=result.substring(0,result.length()-1);
+        return result;
+    }
+
+    @Override
+    public int compareTo(Order other) {
+        return Long.compare(this.id,other.id);
+    }
+
+
 
 }

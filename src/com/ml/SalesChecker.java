@@ -4,6 +4,7 @@ import com.ml.utils.DatabaseHelper;
 import com.ml.utils.GoogleMailSenderUtil;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.Message;
 import com.ml.utils.MessagesAndSalesHelper;
 import com.ml.utils.Order;
 import com.ml.utils.TokenUtils;
@@ -17,8 +18,8 @@ public class SalesChecker {
 
     static String ACACIA = "ACACIAYLENGA";
 
-    static String usuario = "ACACIAYLENGA";
-    //static String usuario ="SOMOS_MAS";
+    //static String usuario = "ACACIAYLENGA";
+    static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
 
     public static void main(String[] args) {
@@ -30,7 +31,7 @@ public class SalesChecker {
             }
         }
         String msg="*********** Procesando usuario: "+usuario;
-        //Logger.log(msg);
+        Logger.log(msg);
         System.out.println(msg);
 
         ArrayList<Order> ordersOnCloudArrayList = fetchAllOrdersOnCloud(usuario);
@@ -41,9 +42,9 @@ public class SalesChecker {
         for (Order onlineOrder: ordersOnlineArrayList){
             if (!ordersOnCloudArrayList.contains(onlineOrder)){
 
-                if (onlineOrder.orderStatus==Order.VENDIDO && onlineOrder.notified==false){
-                    onlineOrder.notified=true;
-                    System.out.println("VENDISTE !!!!!!!!!");
+               if (onlineOrder.orderStatus==Order.VENDIDO && onlineOrder.mailSent ==false){
+                    onlineOrder.mailSent =true;
+                    System.out.println("VENDISTE !!!!!!!!! "+onlineOrder.productTitle);
                     String shipping="Retira";
                     if (onlineOrder.shippingType==Order.CORREO_A_DOMICILIO || onlineOrder.shippingType==Order.CORREO_RETIRA){
                         shipping="Correo";
@@ -68,32 +69,56 @@ public class SalesChecker {
                         attachments[1]=labelFileName;
                     }
 
+                    String buyerSays="";
                     onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
                     if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
                         boolean b=false;//mandar primer mensaje automatico
                     }else {
-                        boolean b=false;
-                        //primer mensaje al usuario debe ser diferenciado.
+                        //buscamos primer mensaje que aunn no fue contestado
+                        for (int i=onlineOrder.messageArrayList.size()-1; i>+0; i--){
+                            Message message = onlineOrder.messageArrayList.get(i);
+                            if (message.direction=='E'){
+                                buyerSays="";
+                                break;
+                            }
+                            buyerSays+=message.text+"<br>";
+                        }
                     }
                     String mailTitle="VENDISTE "+letraUser+" "+onlineOrder.productTitle+" "+onlineOrder.id;
 
                     String mailBody=onlineOrder.creationTimestamp+" "+saleDetails+"<br/><br/><br/>"
 
                             +"<b>Producto:</b><br/>"
-                            +onlineOrder.productTitle+"<br/>"
-                            +onlineOrder.productVariationText+"<br/>";
+                            +onlineOrder.productTitle+"<br/>";
 
-                            if (onlineOrder.productQuantity>1) {
-                                mailBody += "<b>CANTIDAD: " + onlineOrder.productQuantity + "</b><br/>";
-                            }else {
-                                mailBody += "Cantidad: " + onlineOrder.productQuantity + "<br/>";
-                            }
-                            if (onlineOrder.multiItem){
-                                mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, CONSULTAR EN INTERNET</b><br/>";
-                            }
-                            mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName
+                    if (onlineOrder.productVariationText!=null && !onlineOrder.productVariationText.isEmpty()
+                            && !onlineOrder.productVariationText.equals("N/A")) {
+                        mailBody += onlineOrder.productVariationText + "<br/>";
+                    }
+                    if (onlineOrder.productKeyAttributes!=null && !onlineOrder.productKeyAttributes.isEmpty()
+                            && !onlineOrder.productKeyAttributes.equals("N/A")) {
+                        mailBody += onlineOrder.productKeyAttributes + "<br/>";
+                    }
 
-                            +"<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
+                    if (onlineOrder.productQuantity>1) {
+                        mailBody += "<b>CANTIDAD: " + onlineOrder.productQuantity + "</b><br/>";
+                    }else {
+                        mailBody += "Cantidad: " + onlineOrder.productQuantity + "<br/>";
+                    }
+                    if (onlineOrder.multiItem){
+                        mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, CONSULTAR EN INTERNET</b><br/>";
+                    }
+                    mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName;
+
+                    if (buyerSays!=null && !buyerSays.isEmpty()){
+                        mailBody+="<br/><br/><b>Mensaje del cliente:</b><br/>"+buyerSays;
+                    }
+
+                    mailBody+="<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
+                    if (onlineOrder.shippingOptionNameDescription !=null && !onlineOrder.shippingOptionNameDescription.isEmpty()){
+                        mailBody+=onlineOrder.shippingOptionNameDescription +"<br/>";
+                    }
+
                     if (onlineOrder.shippingAddressLine1!=null && !onlineOrder.shippingAddressLine1.isEmpty()){
                         mailBody+=onlineOrder.shippingReceiverName+"<br/>"+
                                 onlineOrder.shippingAddressLine1+"<br/>"+
@@ -106,6 +131,7 @@ public class SalesChecker {
                         mailBody+="<br/><br/><b>Factura:</b><br/>"+
                                 onlineOrder.billingName+"<br/>"+
                                 onlineOrder.billingDniCuit+"<br/>"+
+                                "Total: $"+onlineOrder.paymentAmount+"<br/>"+
                                 onlineOrder.billingAddressLine1+"<br/>"+
                                 onlineOrder.billingAddressLine2+"<br/>"+
                                 onlineOrder.billingAddressLine3;
@@ -119,7 +145,7 @@ public class SalesChecker {
                     }
 
                 }
-                //todo desbloquear
+                // bloquear para pruebas
                 //DatabaseHelper.insertSale(onlineOrder.id,onlineOrder.creationTimestamp,""+onlineOrder.orderStatus,""+onlineOrder.shippingType,true,TokenUtils.getUserNumber(usuario));
             }else{
                 int pos=ordersOnCloudArrayList.indexOf(onlineOrder);
@@ -127,7 +153,6 @@ public class SalesChecker {
                 if (cloudOrder.orderStatus!=onlineOrder.orderStatus){
                     // todo cambio el estado de la ordern, tenemos que hacer algg?
                 }
-                boolean b=false;
             }
         }
 
@@ -193,7 +218,8 @@ public class SalesChecker {
                 if (tipoEnvio!=null && tipoEnvio.length()>0){
                     order.shippingType=tipoEnvio.charAt(0);
                 }
-                order.notified=rs.getBoolean(6);
+                order.mailSent=rs.getBoolean(6);
+                order.chatSent=order.mailSent =rs.getBoolean(8);
                 orderArrayList.add(order);
             }
             }catch(SQLException e){
