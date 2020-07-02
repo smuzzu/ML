@@ -87,17 +87,7 @@ public class MessagesAndSalesHelper {
 
 
 
-
-
-    public static ArrayList<Order>  requestOrdersAndMessages(boolean messagesOnly, boolean ordersOnly, boolean onlyPending,  String user, CloseableHttpClient httpClient){
-
-
-        int totalOrders=Integer.MAX_VALUE;
-
-        ArrayList<Order> orderArrayList = new ArrayList<Order>();
-        long startTime=0;
-        long elapsedTime=0;
-
+    private static HashMap<String,String> getStateHashMap(){
         HashMap<String,String> stateHashMap = new HashMap<String, String>();
         stateHashMap.put("AR-A","Salta");
         stateHashMap.put("AR-B","Buenos Aires");
@@ -123,6 +113,21 @@ public class MessagesAndSalesHelper {
         stateHashMap.put("AR-X","Córdoba");
         stateHashMap.put("AR-Y","Jujuy");
         stateHashMap.put("AR-Z","Santa Cruz");
+        return stateHashMap;
+    }
+
+
+
+    public static ArrayList<Order>  requestOrdersAndMessages(boolean messagesOnly, boolean ordersOnly, boolean onlyPending,  String user, CloseableHttpClient httpClient){
+
+
+        int totalOrders=Integer.MAX_VALUE;
+
+        ArrayList<Order> orderArrayList = new ArrayList<Order>();
+        long startTime=0;
+        long elapsedTime=0;
+
+        HashMap<String,String> stateHashMap = getStateHashMap();
 
         HashMap<String,Integer> usersThatLeftMessage = new HashMap<String,Integer>();
         HashMap<String,String> userFeedbackMessages = new HashMap<String,String>();
@@ -203,7 +208,7 @@ public class MessagesAndSalesHelper {
                     }
                 }
 
-                order=processOrder(order,jsonOrder,shippingObj,stateHashMap,usersInOrders,messagesOnly,ordersOnly,onlyPending,user,httpClient);
+                order=processOrder(order,jsonOrder,shippingObj,stateHashMap,usersInOrders,messagesOnly,ordersOnly,user,httpClient);
                 orderArrayList.add(order);
 
                 System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.userNickName + " "+order.buyerAddressState+","+order.buyerAddressCity);
@@ -248,7 +253,7 @@ public class MessagesAndSalesHelper {
                         order.pending=false;
                     }
 
-                    order = processOrder(order, jsonOrder, shippingObj, stateHashMap, usersInOrders, messagesOnly, ordersOnly, onlyPending, user, httpClient);
+                    order = processOrder(order, jsonOrder, shippingObj, stateHashMap, usersInOrders, messagesOnly, ordersOnly, user, httpClient);
 
                     orderArrayList.add(order);
 
@@ -276,7 +281,46 @@ public class MessagesAndSalesHelper {
     }
 
 
-    private static Order processOrder(Order order,JSONObject jsonOrder,JSONObject shippingObj, HashMap<String,String> stateHashMap, HashMap<String,Integer> usersInOrders, boolean messagesOnly, boolean ordersOnly, boolean fiftyOnly,  String user, CloseableHttpClient httpClient){
+    public static Order getOrderDetails(CloseableHttpClient httpClient, String user, long orderId){
+        String orderUrl = "https://api.mercadolibre.com/orders/"+orderId+"?";
+        String orderUrlListForOneURL="https://api.mercadolibre.com/orders/search?seller="
+                +TokenUtils.getIdCliente(user) +"&q="+orderId;
+
+        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(orderUrlListForOneURL, httpClient, user);
+        JSONArray jsonOrdersArray = jsonOrders.getJSONArray("results");
+
+        if (jsonOrdersArray.length()!=1){
+            String msg = "error buscando "+orderUrlListForOneURL;
+            Logger.log(msg);
+            System.out.println(msg);
+        }
+
+        JSONObject jsonOrder = jsonOrdersArray.getJSONObject(0);
+
+        //JSONObject jsonOrder = HttpUtils.getJsonObjectUsingToken(orderUrl,httpClient,user);
+
+        Order order = new Order();
+        order.id = orderId;
+
+        JSONObject orderShippingObj = jsonOrder.getJSONObject("shipping");
+        JSONObject shippingObj = getShippingObjectIfNeeded(orderShippingObj,httpClient,user);
+        order.delivered=isDelivered(orderShippingObj,shippingObj);
+
+        order.fulfilled=isFulfilled(jsonOrder);
+        order.cancelled=isCancelled(jsonOrder);
+        order.returned=isReturned(jsonOrder);
+        order.pending=true;
+        if (order.delivered || order.fulfilled || order.cancelled || order.returned){
+            order.pending=false;
+        }
+
+        HashMap<String,String> stateHashMap = getStateHashMap();
+
+        order = processOrder(order, jsonOrder, shippingObj, stateHashMap, new HashMap<String,Integer>(), false, false, user, httpClient);
+        return order;
+    }
+
+    private static Order processOrder(Order order,JSONObject jsonOrder,JSONObject shippingObj, HashMap<String,String> stateHashMap, HashMap<String,Integer> usersInOrders, boolean messagesOnly, boolean ordersOnly, String user, CloseableHttpClient httpClient){
         order.sellerName =user;
         order.delivered=false;
         order.waitingForWithdrawal=false;
@@ -500,24 +544,24 @@ public class MessagesAndSalesHelper {
         if (customShipping) {
             order.shippingType = Order.PERSONALIZADO;
         }else { //acordar o mercadoenvios
-            if (order.shippingStatus.equals("to_be_agreed")) {
-                order.shippingType = Order.ACORDAR;
-                order.shippingOptionNameDescription="Acordar";
-            }else { //mercadoenvios
-                if (order.shippingOptionNameDescription.contains("pido a domicilio")) {//Rapido a domicilio
-                    order.shippingType = Order.FLEX;
-                } else {
-                    if (order.shippingOptionNameDescription.contains("ormal a domicilio")) { //Normal a domicilio
-                        order.shippingType = Order.CORREO_A_DOMICILIO;
+                if (order.shippingStatus.equals("to_be_agreed")) {
+                    order.shippingType = Order.ACORDAR;
+                    order.shippingOptionNameDescription = "Acordar";
+                } else { //mercadoenvios
+                    if (order.shippingOptionNameDescription.contains("pido a domicilio")) {//Rapido a domicilio
+                        order.shippingType = Order.FLEX;
                     } else {
-                        if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
-                            order.shippingType = Order.CORREO_RETIRA;
+                        if (order.shippingOptionNameDescription.contains("ormal a domicilio")) { //Normal a domicilio
+                            order.shippingType = Order.CORREO_A_DOMICILIO;
                         } else {
-                            order.shippingType = '?';
+                            if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
+                                order.shippingType = Order.CORREO_RETIRA;
+                            } else {
+                                order.shippingType = '?';
+                            }
                         }
                     }
                 }
-            }
         }
 
         String billingInfoUrl="https://api.mercadolibre.com/orders/"+order.id+"/billing_info?";
@@ -790,7 +834,7 @@ public class MessagesAndSalesHelper {
 
     public static void main(String args[]){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, true, "ACACIAYLENGA",httpClient);
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "SOMOS_MAS",httpClient);
         String headers=new Order().getPrintableCSVHeader();
         Logger.log(headers);
         for (Order order:orderArrayList){

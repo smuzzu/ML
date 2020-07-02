@@ -34,127 +34,168 @@ public class SalesChecker {
         Logger.log(msg);
         System.out.println(msg);
 
-        ArrayList<Order> ordersOnCloudArrayList = fetchAllOrdersOnCloud(usuario);
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> ordersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, true, usuario,httpClient);
+        ArrayList<Order> pendingOrdersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, true, usuario,httpClient);
 
-        for (Order onlineOrder: ordersOnlineArrayList){
-            if (!ordersOnCloudArrayList.contains(onlineOrder)){
-
-               if (onlineOrder.orderStatus==Order.VENDIDO && onlineOrder.mailSent ==false){
-                    onlineOrder.mailSent =true;
-                    System.out.println("VENDISTE !!!!!!!!! "+onlineOrder.productTitle);
-                    String shipping="Retira";
-                    if (onlineOrder.shippingType==Order.CORREO_A_DOMICILIO || onlineOrder.shippingType==Order.CORREO_RETIRA){
-                        shipping="Correo";
-                    }else {
-                        if (onlineOrder.shippingType==Order.FLEX){
-                            shipping="Flex";
-                        }
-                    }
-                    String letraUser = usuario.substring(0,1);
-
-                    String labelFileName=null;
-                    if (!shipping.equals("Retira")){ //con envio
-                        labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
-                    }
-
-                    String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
-                    String photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureURL);
-
-                    String[] attachments = new String[2];
-                    attachments[0]=photoFilePath;
-                    if (labelFileName!=null){
-                        attachments[1]=labelFileName;
-                    }
-
-                    String buyerSays="";
-                    onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
-                    if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
-                        boolean b=false;//mandar primer mensaje automatico
-                    }else {
-                        //buscamos primer mensaje que aunn no fue contestado
-                        for (int i=onlineOrder.messageArrayList.size()-1; i>+0; i--){
-                            Message message = onlineOrder.messageArrayList.get(i);
-                            if (message.direction=='E'){
-                                buyerSays="";
-                                break;
-                            }
-                            buyerSays+=message.text+"<br>";
-                        }
-                    }
-                    String mailTitle="VENDISTE "+letraUser+" "+onlineOrder.productTitle+" "+onlineOrder.id;
-
-                    String mailBody=onlineOrder.creationTimestamp+" "+saleDetails+"<br/><br/><br/>"
-
-                            +"<b>Producto:</b><br/>"
-                            +onlineOrder.productTitle+"<br/>";
-
-                    if (onlineOrder.productVariationText!=null && !onlineOrder.productVariationText.isEmpty()
-                            && !onlineOrder.productVariationText.equals("N/A")) {
-                        mailBody += onlineOrder.productVariationText + "<br/>";
-                    }
-                    if (onlineOrder.productKeyAttributes!=null && !onlineOrder.productKeyAttributes.isEmpty()
-                            && !onlineOrder.productKeyAttributes.equals("N/A")) {
-                        mailBody += onlineOrder.productKeyAttributes + "<br/>";
-                    }
-
-                    if (onlineOrder.productQuantity>1) {
-                        mailBody += "<b>CANTIDAD: " + onlineOrder.productQuantity + "</b><br/>";
-                    }else {
-                        mailBody += "Cantidad: " + onlineOrder.productQuantity + "<br/>";
-                    }
-                    if (onlineOrder.multiItem){
-                        mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, CONSULTAR EN INTERNET</b><br/>";
-                    }
-                    mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName;
-
-                    if (buyerSays!=null && !buyerSays.isEmpty()){
-                        mailBody+="<br/><br/><b>Mensaje del cliente:</b><br/>"+buyerSays;
-                    }
-
-                    mailBody+="<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
-                    if (onlineOrder.shippingOptionNameDescription !=null && !onlineOrder.shippingOptionNameDescription.isEmpty()){
-                        mailBody+=onlineOrder.shippingOptionNameDescription +"<br/>";
-                    }
-
-                    if (onlineOrder.shippingAddressLine1!=null && !onlineOrder.shippingAddressLine1.isEmpty()){
-                        mailBody+=onlineOrder.shippingReceiverName+"<br/>"+
-                                onlineOrder.shippingAddressLine1+"<br/>"+
-                                onlineOrder.shippingAddressLine2+"<br/>"+
-                                onlineOrder.shippingAddressLine3;
-
-                    }
-
-                    if (usuario.equals(ACACIA)){//facturar
-                        mailBody+="<br/><br/><b>Factura:</b><br/>"+
-                                onlineOrder.billingName+"<br/>"+
-                                onlineOrder.billingDniCuit+"<br/>"+
-                                "Total: $"+onlineOrder.paymentAmount+"<br/>"+
-                                onlineOrder.billingAddressLine1+"<br/>"+
-                                onlineOrder.billingAddressLine2+"<br/>"+
-                                onlineOrder.billingAddressLine3;
-                    }
-
-
-                    boolean mailSentOK=GoogleMailSenderUtil.sendMail(mailTitle,mailBody,null,attachments);
-
-                    if (mailSentOK) {
-                        //markLabelAsPrinted(httpClient,onlineOrder.shippingId);
-                    }
-
-                }
-                // bloquear para pruebas
-                //DatabaseHelper.insertSale(onlineOrder.id,onlineOrder.creationTimestamp,""+onlineOrder.orderStatus,""+onlineOrder.shippingType,true,TokenUtils.getUserNumber(usuario));
-            }else{
-                int pos=ordersOnCloudArrayList.indexOf(onlineOrder);
-                Order cloudOrder=ordersOnCloudArrayList.get(pos);
-                if (cloudOrder.orderStatus!=onlineOrder.orderStatus){
-                    // todo cambio el estado de la ordern, tenemos que hacer algg?
-                }
+        for (Order pendingOrder: pendingOrdersOnlineArrayList) {
+            boolean alreadyStoredInDB = DatabaseHelper.alreadyStoredInDB(pendingOrder.id);
+            if (!alreadyStoredInDB) {
+                DatabaseHelper.insertSale(pendingOrder.id, pendingOrder.creationTimestamp, "" + pendingOrder.orderStatus, "" + pendingOrder.shippingType, false, TokenUtils.getUserNumber(usuario), false);
             }
         }
+
+        ArrayList<Order> pendingOrdersOnCloudArrayList = fetchAllOrdersOnCloud(usuario,true);
+        for (Order pendingOrder: pendingOrdersOnCloudArrayList){  //viene de la base info limitada
+
+            //if (onlineOrder.orderStatus==Order.VENDIDO) ?? hace falta
+            boolean statusChanged=false;
+
+            //viene de internet, mucha info
+            Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
+            //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
+
+            if (!pendingOrder.mailSent){
+
+                System.out.println("VENDISTE !!!!!!!!! "+onlineOrder.productTitle);
+                boolean hasLabel=false;
+                String phone="";
+                String shipping="Envio indeterminado / consultar";
+                if (onlineOrder.shippingType==Order.CORREO_A_DOMICILIO || pendingOrder.shippingType==Order.CORREO_RETIRA){
+                    shipping="Correo";
+                    hasLabel=true;
+                }else {
+                    if (onlineOrder.shippingType==Order.FLEX){
+                        shipping="Flex";
+                        hasLabel=true;
+                    } else {
+                        if (onlineOrder.shippingType==Order.ACORDAR){
+                            shipping="Acorar";
+                            phone="Teléfono: "+onlineOrder.buyerPhone;
+                        }else{
+                            if (onlineOrder.shippingType==Order.PERSONALIZADO){
+                                shipping="Personalizado";
+                                phone="Teléfono: "+onlineOrder.buyerPhone;
+                            }
+                        }
+                    }
+                }
+                String letraUser = usuario.substring(0,1);
+
+                boolean labelIsOk=true;
+                String labelFileName=null;
+                if (hasLabel){ //con envio
+                    labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
+                    if (labelFileName==null && labelFileName.isEmpty()){
+                        labelIsOk=false;
+                    }
+                }
+
+                String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
+                String photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureURL);
+
+                String[] attachments = new String[2];
+                attachments[0]=photoFilePath;
+                if (labelFileName!=null){
+                    attachments[1]=labelFileName;
+                }
+
+                String buyerSays="";
+                if (onlineOrder.messageArrayList.size()>0){
+
+                    //el ultimo mensaje es Recibido, osea no es respuesta nuestra
+                    if (onlineOrder.messageArrayList.get(0).direction=='R') {
+                        //buscamos primer mensaje que aunn no fue contestado
+                        for (int i = onlineOrder.messageArrayList.size() - 1; i > +0; i--) {
+                            Message message = onlineOrder.messageArrayList.get(i);
+                            if (message.direction == 'E') {
+                                break;
+                            }
+                            buyerSays += message.text + "<br>";
+                        }
+                    }
+                }
+
+                String mailTitle="VENDISTE "+letraUser+" "+onlineOrder.productTitle+" "+onlineOrder.id;
+
+                String mailBody=onlineOrder.creationTimestamp+" "+saleDetails+"<br/><br/><br/>"
+
+                        +"<b>Producto:</b><br/>"
+                        +onlineOrder.productTitle+"<br/>";
+
+                if (onlineOrder.productVariationText!=null && !onlineOrder.productVariationText.isEmpty()
+                        && !onlineOrder.productVariationText.equals("N/A")) {
+                    mailBody += onlineOrder.productVariationText + "<br/>";
+                }
+                if (onlineOrder.productKeyAttributes!=null && !onlineOrder.productKeyAttributes.isEmpty()
+                        && !onlineOrder.productKeyAttributes.equals("N/A")) {
+                    mailBody += onlineOrder.productKeyAttributes + "<br/>";
+                }
+
+                if (onlineOrder.productQuantity>1) {
+                    mailBody += "<b>CANTIDAD: " + onlineOrder.productQuantity + "</b><br/>";
+                }else {
+                    mailBody += "Cantidad: " + onlineOrder.productQuantity + "<br/>";
+                }
+                if (onlineOrder.multiItem){
+                    mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, CONSULTAR EN INTERNET</b><br/>";
+                }
+                mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName;
+
+                if (buyerSays!=null && !buyerSays.isEmpty()){
+                    mailBody+="<br/><br/><b>Mensaje del cliente:</b><br/>"+buyerSays;
+                }
+
+                mailBody+="<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
+                if (onlineOrder.shippingOptionNameDescription !=null && !onlineOrder.shippingOptionNameDescription.isEmpty()){
+                    mailBody+=onlineOrder.shippingOptionNameDescription +"<br/>";
+                }
+
+                if (phone!=null && !phone.isEmpty()){
+                    mailBody+=phone +"<br/>";
+                }
+
+                if (onlineOrder.shippingAddressLine1!=null && !onlineOrder.shippingAddressLine1.isEmpty()){
+                    mailBody+=onlineOrder.shippingReceiverName+"<br/>"+
+                            onlineOrder.shippingAddressLine1+"<br/>"+
+                            onlineOrder.shippingAddressLine2+"<br/>"+
+                            onlineOrder.shippingAddressLine3;
+
+                }
+
+                if (usuario.equals(ACACIA)){//facturar
+                    mailBody+="<br/><br/><b>Factura:</b><br/>"+
+                            onlineOrder.billingName+"<br/>"+
+                            onlineOrder.billingDniCuit+"<br/>"+
+                            "Total: $"+onlineOrder.paymentAmount+"<br/>"+
+                            onlineOrder.billingAddressLine1+"<br/>"+
+                            onlineOrder.billingAddressLine2+"<br/>"+
+                            onlineOrder.billingAddressLine3;
+                }
+
+
+                boolean mailIsOk= GoogleMailSenderUtil.sendMail(mailTitle,mailBody,null,attachments);
+
+                pendingOrder.mailSent=mailIsOk&&labelIsOk;
+                if (pendingOrder.mailSent){
+                    statusChanged=true;
+                }
+            }
+
+            if (!onlineOrder.chatSent){
+                if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
+                    // mandar mensaje aca
+                    //pendingOrder.chatSent=true;
+                    //statusChanged=true;
+                }
+            }
+
+            if (statusChanged){
+                DatabaseHelper.updateSale(pendingOrder.id,null,null,pendingOrder.mailSent,pendingOrder.chatSent);
+            }
+
+        }
+
 
     }
 
@@ -193,20 +234,22 @@ public class SalesChecker {
 
 
 
-    private static ArrayList<Order> fetchAllOrdersOnCloud(String user) {
+    private static ArrayList<Order> fetchAllOrdersOnCloud(String user,boolean onlyPending) {
         //recuperar las ordenes
         ArrayList<Order> orderArrayList = new ArrayList<Order>();
-        int sellerId=TokenUtils.getUserNumber(user);
+        int sellerId = TokenUtils.getUserNumber(user);
 
-        ResultSet rs = DatabaseHelper.fetchSales();
+        ResultSet rs = null;
+        if (onlyPending) {
+            rs=DatabaseHelper.fetchSales(sellerId,true);
+        } else {
+            rs=DatabaseHelper.fetchSales(sellerId,false);
+        }
 
         try{
             while (rs.next()){
                 Order order=new Order();
                 order.sellerId =rs.getInt(7);
-                if (order.sellerId!=sellerId){
-                    continue;
-                }
                 order.id=rs.getLong(1);
                 order.creationTimestamp = rs.getTimestamp(2);
                 order.updateTimestamp = rs.getTimestamp(3);
@@ -219,7 +262,7 @@ public class SalesChecker {
                     order.shippingType=tipoEnvio.charAt(0);
                 }
                 order.mailSent=rs.getBoolean(6);
-                order.chatSent=order.mailSent =rs.getBoolean(8);
+                order.chatSent=rs.getBoolean(8);
                 orderArrayList.add(order);
             }
             }catch(SQLException e){

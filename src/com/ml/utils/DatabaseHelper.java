@@ -34,7 +34,8 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastDaily = null;
     private static PreparedStatement globalSelectLastWeekly = null;
     private static PreparedStatement globalSelectLastMonthly = null;
-    private static PreparedStatement globalSelectSales = null;
+    private static PreparedStatement globalSelectSales1 = null;
+    private static PreparedStatement globalSelectSales2 = null;
     private static PreparedStatement globalSelectToken = null;
 
     private static PreparedStatement globalInsertProduct = null;
@@ -592,7 +593,8 @@ public class DatabaseHelper {
 
         try{
             if (globalInsertSale ==null) {
-                globalInsertSale = updateConnection.prepareStatement("insert into public.ventas(id,fechaventa,fechaactualizacion,estado,tipoenvio,notificado,usuario) values (?,?,?,?,?,?,?)");
+                globalInsertSale = updateConnection.prepareStatement("insert into public.ventas(id,fechaventa,"
+                        +"fechaactualizacion,estado,tipoenvio,mailenviado,usuario,chatenviado) values (?,?,?,?,?,?,?,?)");
             }
             globalInsertSale.setLong(1,id);
             globalInsertSale.setTimestamp(2,saleDate);
@@ -615,7 +617,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static void updateSale(long id, String state, String shippingType, Boolean mailSent, Boolean chatSent) {
+    public static void updateSale(long id, Character state, Character shippingType, Boolean mailSent, Boolean chatSent) {
         Connection updateConnection =getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
@@ -642,7 +644,8 @@ public class DatabaseHelper {
 
             ps.setBoolean(1,mailSent);
             ps.setTimestamp(2,lastUpdate);
-            ps.setLong(3,id);
+            ps.setBoolean(3,chatSent);
+            ps.setLong(4,id);
 
             int updatedRecords = ps.executeUpdate();
             if (updatedRecords!=1){
@@ -868,23 +871,69 @@ public class DatabaseHelper {
     }
 
 
-    public static ResultSet fetchSales() {
+    public static boolean alreadyStoredInDB(long saleId) {
+
+        ResultSet resultSet = null;
+        Connection selectConnection = getCloudConnection();
+        boolean result=false;
+        try{
+            if (globalSelectSales2 ==null) {
+                globalSelectSales2 = selectConnection.prepareStatement("SELECT id FROM public.ventas where id = ?");
+            }
+            globalSelectSales2.setLong(1,saleId);
+
+            resultSet = globalSelectSales2.executeQuery();
+
+            if (resultSet==null){
+                Logger.log("Couldn't get sale alreadyStoredInDB");
+            }
+
+            if (resultSet.next()){
+                result = true;
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get sale alreadyStoredInDB II");
+            Logger.log(e);
+        }
+        return result;
+    }
+
+
+    //sellerId = -1 selects all sellers
+    public static ResultSet fetchSales(int sellerId, boolean pendingOnly) {
 
         ResultSet resultSet = null;
         Connection selectConnection = getCloudConnection();
 
+        String query = "SELECT id,fechaventa,fechaactualizacion,"
+                +"estado,tipoenvio,mailenviado,usuario,chatenviado FROM public.ventas";
+
+        if (sellerId>0){
+            query+=" where usuario="+sellerId;
+            if (pendingOnly){
+                query+=" and (mailenviado=false or chatenviado=false)";
+            }
+        }else {
+            if (pendingOnly){
+                query+=" where mailenviado=false or chatenviado=false";
+            }
+        }
+
+        query+=" order by id";
+
         try{
-            if (globalSelectSales ==null) {
-                globalSelectSales = selectConnection.prepareStatement("SELECT id,fechaventa,fechaactualizacion,estado,tipoenvio,mailEnviado,usuario,chatEnviado FROM public.ventas order by id");
+            if (globalSelectSales1 ==null) {
+                globalSelectSales1 = selectConnection.prepareStatement(query);
             }
 
-            resultSet = globalSelectSales.executeQuery();
+            resultSet = globalSelectSales1.executeQuery();
             if (resultSet==null){
-                Logger.log("Couldn't get sales");
+                Logger.log("Couldn't get all sales");
             }
         }catch(SQLException e){
             e.printStackTrace();
-            Logger.log("Couldn't get last sales II");
+            Logger.log("Couldn't get all sales II");
             Logger.log(e);
         }
         return resultSet;
