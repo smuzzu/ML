@@ -36,6 +36,8 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastMonthly = null;
     private static PreparedStatement globalSelectSales1 = null;
     private static PreparedStatement globalSelectSales2 = null;
+    private static PreparedStatement globalSelectHolidays = null;
+    private static PreparedStatement globalSelectProductOnCloud = null;
     private static PreparedStatement globalSelectToken = null;
 
     private static PreparedStatement globalInsertProduct = null;
@@ -939,6 +941,77 @@ public class DatabaseHelper {
         return resultSet;
     }
 
+    public static ArrayList<Date> fetchHolidaysFromCloud() {
+
+        ArrayList<Date> dateArrayList = new ArrayList<Date>();
+        Connection selectConnection = getCloudConnection();
+
+        String query = "SELECT fecha FROM public.feriados";
+
+
+        try{
+            if (globalSelectHolidays ==null) {
+                globalSelectHolidays = selectConnection.prepareStatement(query);
+            }
+
+            ResultSet resultSet = globalSelectHolidays.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get holidays on cloud database");
+            }
+            while (resultSet.next()){
+                Date date = resultSet.getDate(1);
+                dateArrayList.add(date);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Exception getting holidays on cloud database");
+            Logger.log(e);
+        }
+        return dateArrayList;
+    }
+
+
+    public static Product getProductFromCloud(String id) {
+
+        Product product=null;
+        Connection selectConnection = getCloudConnection();
+
+        String query = "SELECT id,usuario,titulo,multiplicador,msgpersonalizado,deshabilitado"
+                +" FROM public.productos where id=?";
+
+        try{
+            if (globalSelectProductOnCloud ==null) {
+                globalSelectProductOnCloud = selectConnection.prepareStatement(query);
+            }
+
+            globalSelectProductOnCloud.setString(1, id);
+            ResultSet resultSet = globalSelectProductOnCloud.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get holidays on cloud database");
+            }
+            if (resultSet.next()){
+                product=new Product();
+                product.id = resultSet.getString(1);
+                product.user = resultSet.getInt(2);
+                product.title = resultSet.getString(3);
+                product.multiplier = resultSet.getInt(4);
+                product.customMessage = resultSet.getString(5);
+                Boolean disabled = resultSet.getBoolean(6);
+                if (disabled!=null && disabled){
+                    product.disabled=true;
+                }else {
+                    product.disabled = false;
+                }
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Exception getting holidays on cloud database");
+            Logger.log(e);
+        }
+        return product;
+    }
 
 
     public static synchronized Date fetchLastUpdate(String productId, String database) {
@@ -1169,5 +1242,11 @@ public class DatabaseHelper {
         return result;
     }
 
+
+    public static void main(String[] args) {
+        Product product = getProductFromCloud("MLA-831749248");
+        boolean b=false;
+
+    }
 
 }

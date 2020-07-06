@@ -15,6 +15,7 @@ import java.util.HashMap;
 
 public class MessagesAndSalesHelper {
 
+    static ArrayList<Message> allQuestionsArrayList=new ArrayList<Message>();
 
     //static final String usuario="ACACIAYLENGA";
     //static final String usuario="QUEFRESQUETE";
@@ -280,9 +281,52 @@ public class MessagesAndSalesHelper {
         return orderArrayList;
     }
 
+    private static ArrayList<Message> getAllQuestions(String user, CloseableHttpClient httpClient) {
+        ArrayList<Message> previousQuestionsArrayList = new ArrayList<>();
+        boolean finished=false;
+        int offset=0;
+        while (!finished) {
+            String questionsUrl = "https://api.mercadolibre.com/questions/search?seller_id="+ TokenUtils.getIdCliente(user)
+                    +"&offset=" + offset;
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
+            if (questionsObj==null){
+                finished=true;
+                break;
+            }
+            JSONArray questionsArray = questionsObj.getJSONArray("questions");
+            for (Object questionObject : questionsArray){
+                JSONObject questionJSONObject = (JSONObject)questionObject;
+                Message question = new Message();
+                Message answer = new Message();
+                question.id=""+questionJSONObject.getLong("id");
+                answer.id=question.id;
+                JSONObject from = questionJSONObject.getJSONObject("from");
+                question.customerId=from.getLong("id");
+                answer.customerId=question.customerId;
+                question.text=questionJSONObject.getString("text");
+                question.direction='R';
+                answer.direction='E';
+                if (questionJSONObject.has("answer") && !questionJSONObject.isNull("answer")) {
+                    JSONObject answerJSONObject = questionJSONObject.getJSONObject("answer");
+                    answer.text=answerJSONObject.getString("text");
+                }else {
+                    answer.text="";
+                }
+                question.productId=questionJSONObject.getString("item_id");
+                answer.productId=question.productId;
+                previousQuestionsArrayList.add(question);
+                previousQuestionsArrayList.add(answer);
+            }
+            offset+=50;
+            if (questionsArray.length()<50){
+                finished=true;
+            }
+        }
+        return previousQuestionsArrayList;
+    }
+
 
     public static Order getOrderDetails(CloseableHttpClient httpClient, String user, long orderId){
-        String orderUrl = "https://api.mercadolibre.com/orders/"+orderId+"?";
         String orderUrlListForOneURL="https://api.mercadolibre.com/orders/search?seller="
                 +TokenUtils.getIdCliente(user) +"&q="+orderId;
 
@@ -370,6 +414,7 @@ public class MessagesAndSalesHelper {
         if (jsonOrder.has("buyer")) {
             JSONObject buyerObject = jsonOrder.getJSONObject("buyer");
             order.userNickName =buyerObject.getString("nickname");
+            order.buyerCustId=buyerObject.getLong("id");
             if (usersInOrders.containsKey(order.userNickName)){
                 int orderCount = usersInOrders.get(order.userNickName);
                 orderCount++;
@@ -703,6 +748,21 @@ public class MessagesAndSalesHelper {
                     }
                 }
             }
+            if (allQuestionsArrayList==null || allQuestionsArrayList.isEmpty()){
+                allQuestionsArrayList=getAllQuestions(user,httpClient);
+            }
+            order.previousQuestionsOnItemArrayList=new ArrayList<Message>();
+            order.previousQuestionsOtherItemsArrayList=new ArrayList<Message>();
+            for (Message question: allQuestionsArrayList){
+                if (question.customerId==order.buyerCustId){
+                    if (question.productId.equals(order.productId)){
+                        order.previousQuestionsOnItemArrayList.add(question);
+                    }else {
+                        order.previousQuestionsOtherItemsArrayList.add(question);
+                    }
+                }
+            }
+
         }
         return order;
     }
@@ -834,7 +894,7 @@ public class MessagesAndSalesHelper {
 
     public static void main(String args[]){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "SOMOS_MAS",httpClient);
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "ACACIAYLENGA",httpClient);
         String headers=new Order().getPrintableCSVHeader();
         Logger.log(headers);
         for (Order order:orderArrayList){

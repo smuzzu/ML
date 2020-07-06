@@ -10,9 +10,12 @@ import com.ml.utils.Order;
 import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class SalesChecker {
 
@@ -100,6 +103,17 @@ public class SalesChecker {
                     attachments[1]=labelFileName;
                 }
 
+                String previousQuestionsOnItem="";
+                for (Message question: onlineOrder.previousQuestionsOnItemArrayList){
+                    previousQuestionsOnItem += question.text + "<br>";
+                }
+
+                String previousQuestionsOtherItems="";
+                for (Message question: onlineOrder.previousQuestionsOtherItemsArrayList){
+                    previousQuestionsOnItem += question.text + "<br>";
+                }
+
+
                 String buyerSays="";
                 if (onlineOrder.messageArrayList.size()>0){
 
@@ -142,8 +156,12 @@ public class SalesChecker {
                 }
                 mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName;
 
-                if (buyerSays!=null && !buyerSays.isEmpty()){
-                    mailBody+="<br/><br/><b>Mensaje del cliente:</b><br/>"+buyerSays;
+                if (previousQuestionsOnItem!=null && !previousQuestionsOnItem.isEmpty()){
+                    mailBody+="<br/><br/><b>Preguntas antes de la compra en el item:</b><br/>"+previousQuestionsOnItem;
+                }
+
+                if (previousQuestionsOtherItems!=null && !previousQuestionsOtherItems.isEmpty()){
+                    mailBody+="<br/><br/><b>Preguntas antes de la compra en otro item:</b><br/>"+previousQuestionsOtherItems;
                 }
 
                 mailBody+="<br/><br/><b>Envío:</b>  "+shipping+"<br/>";
@@ -184,9 +202,142 @@ public class SalesChecker {
 
             if (!onlineOrder.chatSent){
                 if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
+                    String firstMsgToBuyer=null;
+                    int dayPeriod=getDayPeriod();
+                    if (dayPeriod==MORNING){
+                        firstMsgToBuyer="Buen dia ";
+                    }else {
+                        if (dayPeriod==AFTERNOON){
+                            firstMsgToBuyer="Buenas tardes ";
+                        }else {
+                            if (dayPeriod == EVENING) {
+                                firstMsgToBuyer="Buenas noches ";
+                            } else{
+                                if (dayPeriod==IMPRECISE_TIME){
+                                    firstMsgToBuyer="Hola ";
+                                }
+                            }
+                        }
+                    }
+                    firstMsgToBuyer+=processBuyerName(onlineOrder)+". ";
+
+                    String product=onlineOrder.productTitle; //todo
+
+                    if (onlineOrder.shippingType==Order.PERSONALIZADO || onlineOrder.shippingType==Order.ACORDAR) {
+                        firstMsgToBuyer+="Pronto nos contactaremos con vos para coordinar el envio de "+product
+                                +".  Nuestro horario de atención es de lunes viernes de 9 a 17 y sábados de 10 a 13";
+                    }
+
+                    //todo controlar por si acaso que la orden este pendiente de envio
+                    if (onlineOrder.shippingType==Order.CORREO_A_DOMICILIO || onlineOrder.shippingType==Order.CORREO_RETIRA) {
+                        if (hollydays==null){
+                            hollydays=DatabaseHelper.fetchHolidaysFromCloud();
+                        }
+
+                        boolean atLeastOneHoliday=false;
+                        Date nextDeliveryDate=getDate(TODAY,null);
+                        boolean isHoliday = isHoliday(nextDeliveryDate,hollydays);
+                        if (isHoliday){
+                            atLeastOneHoliday=true;
+                        }
+                        boolean isWeekend = isWeekend(nextDeliveryDate);
+                        if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday){
+                            firstMsgToBuyer += "Esta tarde te estaremos despachando por " + onlineOrder.shippingCurrier
+                                    + " tu " + product+".";
+                        }else {
+                            nextDeliveryDate=getDate(TOMORROW,null);
+                            isWeekend = isWeekend(nextDeliveryDate);
+                            isHoliday = isHoliday(nextDeliveryDate,hollydays);
+                            if (isHoliday){
+                                atLeastOneHoliday=true;
+                            }
+                            if (!isHoliday && !isWeekend) {
+                                firstMsgToBuyer += "Mañana por la tarde te estaremos despachando por " + onlineOrder.shippingCurrier
+                                        + " tu " + product+".";
+                            }else {
+                                while (isHoliday || isWeekend) {
+                                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                    if (isHoliday){
+                                        atLeastOneHoliday=true;
+                                    }
+                                    isWeekend = isWeekend(nextDeliveryDate);
+                                }
+                                firstMsgToBuyer += "El "+getDayOfWeek(nextDeliveryDate)+" por la tarde estaremos despachando por " + onlineOrder.shippingCurrier
+                                        + " tu " + product;
+                            }
+                            if (atLeastOneHoliday){
+                                firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
+                                        +" esta cerrado).";
+                            }else {
+                                firstMsgToBuyer +=".";
+                            }
+                        }
+                    }
+
+                    //todo controlar por si acaso que la orden este pendiente de envio
+                    if (onlineOrder.shippingType==Order.FLEX) {
+                        if (hollydays==null){
+                            hollydays=DatabaseHelper.fetchHolidaysFromCloud();
+                        }
+
+                        Date nextDeliveryDate=getDate(TODAY,null);
+                        boolean atLeastOneHoliday=false;
+                        boolean isHoliday = isHoliday(nextDeliveryDate,hollydays);
+                        if (isHoliday){
+                            atLeastOneHoliday=true;
+                        }
+                        boolean isWeekend = isWeekend(nextDeliveryDate);
+                        if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday){
+                            firstMsgToBuyer += "Esta tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu "
+                                    + product+".";
+                        }else {
+                            nextDeliveryDate=getDate(TOMORROW,null);
+                            isWeekend = isWeekend(nextDeliveryDate);
+                            isHoliday = isHoliday(nextDeliveryDate,hollydays);
+                            if (isHoliday){
+                                atLeastOneHoliday=true;
+                            }
+                            if (!isHoliday && !isWeekend) {
+                                firstMsgToBuyer += "Mañana por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu "
+                                        + product+".";
+                            }else {
+                                while (isHoliday || isWeekend) {
+                                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                    if (isHoliday){
+                                        atLeastOneHoliday=true;
+                                    }
+                                    isWeekend = isWeekend(nextDeliveryDate);
+                                }
+                                firstMsgToBuyer += "El "+getDayOfWeek(nextDeliveryDate)+" por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu  "
+                                        + product+".";
+                            }/*
+                            if (atLeastOneHoliday){
+                                firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
+                                        +" esta cerrado).";
+                            }else {
+                                firstMsgToBuyer +=".";
+                            }*/
+                        }
+
+                    }
+
+                    firstMsgToBuyer+=". Muchas gracias por tu compra!";
+
                     // mandar mensaje aca
-                    //pendingOrder.chatSent=true;
-                    //statusChanged=true;
+                    String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
+                    firstMsgToBuyer=saleDetails+"<br>"+firstMsgToBuyer;
+                    String mailTitle="primer mensaje para el cliente "+" "+onlineOrder.productTitle+" "+onlineOrder.id;
+                    pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle,firstMsgToBuyer,null,null);
+                    statusChanged=true;
+                }else {
+                    //el cliente ya nos escribió
+                    String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
+                    String msg1 = "no pudimos notificar a este cliente porque mandó mensajes post-venta, por favor notificar manualmente.<br>"+saleDetails;
+                    String mailTitle="primer mensaje para el cliente "+" "+onlineOrder.productTitle+" "+onlineOrder.id;
+                    pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle,msg1,null,null);
+
                 }
             }
 
@@ -273,5 +424,191 @@ public class SalesChecker {
         return orderArrayList;
     }
 
+
+    static final int TODAY = 0;
+    static final int TOMORROW = 1;
+    static final int NEXT_MONDAY = 2;
+
+    private static Date getDate(int type,Date date){
+        Calendar cal = Calendar.getInstance();
+        if (date!=null) {
+            cal.setTime(date);
+        }
+        if (type!=TODAY){
+            if (type==TOMORROW){
+                cal.add(Calendar.DATE, 1);
+            }else {
+                if (type==NEXT_MONDAY){
+                    cal.add(Calendar.DATE, 1);
+                    while( cal.get( Calendar.DAY_OF_WEEK ) != Calendar.MONDAY ) {
+                        cal.add(Calendar.DATE, 1);
+                    }
+                }
+            }
+        }
+        Date result = new Date(cal.getTimeInMillis());
+
+        return result;
+    }
+
+    private static boolean isWeekend(Date date){
+        boolean result=false;
+        Calendar cal = Calendar.getInstance();
+        if (date!=null) {
+            cal.setTime(date);
+        }
+        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+        if (dayOfWeek == Calendar.SATURDAY || dayOfWeek==Calendar.SUNDAY){
+            result=true;
+        }
+        return result;
+    }
+
+    private static boolean isHoliday(Date date,ArrayList<Date> holidays){
+        boolean result=false;
+        Calendar holidayDate = Calendar.getInstance();;
+        int dayHoliday,monthHoliday,yearHoliday;
+        Calendar calendarDate = Calendar.getInstance();
+        if (date!=null) {
+            calendarDate.setTime(date);
+        }
+        int dayDate=calendarDate.get(Calendar.DAY_OF_MONTH);
+        int monthDate=calendarDate.get(Calendar.MONTH);
+        int yearDate=calendarDate.get(Calendar.YEAR);
+        for (Date holiday: holidays){
+            if (holiday!=null) {
+                holidayDate.setTime(holiday);
+            }
+            dayHoliday=holidayDate.get(Calendar.DAY_OF_MONTH);
+            monthHoliday=holidayDate.get(Calendar.MONTH);
+            yearHoliday=holidayDate.get(Calendar.YEAR);
+            if (dayDate==dayHoliday && monthDate==monthHoliday && yearDate==yearHoliday){
+                result = true;
+                break;
+            }
+        }
+        return result;
+    }
+
+    static final int IMPRECISE_TIME = 0;
+    static final int MORNING = 1;
+    static final int AFTERNOON = 2;
+    static final int EVENING = 3;
+
+    static final LocalTime LIMIT_HOUR_FLEX = LocalTime.of(13,0);
+    static final LocalTime LIMIT_HOUR_CORREO = LocalTime.of(15,0);
+
+    static LocalTime MORNING_FROM = LocalTime.of(7,00);
+    static LocalTime MORNING_TO = LocalTime.of(13,00);
+    static LocalTime AFTERNOON_FROM = LocalTime.of(13,01);
+    static LocalTime AFTERNOON_TO = LocalTime.of(19,00);
+    static LocalTime EVENING_FROM = LocalTime.of(20,30);
+    static LocalTime EVENING_TO = LocalTime.of(2,00);
+
+    static ArrayList<Date> hollydays=null;
+
+    private static int getDayPeriod(){
+        int result = IMPRECISE_TIME;
+        LocalTime now = LocalTime.now();
+        if (now.isAfter(MORNING_FROM) && now.isBefore(MORNING_TO)){
+            result=MORNING;
+        }else {
+            if (now.isAfter(AFTERNOON_FROM) && now.isBefore(AFTERNOON_TO)){
+                result=AFTERNOON;
+            }else {
+                if (EVENING_FROM.isAfter(EVENING_TO)) { //de 20 a 1 am
+                    if (now.isAfter(EVENING_FROM) || now.isBefore(EVENING_TO)) {
+                        result=EVENING;
+                    }
+                }else { //de 20 a 23 hs
+                    if (now.isAfter(EVENING_FROM) && now.isBefore(EVENING_TO)) {
+                        result=EVENING;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static boolean isFlexDayTimeLimitPassed(){
+        LocalTime now = LocalTime.now();
+        boolean result=now.isAfter(LIMIT_HOUR_FLEX);
+        return result;
+    }
+
+    private static boolean isCorreoDayTimeLimitPassed(){
+        LocalTime now = LocalTime.now();
+        boolean result=now.isAfter(LIMIT_HOUR_CORREO);
+        return result;
+    }
+
+    private static String getDayOfWeek(Date date){
+        String result=null;
+
+        Calendar cal = Calendar.getInstance();
+        if (date!=null) {
+            cal.setTime(date);
+        }
+        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+        if (dayOfWeek == Calendar.MONDAY){
+            result="lunes";
+        }else {
+            if (dayOfWeek == Calendar.TUESDAY) {
+                result = "martes";
+            } else {
+                if (dayOfWeek == Calendar.WEDNESDAY) {
+                    result = "miércoles";
+                } else {
+                    if (dayOfWeek == Calendar.TUESDAY) {
+                        result = "jueves";
+                    } else {
+                        if (dayOfWeek == Calendar.FRIDAY) {
+                            result = "viernes";
+                        } else {
+                            if (dayOfWeek == Calendar.SATURDAY) {
+                                result = "sábado";
+                            }else {
+                                if (dayOfWeek == Calendar.SUNDAY) {
+                                    result = "domingo";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static ArrayList<String> nombresDobles=null;
+
+    private static String processBuyerName(Order order){
+        if (nombresDobles==null){
+            nombresDobles=new ArrayList<String>();
+            nombresDobles.add("Maria");
+            nombresDobles.add("María");
+            nombresDobles.add("Jose");
+            nombresDobles.add("José");
+            nombresDobles.add("Juan");
+            nombresDobles.add("Cristian");//todo sacar
+        }
+
+        String result=order.buyerFirstName.trim();
+        if (result.contains(" ")){ //+ de in nombre
+            boolean cutDoubleName=true;
+            for (String nombreDoble:nombresDobles){
+                if (result.startsWith(nombreDoble)){
+                    cutDoubleName=false;
+                    break;
+                }
+            }
+            if (cutDoubleName) {
+                int pos = result.indexOf(" ");
+                result = result.substring(0, pos);
+            }
+        }
+
+        return result;
+    }
 
 }

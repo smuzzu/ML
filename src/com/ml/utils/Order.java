@@ -45,6 +45,7 @@ public class Order implements Comparable<Order> {
     public String buyerEmail;
     public String buyerPhone;
     public String buyerDocNumber;
+    public long   buyerCustId;
 
     public String billingDniCuit;
     public String billingName;
@@ -84,6 +85,8 @@ public class Order implements Comparable<Order> {
     public boolean chatSent;
 
     public long packId; //for messages
+    public ArrayList<Message> previousQuestionsOnItemArrayList;
+    public ArrayList<Message> previousQuestionsOtherItemsArrayList;
     public ArrayList<Message> messageArrayList;
 
 
@@ -161,7 +164,9 @@ public class Order implements Comparable<Order> {
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }String value = "";
-            if (name.equals("messageArrayList")){
+            if (name.equals("messageArrayList") ||
+                name.equals("previousQuestionsOnItemArrayList") ||
+                name.equals("previousQuestionsOtherItemsArrayList")){
                 ArrayList<Message> messageArrayList = (ArrayList) valueObj;
                 for (Message message: messageArrayList){
                     value+=message.toStringForReport()+"\n";
