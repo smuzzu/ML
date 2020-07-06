@@ -341,8 +341,6 @@ public class MessagesAndSalesHelper {
 
         JSONObject jsonOrder = jsonOrdersArray.getJSONObject(0);
 
-        //JSONObject jsonOrder = HttpUtils.getJsonObjectUsingToken(orderUrl,httpClient,user);
-
         Order order = new Order();
         order.id = orderId;
 
@@ -894,7 +892,7 @@ public class MessagesAndSalesHelper {
 
     public static void main(String args[]){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "ACACIAYLENGA",httpClient);
+            ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "QUEFRESQUETE",httpClient);
         String headers=new Order().getPrintableCSVHeader();
         Logger.log(headers);
         for (Order order:orderArrayList){
