@@ -347,7 +347,9 @@ public class SalesChecker {
 
         }
 
-
+        msg="*********** FIN";
+        Logger.log(msg);
+        System.out.println(msg);
     }
 
 /*
