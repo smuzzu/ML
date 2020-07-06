@@ -156,6 +156,10 @@ public class SalesChecker {
                 }
                 mailBody+="Comprador: "+onlineOrder.buyerFirstName+" "+onlineOrder.buyerLastName;
 
+                if (buyerSays!=null && !buyerSays.isEmpty()){
+                    mailBody+="<br/><br/><b>Mensaje del cliente:</b><br/>"+buyerSays;
+                }
+
                 if (previousQuestionsOnItem!=null && !previousQuestionsOnItem.isEmpty()){
                     mailBody+="<br/><br/><b>Preguntas antes de la compra en el item:</b><br/>"+previousQuestionsOnItem;
                 }
@@ -202,6 +206,8 @@ public class SalesChecker {
 
             if (!onlineOrder.chatSent){
                 if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
+
+
                     String firstMsgToBuyer=null;
                     int dayPeriod=getDayPeriod();
                     if (dayPeriod==MORNING){
