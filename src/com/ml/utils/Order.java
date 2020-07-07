@@ -17,6 +17,7 @@ public class Order implements Comparable<Order> {
     public String shippingOptionNameDescription;
     public String shippingTrackingNumber;
     public String shippingCurrier;
+    public String shippingLogisticType;
     public String shippingAddressLine1;
     public String shippingAddressLine2;
     public String shippingAddressLine3;
@@ -96,6 +97,7 @@ public class Order implements Comparable<Order> {
     public static final char CORREO_A_DOMICILIO='D';
     public static final char CORREO_RETIRA='R';
     public static final char FLEX='F';
+    public static final char FULL='U';
     public static final char UNKNOWN=' ';
 
     //orderStatus

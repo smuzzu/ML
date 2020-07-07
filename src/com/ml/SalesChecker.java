@@ -22,8 +22,8 @@ public class SalesChecker {
 
     static String ACACIA = "ACACIAYLENGA";
 
-    //static String usuario = "ACACIAYLENGA";
-    static String usuario ="SOMOS_MAS";
+    static String usuario = "ACACIAYLENGA";
+    //static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
     
     static boolean ignorarEtiquetayMail=false;
@@ -65,6 +65,10 @@ public class SalesChecker {
             //viene de internet, mucha info
             Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
             //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
+
+            if (onlineOrder.shippingType==Order.FULL){
+                continue; //no hacemos nada con los full por ahora
+            }
 
             if (!pendingOrder.mailSent){
 

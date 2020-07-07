@@ -83,6 +83,18 @@ public class MessagesAndSalesHelper {
                 }
             }
         }
+        if (!result){
+            if (jsonOrder.has("shipping") && !jsonOrder.isNull("shipping")) {
+                JSONObject shippingObject = jsonOrder.getJSONObject("shipping");
+                if (shippingObject.has("substatus") && !shippingObject.isNull("substatus")) {
+                    String shippingSubstatus = shippingObject.getString("substatus");
+                    //habrá otros substatus de returned_to_warehouse?
+                    if (shippingSubstatus.startsWith("returned")){
+                        result=true;
+                    }
+                }
+            }
+        }
         return result;
     }
 
@@ -549,7 +561,11 @@ public class MessagesAndSalesHelper {
 
         order.shippingTrackingNumber = getStringValue(orderShippingObj,shippingObj,"tracking_number");
         order.shippingCurrier = getStringValue(orderShippingObj,shippingObj,"tracking_method");
-
+        order.shippingLogisticType = getStringValue(orderShippingObj,shippingObj,"logistic_type");
+        boolean full=false;
+        if (order.shippingLogisticType!=null && order.shippingLogisticType.equals("fulfillment")){
+            full=true;
+        }
 
         JSONObject shippingOptionObj = getObjectValue(orderShippingObj,shippingObj,"shipping_option");
         if (shippingOptionObj!=null && shippingOptionObj.has("name") && !shippingOptionObj.isNull("name")) {
@@ -586,7 +602,11 @@ public class MessagesAndSalesHelper {
         //custom shipping
         if (customShipping) {
             order.shippingType = Order.PERSONALIZADO;
-        }else { //acordar o mercadoenvios
+        }else {
+            if (full) {
+                order.shippingType = Order.FULL;
+            }else {
+                //acordar o mercadoenvios
                 if (order.shippingStatus.equals("to_be_agreed")) {
                     order.shippingType = Order.ACORDAR;
                     order.shippingOptionNameDescription = "Acordar";
@@ -605,6 +625,7 @@ public class MessagesAndSalesHelper {
                         }
                     }
                 }
+            }
         }
 
         String billingInfoUrl="https://api.mercadolibre.com/orders/"+order.id+"/billing_info?";
@@ -892,7 +913,7 @@ public class MessagesAndSalesHelper {
 
     public static void main(String args[]){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-            ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "QUEFRESQUETE",httpClient);
+            ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "ACACIAYLENGA",httpClient);
         String headers=new Order().getPrintableCSVHeader();
         Logger.log(headers);
         for (Order order:orderArrayList){
