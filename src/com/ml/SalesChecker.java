@@ -193,8 +193,10 @@ public class SalesChecker {
                 if (onlineOrder.shippingAddressLine1!=null && !onlineOrder.shippingAddressLine1.isEmpty()){
                     mailBody+=onlineOrder.shippingReceiverName+"<br/>"+
                             onlineOrder.shippingAddressLine1+"<br/>"+
-                            onlineOrder.shippingAddressLine2+"<br/>"+
-                            onlineOrder.shippingAddressLine3;
+                            onlineOrder.shippingAddressLine2;
+                    if (onlineOrder.shippingAddressLine3!=null && !onlineOrder.shippingAddressLine3.isEmpty()) {
+                        mailBody+="<br/>"+onlineOrder.shippingAddressLine3;
+                    }
 
                 }
 
@@ -253,6 +255,8 @@ public class SalesChecker {
 
                             //todo controlar por si acaso que la orden este pendiente de envio
                             if (onlineOrder.shippingType == Order.CORREO_A_DOMICILIO || onlineOrder.shippingType == Order.CORREO_RETIRA) {
+                                String shippingCurrier = "Correo Argentino";
+
                                 if (hollydays == null) {
                                     hollydays = DatabaseHelper.fetchHolidaysFromCloud();
                                 }
@@ -265,7 +269,7 @@ public class SalesChecker {
                                 }
                                 boolean isWeekend = isWeekend(nextDeliveryDate);
                                 if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday) {
-                                    firstMsgToBuyer += "Esta tarde te estaremos despachando por " + onlineOrder.shippingCurrier
+                                    firstMsgToBuyer += "Esta tarde te estaremos despachando por " + shippingCurrier
                                             + productTitle;
                                 } else {
                                     nextDeliveryDate = getDate(TOMORROW, null);
@@ -276,7 +280,7 @@ public class SalesChecker {
                                     }
                                     if (!isHoliday && !isWeekend) {
                                         firstMsgToBuyer += "Mañana por la tarde te estaremos despachando por "
-                                                + onlineOrder.shippingCurrier + productTitle;
+                                                + shippingCurrier + productTitle;
                                     } else {
                                         while (isHoliday || isWeekend) {
                                             nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
@@ -286,11 +290,11 @@ public class SalesChecker {
                                             }
                                             isWeekend = isWeekend(nextDeliveryDate);
                                         }
-                                        firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde estaremos despachando por " + onlineOrder.shippingCurrier
+                                        firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde estaremos despachando por " + shippingCurrier
                                                 + productTitle;
                                     }
                                     if (atLeastOneHoliday) {
-                                        firstMsgToBuyer += " (tener en cuenta que los días feriados " + onlineOrder.shippingCurrier
+                                        firstMsgToBuyer += " (tener en cuenta que los días feriados " + shippingCurrier
                                                 + " esta cerrado).";
                                     } else {
                                         firstMsgToBuyer += ".";
@@ -399,8 +403,14 @@ public class SalesChecker {
 
     private static String buildProductTitle(Product product, Order order){
         String result="";
+        String productVariation="";
+        if (order.productVariationText!=null && !order.productVariationText.isEmpty()
+                && !order.productVariationText.equals("N/A")) {
+            productVariation += " "+order.productVariationText;
+        }
         if (product==null) {
-            result =" tu " + order.productTitle + ".";
+            result =" tu " + order.productTitle + productVariation+".";
+
         }else {
             String productName = order.productTitle;
             if (product.title != null && !product.title.isEmpty()) {
@@ -411,12 +421,12 @@ public class SalesChecker {
                 String unitName="";
                 if (product.unitName!=null && !product.unitName.trim().isEmpty()){
                     unitName=product.unitName.trim();
-                    result = " " + quantity + " "+unitName+" de "+ productName+ ".";;
+                    result = " " + quantity + " " + unitName + " de " + productName + productVariation+ ".";;
                 }else {
-                    result = " " + quantity + " " + productName + ".";
+                    result = " " + quantity + " " + productName + productVariation + ".";
                 }
             } else {//es 1 solo
-                result = " tu " +  productName + ".";
+                result = " tu " +  productName + productVariation+ ".";
             }
         }
         return result;
