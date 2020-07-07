@@ -977,7 +977,7 @@ public class DatabaseHelper {
         Product product=null;
         Connection selectConnection = getCloudConnection();
 
-        String query = "SELECT id,usuario,titulo,multiplicador,msgpersonalizado,deshabilitado"
+        String query = "SELECT id,usuario,titulo,multiplicador,msgpersonalizado,deshabilitado,nombreunidad"
                 +" FROM public.productos where id=?";
 
         try{
@@ -1003,6 +1003,7 @@ public class DatabaseHelper {
                 }else {
                     product.disabled = false;
                 }
+                product.unitName=resultSet.getString(7);
             }
 
         }catch(SQLException e){

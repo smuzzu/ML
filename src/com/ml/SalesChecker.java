@@ -7,6 +7,7 @@ import com.ml.utils.Logger;
 import com.ml.utils.Message;
 import com.ml.utils.MessagesAndSalesHelper;
 import com.ml.utils.Order;
+import com.ml.utils.Product;
 import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
@@ -24,6 +25,8 @@ public class SalesChecker {
     //static String usuario = "ACACIAYLENGA";
     static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
+    
+    static boolean ignorarEtiquetayMail=false;
 
     public static void main(String[] args) {
 
@@ -33,6 +36,11 @@ public class SalesChecker {
                 usuario=usuarioArg;
             }
         }
+        if (usuario.charAt(0)=='X'){//todo sacar !!
+            usuario=usuario.substring(1,usuario.length());
+            ignorarEtiquetayMail=true;
+        }
+        
         String msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
@@ -58,7 +66,8 @@ public class SalesChecker {
             Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
             //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
 
-            if (!pendingOrder.mailSent){
+            //if (!pendingOrder.mailSent){ //todo sacar
+             if (!pendingOrder.mailSent && !ignorarEtiquetayMail){                
 
                 System.out.println("VENDISTE !!!!!!!!! "+onlineOrder.productTitle);
                 boolean hasLabel=false;
@@ -204,146 +213,152 @@ public class SalesChecker {
                 }
             }
 
-            if (!onlineOrder.chatSent){
-                if (onlineOrder.messageArrayList.size()==0){//primer mensaje al usuario debe ser diferenciado.
+            if (!onlineOrder.chatSent) {
+                if (onlineOrder.messageArrayList.size() == 0) {//primer mensaje al usuario debe ser diferenciado.
+                    Product product = DatabaseHelper.getProductFromCloud(onlineOrder.productId);
+                    if (product==null || !product.disabled) {
+                        String productTitle=buildProductTitle(product,onlineOrder);
 
 
-                    String firstMsgToBuyer=null;
-                    int dayPeriod=getDayPeriod();
-                    if (dayPeriod==MORNING){
-                        firstMsgToBuyer="Buen dia ";
-                    }else {
-                        if (dayPeriod==AFTERNOON){
-                            firstMsgToBuyer="Buenas tardes ";
-                        }else {
-                            if (dayPeriod == EVENING) {
-                                firstMsgToBuyer="Buenas noches ";
-                            } else{
-                                if (dayPeriod==IMPRECISE_TIME){
-                                    firstMsgToBuyer="Hola ";
-                                }
-                            }
-                        }
-                    }
-                    firstMsgToBuyer+=processBuyerName(onlineOrder)+". ";
-
-                    String product=onlineOrder.productTitle; //todo
-
-                    if (onlineOrder.shippingType==Order.PERSONALIZADO || onlineOrder.shippingType==Order.ACORDAR) {
-                        firstMsgToBuyer+="Pronto nos contactaremos con vos para coordinar el envio de "+product
-                                +".  Nuestro horario de atención es de lunes viernes de 9 a 17 y sábados de 10 a 13";
-                    }
-
-                    //todo controlar por si acaso que la orden este pendiente de envio
-                    if (onlineOrder.shippingType==Order.CORREO_A_DOMICILIO || onlineOrder.shippingType==Order.CORREO_RETIRA) {
-                        if (hollydays==null){
-                            hollydays=DatabaseHelper.fetchHolidaysFromCloud();
-                        }
-
-                        boolean atLeastOneHoliday=false;
-                        Date nextDeliveryDate=getDate(TODAY,null);
-                        boolean isHoliday = isHoliday(nextDeliveryDate,hollydays);
-                        if (isHoliday){
-                            atLeastOneHoliday=true;
-                        }
-                        boolean isWeekend = isWeekend(nextDeliveryDate);
-                        if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday){
-                            firstMsgToBuyer += "Esta tarde te estaremos despachando por " + onlineOrder.shippingCurrier
-                                    + " tu " + product+".";
-                        }else {
-                            nextDeliveryDate=getDate(TOMORROW,null);
-                            isWeekend = isWeekend(nextDeliveryDate);
-                            isHoliday = isHoliday(nextDeliveryDate,hollydays);
-                            if (isHoliday){
-                                atLeastOneHoliday=true;
-                            }
-                            if (!isHoliday && !isWeekend) {
-                                firstMsgToBuyer += "Mañana por la tarde te estaremos despachando por " + onlineOrder.shippingCurrier
-                                        + " tu " + product+".";
-                            }else {
-                                while (isHoliday || isWeekend) {
-                                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
-                                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                    if (isHoliday){
-                                        atLeastOneHoliday=true;
+                        String firstMsgToBuyer = null;
+                        int dayPeriod = getDayPeriod();
+                        if (dayPeriod == MORNING) {
+                            firstMsgToBuyer = "Buen dia ";
+                        } else {
+                            if (dayPeriod == AFTERNOON) {
+                                firstMsgToBuyer = "Buenas tardes ";
+                            } else {
+                                if (dayPeriod == EVENING) {
+                                    firstMsgToBuyer = "Buenas noches ";
+                                } else {
+                                    if (dayPeriod == IMPRECISE_TIME) {
+                                        firstMsgToBuyer = "Hola ";
                                     }
-                                    isWeekend = isWeekend(nextDeliveryDate);
                                 }
-                                firstMsgToBuyer += "El "+getDayOfWeek(nextDeliveryDate)+" por la tarde estaremos despachando por " + onlineOrder.shippingCurrier
-                                        + " tu " + product;
-                            }
-                            if (atLeastOneHoliday){
-                                firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
-                                        +" esta cerrado).";
-                            }else {
-                                firstMsgToBuyer +=".";
                             }
                         }
-                    }
+                        firstMsgToBuyer += processBuyerName(onlineOrder) + ". ";
 
-                    //todo controlar por si acaso que la orden este pendiente de envio
-                    if (onlineOrder.shippingType==Order.FLEX) {
-                        if (hollydays==null){
-                            hollydays=DatabaseHelper.fetchHolidaysFromCloud();
-                        }
+                        if (product==null || product.customMessage==null || product.customMessage.trim().isEmpty()) {
 
-                        Date nextDeliveryDate=getDate(TODAY,null);
-                        boolean atLeastOneHoliday=false;
-                        boolean isHoliday = isHoliday(nextDeliveryDate,hollydays);
-                        if (isHoliday){
-                            atLeastOneHoliday=true;
-                        }
-                        boolean isWeekend = isWeekend(nextDeliveryDate);
-                        if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday){
-                            firstMsgToBuyer += "Esta tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu "
-                                    + product+".";
-                        }else {
-                            nextDeliveryDate=getDate(TOMORROW,null);
-                            isWeekend = isWeekend(nextDeliveryDate);
-                            isHoliday = isHoliday(nextDeliveryDate,hollydays);
-                            if (isHoliday){
-                                atLeastOneHoliday=true;
+                            if (onlineOrder.shippingType == Order.PERSONALIZADO || onlineOrder.shippingType == Order.ACORDAR) {
+                                firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
+                                        + productTitle
+                                        + " Nuestro horario de atención es de lunes viernes de 9 a 17 y sábados de 10 a 13";
                             }
-                            if (!isHoliday && !isWeekend) {
-                                firstMsgToBuyer += "Mañana por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu "
-                                        + product+".";
-                            }else {
-                                while (isHoliday || isWeekend) {
-                                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+
+                            //todo controlar por si acaso que la orden este pendiente de envio
+                            if (onlineOrder.shippingType == Order.CORREO_A_DOMICILIO || onlineOrder.shippingType == Order.CORREO_RETIRA) {
+                                if (hollydays == null) {
+                                    hollydays = DatabaseHelper.fetchHolidaysFromCloud();
+                                }
+
+                                boolean atLeastOneHoliday = false;
+                                Date nextDeliveryDate = getDate(TODAY, null);
+                                boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                if (isHoliday) {
+                                    atLeastOneHoliday = true;
+                                }
+                                boolean isWeekend = isWeekend(nextDeliveryDate);
+                                if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday) {
+                                    firstMsgToBuyer += "Esta tarde te estaremos despachando por " + onlineOrder.shippingCurrier
+                                            + productTitle;
+                                } else {
+                                    nextDeliveryDate = getDate(TOMORROW, null);
+                                    isWeekend = isWeekend(nextDeliveryDate);
                                     isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                    if (isHoliday){
-                                        atLeastOneHoliday=true;
+                                    if (isHoliday) {
+                                        atLeastOneHoliday = true;
                                     }
-                                    isWeekend = isWeekend(nextDeliveryDate);
+                                    if (!isHoliday && !isWeekend) {
+                                        firstMsgToBuyer += "Mañana por la tarde te estaremos despachando por "
+                                                + onlineOrder.shippingCurrier + productTitle;
+                                    } else {
+                                        while (isHoliday || isWeekend) {
+                                            nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                                            isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                            if (isHoliday) {
+                                                atLeastOneHoliday = true;
+                                            }
+                                            isWeekend = isWeekend(nextDeliveryDate);
+                                        }
+                                        firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde estaremos despachando por " + onlineOrder.shippingCurrier
+                                                + productTitle;
+                                    }
+                                    if (atLeastOneHoliday) {
+                                        firstMsgToBuyer += " (tener en cuenta que los días feriados " + onlineOrder.shippingCurrier
+                                                + " esta cerrado).";
+                                    } else {
+                                        firstMsgToBuyer += ".";
+                                    }
                                 }
-                                firstMsgToBuyer += "El "+getDayOfWeek(nextDeliveryDate)+" por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con tu  "
-                                        + product+".";
-                            }/*
-                            if (atLeastOneHoliday){
-                                firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
-                                        +" esta cerrado).";
-                            }else {
-                                firstMsgToBuyer +=".";
-                            }*/
+                            }
+
+                            //todo controlar por si acaso que la orden este pendiente de envio
+                            if (onlineOrder.shippingType == Order.FLEX) {
+                                if (hollydays == null) {
+                                    hollydays = DatabaseHelper.fetchHolidaysFromCloud();
+                                }
+
+                                Date nextDeliveryDate = getDate(TODAY, null);
+                                boolean atLeastOneHoliday = false;
+                                boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                if (isHoliday) {
+                                    atLeastOneHoliday = true;
+                                }
+                                boolean isWeekend = isWeekend(nextDeliveryDate);
+                                if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday) {
+                                    firstMsgToBuyer += "Esta tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                            + productTitle;
+                                } else {
+                                    nextDeliveryDate = getDate(TOMORROW, null);
+                                    isWeekend = isWeekend(nextDeliveryDate);
+                                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                    if (isHoliday) {
+                                        atLeastOneHoliday = true;
+                                    }
+                                    if (!isHoliday && !isWeekend) {
+                                        firstMsgToBuyer += "Mañana por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                                + productTitle;
+                                    } else {
+                                        while (isHoliday || isWeekend) {
+                                            nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                                            isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                                            if (isHoliday) {
+                                                atLeastOneHoliday = true;
+                                            }
+                                            isWeekend = isWeekend(nextDeliveryDate);
+                                        }
+                                        firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                                + productTitle;
+                                    }/*
+                                if (atLeastOneHoliday){
+                                    firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
+                                            +" esta cerrado).";
+                                }else {
+                                    firstMsgToBuyer +=".";
+                                }*/
+                                }
+                            }
+                        }else {//hay un mensaje custom
+                            firstMsgToBuyer +=product.customMessage.trim()+".";
                         }
 
+                        firstMsgToBuyer += " Muchas gracias por tu compra!";
+
+                        // mandar mensaje aca
+                        String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + onlineOrder.id + "/detalle";
+                        firstMsgToBuyer = saleDetails + "<br>" + firstMsgToBuyer;
+                        String mailTitle = "primer mensaje para el cliente " + " " + onlineOrder.productTitle + " " + onlineOrder.id;
+                        pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null);
+                        statusChanged = true;
+                    } else {
+                        //el cliente ya nos escribió
+                        String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + onlineOrder.id + "/detalle";
+                        String msg1 = "no pudimos notificar a este cliente porque mandó mensajes post-venta, por favor notificar manualmente.<br>" + saleDetails;
+                        String mailTitle = "primer mensaje para el cliente " + " " + onlineOrder.productTitle + " " + onlineOrder.id;
+                        pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, null, null);
                     }
-
-                    firstMsgToBuyer+=". Muchas gracias por tu compra!";
-
-                    // mandar mensaje aca
-                    String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
-                    firstMsgToBuyer=saleDetails+"<br>"+firstMsgToBuyer;
-                    String mailTitle="primer mensaje para el cliente "+" "+onlineOrder.productTitle+" "+onlineOrder.id;
-                    pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle,firstMsgToBuyer,null,null);
-                    statusChanged=true;
-                }else {
-                    //el cliente ya nos escribió
-                    String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
-                    String msg1 = "no pudimos notificar a este cliente porque mandó mensajes post-venta, por favor notificar manualmente.<br>"+saleDetails;
-                    String mailTitle="primer mensaje para el cliente "+" "+onlineOrder.productTitle+" "+onlineOrder.id;
-                    pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle,msg1,null,null);
-
                 }
             }
 
@@ -366,6 +381,31 @@ public class SalesChecker {
         HttpUtils.putJsonOnURL(httpClient,shippingUrl,shippingJsonObject,usuario);
     }
 */
+
+    private static String buildProductTitle(Product product, Order order){
+        String result="";
+        if (product==null) {
+            result =" tu " + order.productTitle + ".";
+        }else {
+            String productName = order.productTitle;
+            if (product.title != null && !product.title.isEmpty()) {
+                productName = product.title;
+            }
+            if (product.multiplier > 1) {
+                int quantity = order.productQuantity * product.multiplier;
+                String unitName="";
+                if (product.unitName!=null && !product.unitName.trim().isEmpty()){
+                    unitName=product.unitName.trim();
+                    result = " " + quantity + " "+unitName+" de "+ productName+ ".";;
+                }else {
+                    result = " " + quantity + " " + productName + ".";
+                }
+            } else {//es 1 solo
+                result = " tu " +  productName + ".";
+            }
+        }
+        return result;
+    }
 
 
     private static String downloadLabel(CloseableHttpClient httpClient, long shippingId){

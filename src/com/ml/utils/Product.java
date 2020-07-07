@@ -8,5 +8,6 @@ public class Product {
     public int     multiplier;
     public String  customMessage;
     public boolean disabled;
+    public String  unitName; //unidades, pares, ''
 
 }
