@@ -352,13 +352,24 @@ public class SalesChecker {
                         String mailTitle = "primer mensaje para el cliente " + " " + onlineOrder.productTitle + " " + onlineOrder.id;
                         pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null);
                         statusChanged = true;
-                    } else {
-                        //el cliente ya nos escribió
-                        String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + onlineOrder.id + "/detalle";
-                        String msg1 = "no pudimos notificar a este cliente porque mandó mensajes post-venta, por favor notificar manualmente.<br>" + saleDetails;
-                        String mailTitle = "primer mensaje para el cliente " + " " + onlineOrder.productTitle + " " + onlineOrder.id;
-                        pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, null, null);
                     }
+                }else {
+                    //el cliente ya nos escribió
+                    String buyerSays=""; //TODO hay que notificar el caso pero buyerSays no va aca, no debe informarse
+                    if (onlineOrder.messageArrayList.size()>0){
+                        for (int i = onlineOrder.messageArrayList.size() - 1; i > +0; i--) {
+                            Message message = onlineOrder.messageArrayList.get(i);
+                            buyerSays += message.text + "<br>";
+                        }
+                    }
+                    String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + onlineOrder.id + "/detalle";
+                    String msg1 = "no pudimos notificar a este cliente porque mandó mensajes post-venta, por favor notificar manualmente.<br>" + saleDetails;
+                    if (buyerSays!=null && !buyerSays.isEmpty()){
+                        msg1 += "<br><br>Mensajes post venta:<br>"+buyerSays;
+                    }
+                    String mailTitle = "primer mensaje para el cliente " + " " + onlineOrder.productTitle + " " + onlineOrder.id;
+                    pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, null, null);
+                    statusChanged = true;
                 }
             }
 
