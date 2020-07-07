@@ -66,8 +66,7 @@ public class SalesChecker {
             Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
             //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
 
-            //if (!pendingOrder.mailSent){ //todo sacar
-             if (!pendingOrder.mailSent && !ignorarEtiquetayMail){                
+            if (!pendingOrder.mailSent){
 
                 System.out.println("VENDISTE !!!!!!!!! "+onlineOrder.productTitle);
                 boolean hasLabel=false;
@@ -96,7 +95,8 @@ public class SalesChecker {
 
                 boolean labelIsOk=true;
                 String labelFileName=null;
-                if (hasLabel){ //con envio
+                //if (hasLabel){ //con envio
+                 if (hasLabel && !ignorarEtiquetayMail) { //TODO CAMBIAR
                     labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
                     if (labelFileName==null && labelFileName.isEmpty()){
                         labelIsOk=false;
