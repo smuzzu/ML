@@ -294,8 +294,7 @@ public class SalesChecker {
                                                 + productTitle;
                                     }
                                     if (atLeastOneHoliday) {
-                                        firstMsgToBuyer += " (tener en cuenta que los días feriados " + shippingCurrier
-                                                + " esta cerrado).";
+                                        firstMsgToBuyer += " (tener en cuenta que los días feriados los servicios de correo estan cerrados).";
                                     } else {
                                         firstMsgToBuyer += ".";
                                     }
