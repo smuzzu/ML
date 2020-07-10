@@ -401,33 +401,36 @@ public class SalesChecker {
 */
 
     private static String buildProductTitle(Product product, Order order){
-        String result="";
+        String result=null;
+
+        int quantity = order.productQuantity;
+        String productName = order.productTitle;
+
+        if (product!=null) {
+            quantity = order.productQuantity * product.multiplier;
+            if (product.title != null && !product.title.isEmpty()) {
+                productName = product.title;
+            }
+        }
+
+        String qtyPrefix=" tu ";
+        if (quantity > 1) {
+            String unitName="";
+            if (product.unitName!=null && !product.unitName.trim().isEmpty()){
+                unitName=product.unitName.trim();
+                qtyPrefix = " " + quantity + " " + unitName + " de ";
+            }else {
+                qtyPrefix = " " + quantity + " ";
+            }
+        }
+
         String productVariation="";
         if (order.productVariationText!=null && !order.productVariationText.isEmpty()
                 && !order.productVariationText.equals("N/A")) {
             productVariation += " "+order.productVariationText;
         }
-        if (product==null) {
-            result =" tu " + order.productTitle + productVariation+".";
 
-        }else {
-            String productName = order.productTitle;
-            if (product.title != null && !product.title.isEmpty()) {
-                productName = product.title;
-            }
-            if (product.multiplier > 1) {
-                int quantity = order.productQuantity * product.multiplier;
-                String unitName="";
-                if (product.unitName!=null && !product.unitName.trim().isEmpty()){
-                    unitName=product.unitName.trim();
-                    result = " " + quantity + " " + unitName + " de " + productName + productVariation+ ".";;
-                }else {
-                    result = " " + quantity + " " + productName + productVariation + ".";
-                }
-            } else {//es 1 solo
-                result = " tu " +  productName + productVariation+ ".";
-            }
-        }
+        result=qtyPrefix+productName + productVariation+ ".";
         return result;
     }
 
