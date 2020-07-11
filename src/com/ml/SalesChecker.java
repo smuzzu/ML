@@ -255,7 +255,7 @@ public class SalesChecker {
 
                             //todo controlar por si acaso que la orden este pendiente de envio
                             if (onlineOrder.shippingType == Order.CORREO_A_DOMICILIO || onlineOrder.shippingType == Order.CORREO_RETIRA) {
-                                String shippingCurrier = "Correo Argentino";
+                                String shippingCurrier = "Mercadoenvíos";
 
                                 if (hollydays == null) {
                                     hollydays = DatabaseHelper.fetchHolidaysFromCloud();
