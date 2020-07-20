@@ -472,7 +472,8 @@ public class MessagesAndSalesHelper {
             variationObject = variationsArray.getJSONObject(0);
             order.productVariationName1 =variationObject.getString("name");
             order.productVariationValue1 =variationObject.getString("value_name");
-            if (order.productVariationValue1.charAt(1)=='.'){
+            if (order.productVariationValue1!=null && order.productVariationValue1.length()>1 &&
+                    order.productVariationValue1.charAt(1)=='.'){
                 //cocinamos esto de 1.Negro 2.Gris etc
                 order.productVariationValue1 =order.productVariationValue1.substring(2);
             }
