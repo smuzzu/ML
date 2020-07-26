@@ -183,7 +183,7 @@ public class VisitCounter extends Thread {
 
         while (i<productIds.size()) {
             String allProductIDsStr="";
-            for (int j = 0; j < 50 && i < productIds.size(); j++) {
+            for (int j = 0; j < 10 && i < productIds.size(); j++) {
                 String productId=productIds.get(i);
                 allProductIDsStr+=productId+",";
                 i++;
@@ -245,23 +245,23 @@ public class VisitCounter extends Thread {
     private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
         int count = 0;
 
-        ArrayList<String> fiftyProductIDs = new ArrayList<String>();
+        ArrayList<String> tenProductIDs = new ArrayList<String>();
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
 
 
         for (String productId : allProductIDs) {
             count++;
 
-            fiftyProductIDs.add(productId);
+            tenProductIDs.add(productId);
 
-            if (count >= 50) {
-                process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
-                fiftyProductIDs = new ArrayList<String>();
+            if (count >= 10) {
+                process10Visits(date, dateOnQuery, tenProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+                tenProductIDs = new ArrayList<String>();
                 count = 0;
             }
         }
-        if (fiftyProductIDs.size() > 0) {  //processing last record
-            process50Visits(date, dateOnQuery, fiftyProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+        if (tenProductIDs.size() > 0) {  //processing last record
+            process10Visits(date, dateOnQuery, tenProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
         }
 
         for (Thread thread : threadArrayList) {
@@ -289,11 +289,11 @@ public class VisitCounter extends Thread {
 
     }
 
-    private static void process50Visits(Date date, String dateOnQuery, ArrayList<String> fiftyProductIDs, ArrayList<Thread> threadArrayList, boolean SAVE, boolean DEBUG, String DATABASE) {
+    private static void process10Visits(Date date, String dateOnQuery, ArrayList<String> tenProductIDs, ArrayList<Thread> threadArrayList, boolean SAVE, boolean DEBUG, String DATABASE) {
         long currentTime;
         long timeoutTime;
 
-        VisitCounter visitCounter = new VisitCounter(fiftyProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
+        VisitCounter visitCounter = new VisitCounter(tenProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
         threadArrayList.add(visitCounter);
         visitCounter.start();
         currentTime = System.currentTimeMillis();
@@ -313,6 +313,7 @@ public class VisitCounter extends Thread {
             }
         }
     }
+
 
     public static void updateVisits(String database, boolean SAVE, boolean DEBUG) {
 
