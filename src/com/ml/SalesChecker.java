@@ -22,8 +22,8 @@ public class SalesChecker {
 
     static String ACACIA = "ACACIAYLENGA";
 
-    static String usuario = "ACACIAYLENGA";
-    //static String usuario ="SOMOS_MAS";
+    //static String usuario = "ACACIAYLENGA";
+    static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
     
     static boolean ignorarEtiquetayMail=false;
@@ -100,9 +100,9 @@ public class SalesChecker {
                 boolean labelIsOk=true;
                 String labelFileName=null;
                 //if (hasLabel){ //con envio
-                 if (hasLabel && !ignorarEtiquetayMail) { //TODO CAMBIAR
+                 if (hasLabel && !ignorarEtiquetayMail) { //TODO CAMBIAR CUANDO SE HABILITE LA IMPREISON DE ETIQUETA DE ACACIA
                     labelFileName=downloadLabel(httpClient, onlineOrder.shippingId);
-                    if (labelFileName==null && labelFileName.isEmpty()){
+                    if (labelFileName==null || labelFileName.isEmpty()){
                         labelIsOk=false;
                     }
                 }
