@@ -98,7 +98,7 @@ public class Order implements Comparable<Order> {
     public static final char CORREO_RETIRA='R';
     public static final char FLEX='F';
     public static final char FULL='U';
-    public static final char UNKNOWN=' ';
+    public static final char UNKNOWN='?';
 
     //orderStatus
     public static final char VENDIDO='V';

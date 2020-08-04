@@ -608,21 +608,21 @@ public class MessagesAndSalesHelper {
                 order.shippingType = Order.FULL;
             }else {
                 //acordar o mercadoenvios
-                if (order.shippingStatus.equals("to_be_agreed")) {
+                if (order.shippingStatus!=null && order.shippingStatus.equals("to_be_agreed")) {
                     order.shippingType = Order.ACORDAR;
                     order.shippingOptionNameDescription = "Acordar";
                 } else { //mercadoenvios
-                    if (order.shippingOptionNameDescription.contains("pido a domicilio")) {//Rapido a domicilio
-                        order.shippingType = Order.FLEX;
-                    } else {
-                        if (order.shippingOptionNameDescription.contains("ormal a domicilio") ||//Normal a domicilio
-                                order.shippingOptionNameDescription.equals("Prioritario a domicilio")) {
-                            order.shippingType = Order.CORREO_A_DOMICILIO;
+                    if (order.shippingOptionNameDescription!=null){
+                        if (order.shippingOptionNameDescription.contains("pido a domicilio")) {//Rapido a domicilio
+                            order.shippingType = Order.FLEX;
                         } else {
-                            if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
-                                order.shippingType = Order.CORREO_RETIRA;
+                            if (order.shippingOptionNameDescription.contains("ormal a domicilio") ||//Normal a domicilio
+                                    order.shippingOptionNameDescription.equals("Prioritario a domicilio")) {
+                                order.shippingType = Order.CORREO_A_DOMICILIO;
                             } else {
-                                order.shippingType = '?';
+                                if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
+                                    order.shippingType = Order.CORREO_RETIRA;
+                                }
                             }
                         }
                     }
