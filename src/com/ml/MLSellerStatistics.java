@@ -57,9 +57,9 @@ public class MLSellerStatistics extends Thread {
 
     static int MAX_THREADS = 40; //TODO CAMBIAR 40
     static boolean SAVE = true; //TODO CAMBIAR
-    static String DATABASE = "ML2";
+    static String DATABASE = "ML1";
     static boolean DEBUG = false;
-    static String FECHA="2020/01/01";
+    static String FECHA="2020/08/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -1249,7 +1249,7 @@ public class MLSellerStatistics extends Thread {
                     seller=fetchSeller(runnerID);
                     continue;
                 }
-                totalProductsPos1 += 19;
+                totalProductsPos1 += 18;
                 int totalProductsPos2 = htmlString.indexOf("resultado", totalProductsPos1);
                 if (totalProductsPos2 < 0) {
                     Logger.log("errorr en totalProductsPos2 !!!");
@@ -1264,8 +1264,16 @@ public class MLSellerStatistics extends Thread {
                     continue;
                 }
                 totalProductsStr=totalProductsStr.replace(".", "");
+                totalProductsStr=totalProductsStr.replace(",", "");
                 totalProductsStr=totalProductsStr.trim();
-                totalProducts = Integer.parseInt(totalProductsStr);
+                try {
+                    totalProducts = Integer.parseInt(totalProductsStr);
+                }catch (NumberFormatException e){
+                    Logger.log("Total productos cannot be found on "+productsUrl);
+                    e.printStackTrace();
+                    Logger.log(e);
+                    continue;
+                }
 
                 String[] allHrefsOnPage = StringUtils.substringsBetween(htmlString, "<a href", "</a>");
                 if (allHrefsOnPage == null) { //todo check
@@ -1306,7 +1314,13 @@ public class MLSellerStatistics extends Thread {
                         productHTMLdata = productHTMLdata.toString(); //aca le sacamos los caracteres de control que impiden hacer los search dentro del string
                     }
 
-                    int pricePos1 = productHTMLdata.indexOf("price__fraction\">") + 17;
+                    int pricePos1 = productHTMLdata.indexOf("price__fraction\">");
+                    if (pricePos1>0){
+                        pricePos1+=17;
+                    }else { //hacemos esto porque hay productos con tags distintos
+                        pricePos1 = productHTMLdata.indexOf("price-tag-fraction\">") + 20;
+                    }
+
                     int pricePos2 = productHTMLdata.indexOf("<", pricePos1);
                     String priceStr = productHTMLdata.substring(pricePos1, pricePos2);
                     if (priceStr != null) {
