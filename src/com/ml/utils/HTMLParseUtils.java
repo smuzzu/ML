@@ -16,6 +16,8 @@ public class HTMLParseUtils {
 
     static String SHIPPING1_LABEL = "Envío a todo el país";
     static String SHIPPING2_LABEL = "Llega el";
+    static String SHIPPING2B_LABEL = "Env&iacute;o con normalidad"; //pandemia
+    static String SHIPPING2C_LABEL = "Envío con normalidad"; //pandemia
     static String SHIPPING3_LABEL = "Llega mañana";
     static String SHIPPING3B_LABEL = "Llega ma&ntilde;ana";
     static String FREE_SHIPPING1_LABEL = "Envío gratis";
@@ -135,7 +137,8 @@ public class HTMLParseUtils {
         if (htmlString.indexOf(SHIPPING1_LABEL) > 0) {
             shipping = 100;
         } else {
-            if (htmlString.indexOf(SHIPPING2_LABEL) > 0) {
+            if (htmlString.indexOf(SHIPPING2_LABEL) > 0 || htmlString.indexOf(SHIPPING2B_LABEL)>0 ||
+                    htmlString.indexOf(SHIPPING2C_LABEL)>0) {
                 shipping = 101;
             } else {
                 if (htmlString.indexOf(SHIPPING3_LABEL) > 0 || htmlString.indexOf(SHIPPING3B_LABEL) > 0) {
@@ -348,9 +351,37 @@ public class HTMLParseUtils {
     /*********************************************  productHTMLdata parsers */
 
     public static String getTitle2(String productHTMLdata) {
-        int titlePos1 = productHTMLdata.indexOf("main-title\">") + 12;
+        int titlePos1 = productHTMLdata.indexOf("main-title\">");
+        if (titlePos1>0){
+            titlePos1+=12;
+        }else {
+            titlePos1=productHTMLdata.indexOf("item-title__primary");
+            if (titlePos1>0){
+                titlePos1+=22;
+            }
+            else {
+                titlePos1 = productHTMLdata.indexOf("item__title ui-search-item__group__element");
+                if (titlePos1 > 0) {
+                    titlePos1 += 44;
+                } else {
+                    titlePos1=productHTMLdata.indexOf("ui-pdp-title");
+                    if (titlePos1<0){
+                        titlePos1+=14;
+                    }else {
+                        titlePos1=productHTMLdata.indexOf("<title>");
+                        if (titlePos1>0){
+                            titlePos1+=7; //ver
+                        }else {
+                            Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXX LA PUTA QUE TE PARIO ML ");
+                            Logger.log("No se pudo reconocer el titulo en " + productHTMLdata);
+                        }
+                    }
+                }
+            }
+        }
+
         int titlePos2 = productHTMLdata.indexOf("<", titlePos1);
-        return productHTMLdata.substring(titlePos1, titlePos2);
+        return productHTMLdata.substring(titlePos1, titlePos2).trim();
     }
 
     public static int getDiscount2(String productHTMLdata) {
@@ -371,7 +402,12 @@ public class HTMLParseUtils {
     }
 
     public static double getPrice2(String productHTMLdata) {
-        int pricePos1 = productHTMLdata.indexOf("price__fraction\">") + 17;
+        int pricePos1 = productHTMLdata.indexOf("price__fraction\">");
+        if (pricePos1>0){
+            pricePos1+=17;
+        }else { //hacemos esto porque hay productos con tags distintos
+            pricePos1 = productHTMLdata.indexOf("price-tag-fraction\">") + 20;
+        }
         int pricePos2 = productHTMLdata.indexOf("<", pricePos1);
         String priceStr = productHTMLdata.substring(pricePos1, pricePos2);
         if (priceStr != null) {

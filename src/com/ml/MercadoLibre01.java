@@ -60,10 +60,13 @@ public class MercadoLibre01  extends Thread {
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     static String[] globalSubIntervals = new String[]{
-            "capital-federal/agronomia-o-almagro-o-balvanera-o-barracas-o-barrio-norte-o-belgrano-o-belgrano-barrancas-o-belgrano-c-o-belgrano-chico-o-belgrano-r-o-boedo-o-botanico-o-caballito-o-chacarita-o-coghlan-o-colegiales-o-congreso-o-constitucion/",
-            "capital-federal/flores-o-floresta-o-la-boca-o-las-canitas-o-liniers-o-mataderos-o-monserrat-o-monte-castro-o-nueva-pompeya-o-nunez-o-once/",
-            "capital-federal/palermo-o-palermo-chico-o-palermo-hollywood-o-palermo-nuevo-o-palermo-soho-o-palermo-viejo-o-parque-avellaneda-o-parque-chacabuco-o-parque-chas-o-parque-patricios-o-paternal-o-puerto-madero-o-recoleta-o-retiro/",
-            "capital-federal/saavedra-o-san-cristobal-o-san-nicolas-o-san-telmo-o-santa-rita-o-velez-sarsfield-o-versalles-o-villa-crespo-o-villa-devoto-o-villa-gral-mitre-o-villa-lugano-o-villa-luro-o-villa-ortuzar-o-villa-pueyrredon-o-villa-real-o-villa-riachuelo-o-villa-soldati-o-villa-urquiza-o-villa-del-parque/",
+            "capital-federal/agronomia-o-almagro-o-balvanera-o-barracas-o-barrio-norte-o-belgrano-o-belgrano-barrancas-o-belgrano-c-o-belgrano-chico/",
+            "capital-federal/belgrano-r-o-boedo-o-botanico-o-caballito-o-chacarita-o-coghlan-o-colegiales-o-congreso-o-constitucion/",
+            "capital-federal/flores-o-floresta-o-la-boca-o-las-canitas-o-liniers-o-mataderos-o-monserrat-o-monte-castro-o-nueva-pompeya/",
+            "capital-federal/nunez-o-once-o-palermo-o-palermo-chico-o-palermo-hollywood-o-palermo-nuevo-o-palermo-soho-o-palermo-viejo-o-parque-avellaneda/",
+            "capital-federal/parque-chacabuco-o-parque-chas-o-parque-patricios-o-paternal-o-puerto-madero-o-recoleta-o-retiro-osaavedra-o-san-cristobal/",
+            "capital-federal/san-nicolas-o-san-telmo-o-santa-rita-o-velez-sarsfield-o-versalles-o-villa-crespo-o-villa-devoto-o-villa-gral-mitre-o-villa-lugano/",
+            "capital-federal/villa-luro-o-villa-ortuzar-o-villa-pueyrredon-o-villa-real-o-villa-riachuelo-o-villa-soldati-o-villa-urquiza-o-villa-del-parque/",
             "bsas-gba-norte/",
             "bsas-gba-oeste/",
             "bsas-gba-sur/",
@@ -359,10 +362,18 @@ public class MercadoLibre01  extends Thread {
                     }
 
                     htmlStringFromPage = htmlStringFromPage.toString();
-                    int resultSectionPos = htmlStringFromPage.indexOf("results-section");
+                    int resultSectionPos = htmlStringFromPage.indexOf("search-results");
                     String resultListHMTLData = null;
                     if (resultSectionPos == -1) {
-                        Logger.log("Error getting results-section on page " + page +" "+ uRL);
+                        if (htmlStringFromPage.indexOf("Escrib")>0
+                                && htmlStringFromPage.indexOf("en el buscador lo que quer")>0
+                                && htmlStringFromPage.indexOf("s encontrar")>0) {
+                            String msg = "No se pudo obtener ningun resultado en este intervalo "+ uRL;
+                            Logger.log(msg);
+                            endInterval = true;
+                            continue;
+                        }
+                        Logger.log("Error getting search-results tag on page " + page + " " + uRL);
                         Logger.log(htmlStringFromPage);
                         resultListHMTLData = htmlStringFromPage;
                     } else {
