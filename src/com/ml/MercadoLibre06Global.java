@@ -480,10 +480,18 @@ public class MercadoLibre06Global extends Thread {
                 }
 
                 htmlStringFromPage = htmlStringFromPage.toString();
-                int resultSectionPos = htmlStringFromPage.indexOf("results-section");
+                    int resultSectionPos = htmlStringFromPage.indexOf("search-results");
                 String resultListHMTLData = null;
                 if (resultSectionPos == -1) {
-                    Logger.log("Error getting results-section on page " + page + " " + uRL);
+                        if (htmlStringFromPage.indexOf("Escrib")>0
+                                && htmlStringFromPage.indexOf("en el buscador lo que quer")>0
+                                && htmlStringFromPage.indexOf("s encontrar")>0) {
+                            String msg = "No se pudo obtener ningun resultado en este intervalo "+ uRL;
+                            Logger.log(msg);
+                            endInterval = true;
+                            continue;
+                        }
+                        Logger.log("Error getting search-results tag on page " + page + " " + uRL);
                     Logger.log(htmlStringFromPage);
                     resultListHMTLData = htmlStringFromPage;
                 } else {
