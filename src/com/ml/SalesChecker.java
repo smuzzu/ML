@@ -108,7 +108,10 @@ public class SalesChecker {
                 }
 
                 String saleDetails="https://www.mercadolibre.com.ar/ventas/"+onlineOrder.id+"/detalle";
-                String photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureURL);
+                String photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureThumbnailURL);
+                if (photoFilePath==null || photoFilePath.isEmpty()){
+                    photoFilePath=downloadPhoto(httpClient,onlineOrder.productPictureURL);
+                }
 
                 String[] attachments = new String[2];
                 attachments[0]=photoFilePath;

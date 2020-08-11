@@ -72,6 +72,7 @@ public class Order implements Comparable<Order> {
     public String productTitle;
     public int    productQuantity;
     public String productPictureURL;
+    public String productPictureThumbnailURL;
     public String productKeyAttributes;
     public long   productVariationId;
     public String productVariationText;

@@ -314,7 +314,7 @@ public class HttpUtils {
 
             if (retry) {
                 try {
-                    Thread.sleep(1300 * retries * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
                 } catch (InterruptedException e) {
                     Logger.log(e);
                 }
