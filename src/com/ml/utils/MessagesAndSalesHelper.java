@@ -31,6 +31,16 @@ public class MessagesAndSalesHelper {
         return result;
     }
 
+    public static long getShippingId(JSONObject orderShippingObj, JSONObject shippingObject){
+        long result = 0;
+        String shippingIdStr=getStringValue(orderShippingObj,shippingObject,"id");
+        if (shippingIdStr!=null && !shippingIdStr.isEmpty()){
+            result=Long.parseLong(shippingIdStr);
+        }
+        return result;
+    }
+
+
     public static boolean isFulfilled(JSONObject jsonOrder){
         boolean result = false;
         if (jsonOrder.has("fulfilled")) {
@@ -281,11 +291,17 @@ public class MessagesAndSalesHelper {
         }
 
 
-            //adding feedback messages
+            //adding feedback messages + checking multi items
         for (Order order:orderArrayList) {
             int numberOfOrders = usersInOrders.get(order.userNickName);
             if (numberOfOrders == 1 && userFeedbackMessages.containsKey(order.userNickName)) {
                 order.receivedFeedbackComment = userFeedbackMessages.get(order.userNickName);
+            }
+            for (Order order2: orderArrayList){
+                if (order.shippingId==order2.shippingId && order.id!=order2.id){
+                    order.multiItem=true;
+                    order2.multiItem=true;
+                }
             }
         }
 
@@ -460,7 +476,6 @@ public class MessagesAndSalesHelper {
         }
 
         JSONArray itemsArray = jsonOrder.getJSONArray("order_items");
-        order.multiItem=itemsArray.length()>1;
         JSONObject itemObject = itemsArray.getJSONObject(0);
         order.productQuantity=itemObject.getInt("quantity");
         JSONObject itemObject2 = itemObject.getJSONObject("item");
