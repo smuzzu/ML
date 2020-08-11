@@ -453,6 +453,12 @@ public class MessagesAndSalesHelper {
             order.publicationURL = jsonOrder.getString("permalink");
         }
 
+        //messages
+        order.packId = order.id;
+        if (!jsonOrder.isNull("pack_id")) {
+            order.packId = jsonOrder.getLong("pack_id");
+        }
+
         JSONArray itemsArray = jsonOrder.getJSONArray("order_items");
         order.multiItem=itemsArray.length()>1;
         JSONObject itemObject = itemsArray.getJSONObject(0);
@@ -496,7 +502,8 @@ public class MessagesAndSalesHelper {
 
         String url = "https://api.mercadolibre.com/items/"+order.productId;
         JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient);
-        order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId);
+        order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,false);
+        order.productPictureThumbnailURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,true);
 
         JSONArray publicationAttributesJsonArray=null;
         if (publicationJsonObject!=null && publicationJsonObject.has("attributes") &&
@@ -751,11 +758,6 @@ public class MessagesAndSalesHelper {
             order.paymentMethod = order.paymentMethod.substring(0, order.paymentMethod.length() - 3);
         }
 
-        //messages
-        order.packId = order.id;
-        if (!jsonOrder.isNull("pack_id")) {
-            order.packId = jsonOrder.getLong("pack_id");
-        }
         order.buyerEmail="N/A";
         if (!ordersOnly) {
             order.messageArrayList=getAllMessagesOnOrder(order.packId,user,httpClient);
@@ -839,7 +841,7 @@ public class MessagesAndSalesHelper {
 
 
 
-    public static String getOrderPictureUrl(JSONObject publicationJsonObject, long onlineOrderVariationId){
+    public static String getOrderPictureUrl(JSONObject publicationJsonObject, long onlineOrderVariationId, boolean thumbnail){
         String pictureId=null;
         String url=null;
         if (publicationJsonObject!=null) {
@@ -864,12 +866,15 @@ public class MessagesAndSalesHelper {
                         break;
                     }
                 }
-                if (url != null && url.endsWith("-O.jpg")) {//reemplazando por el thumbnail
+                if (thumbnail && url != null && url.endsWith("-O.jpg")) {//reemplazando por el thumbnail
                     url = url.substring(0, url.indexOf("-O.jpg")) + "-I.jpg";
                 }
             } else {
                 if (publicationJsonObject.has("thumbnail")) {
                     url = publicationJsonObject.getString("thumbnail");
+                    if (!thumbnail && url != null && url.endsWith("-I.jpg")){
+                        url = url.substring(0, url.indexOf("-I.jpg")) + "-O.jpg";
+                    }
                 }
             }
         }
