@@ -270,10 +270,22 @@ public class SalesChecker {
 
                             if (product == null || product.customMessage == null || product.customMessage.trim().isEmpty()) {
 
-                                if (pendingOrder.shippingType == Order.PERSONALIZADO || pendingOrder.shippingType == Order.ACORDAR) {
+                                if (pendingOrder.shippingType == Order.PERSONALIZADO) {
                                     firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
                                             + productTitle
-                                            + " Nuestro horario de atención es de lunes viernes de 9 a 17 y sábados de 10 a 13";
+                                            + " Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00";
+                                }
+
+                                if (pendingOrder.shippingType == Order.ACORDAR) {
+                                    if (pendingOrder.productManufacturingDays==0){//entrega inmediata
+                                        firstMsgToBuyer += "Podes pasar a retirar tu "+ productTitle +" en Av. Rivadavia 3756 CABA."
+                                                + "Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00 "
+                                                +"y nuestro teléfono es 4982-2519, por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
+                                    }else {
+                                        firstMsgToBuyer += "Ya nos podremos a preparar tu "
+                                                + productTitle
+                                                + " Y te avisaremos cuando tengamos listo.  Ante cualquier consulta no dudes en escribirnos por este chat";
+                                    }
                                 }
 
                                 //todo controlar por si acaso que la orden este pendiente de envio

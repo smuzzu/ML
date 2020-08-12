@@ -80,6 +80,7 @@ public class Order implements Comparable<Order> {
     public String productVariationValue1;
     public String productVariationName2;
     public String productVariationValue2;
+    public int    productManufacturingDays;
     public String publicationURL;
 
 

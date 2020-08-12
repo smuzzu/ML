@@ -31,15 +31,6 @@ public class MessagesAndSalesHelper {
         return result;
     }
 
-    public static long getShippingId(JSONObject orderShippingObj, JSONObject shippingObject){
-        long result = 0;
-        String shippingIdStr=getStringValue(orderShippingObj,shippingObject,"id");
-        if (shippingIdStr!=null && !shippingIdStr.isEmpty()){
-            result=Long.parseLong(shippingIdStr);
-        }
-        return result;
-    }
-
 
     public static boolean isFulfilled(JSONObject jsonOrder){
         boolean result = false;
@@ -486,6 +477,11 @@ public class MessagesAndSalesHelper {
         if (!itemObject2.isNull("variation_id")) {
             order.productVariationId = itemObject2.getLong("variation_id");
         }
+        order.productManufacturingDays=0;
+        if (!itemObject.isNull("manufacturing_days")) {
+            order.productManufacturingDays = itemObject.getInt("manufacturing_days");
+        }
+
 
         JSONArray variationsArray = itemObject2.getJSONArray("variation_attributes");
         if (variationsArray.length()>0){
