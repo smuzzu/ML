@@ -392,7 +392,10 @@ public class SalesChecker {
                             String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + pendingOrder.id + "/detalle";
                             firstMsgToBuyer = saleDetails + "<br>" + firstMsgToBuyer;
                             String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
-                            pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null);
+                            pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
+                            if (!usuario.equals(ACACIA) && !ignorarEtiquetayMail){
+                                pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
+                            }
                             statusChanged = true;
                         }
                     } else {

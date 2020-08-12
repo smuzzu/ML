@@ -76,6 +76,47 @@ public class HttpUtils {
         return jsonResponse;
     }
 
+    public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId) {
+        boolean ok=false;
+        String myUserId=TokenUtils.getIdCliente(user);
+        String token = TokenUtils.getToken(user);
+        String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?access_token="+token;
+
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setHeader("Accept", "application/json");
+        httpPost.setHeader("Content-type", "application/json");
+
+        String json = "{\"from\" : { \"user_id\": \""+myUserId
+                +"\",\"email\" : \"abcdfg@nospam.com\"},\"to\": { \"user_id\" : \""+customerId+"\"}, \"text\": \""+
+                text+"\"}";
+
+        StringEntity entity = new StringEntity(json,"UTF-8");
+        httpPost.setEntity(entity);
+
+        CloseableHttpResponse response=null;
+        try {
+            response = httpClient.execute(httpPost);
+
+        }
+        catch (Exception e){
+            Logger.log("Error executing put "+e.getMessage());
+            Logger.log(e);
+            e.printStackTrace();
+        }
+
+        if (response!=null) {
+            StatusLine statusline = response.getStatusLine();
+            if (statusline != null) {
+                int statusCode = statusline.getStatusCode();
+                if (statusCode == 201) {
+                    ok=true;
+                }
+            }
+        }
+        return ok;
+    }
+
+
     public static JSONObject getJsonObjectUsingToken(String uRL, CloseableHttpClient httpClient, String usuario) {
 
         JSONObject jsonResponse=null;
@@ -438,6 +479,16 @@ public class HttpUtils {
             }
         }
         return newQuestions;
+    }
+
+    public static void main(String[] args){
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+        String text="Buenas noches Patricia. Mañana por la tarde te estaremos despachando por Mercadoenvíos 3 unidades de Soporte Porta Copas Cromado marca Häfele. Muchas gracias por tu compra!";
+        long packId=2000000993640247l;
+        long buyerCustId=21818340l;
+        String user="SOMOS_MAS";
+        postMessage(text,httpClient,packId,user,buyerCustId);
+
     }
 
 
