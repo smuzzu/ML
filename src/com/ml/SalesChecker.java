@@ -232,8 +232,11 @@ public class SalesChecker {
                             pendingOrder.billingAddressLine3;
                 }
 
-
-                boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, null, attachments);
+                String destinationAdress="sebamuzzu2@gmail.com, centroequipamientos@centroequipamientos.com.ar";
+                if (usuario.equals(ACACIA)){
+                    destinationAdress=null;
+                }
+                boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAdress, attachments);
 
                 pendingOrder.mailSent = mailIsOk && labelIsOk;
                 if (pendingOrder.mailSent) {
@@ -390,7 +393,6 @@ public class SalesChecker {
 
                             // mandar mensaje aca
                             String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + pendingOrder.id + "/detalle";
-                            firstMsgToBuyer = saleDetails + "<br>" + firstMsgToBuyer;
                             String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
                             pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
                             if (!usuario.equals(ACACIA) && !ignorarEtiquetayMail){
