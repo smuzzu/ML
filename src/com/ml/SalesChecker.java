@@ -352,7 +352,7 @@ public class SalesChecker {
                                         atLeastOneHoliday = true;
                                     }
                                     boolean isWeekend = isWeekend(nextDeliveryDate);
-                                    if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday) {
+                                    if (!isFlexDayTimeLimitPassed() && !isWeekend && !isHoliday) {
                                         firstMsgToBuyer += "Esta tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
                                                 + productTitle;
                                     } else {
@@ -618,8 +618,8 @@ public class SalesChecker {
     static final int AFTERNOON = 2;
     static final int EVENING = 3;
 
-    static final LocalTime LIMIT_HOUR_FLEX = LocalTime.of(13,0);
-    static final LocalTime LIMIT_HOUR_CORREO = LocalTime.of(15,0);
+    static final LocalTime LIMIT_HOUR_FLEX = LocalTime.of(0,1);
+    static final LocalTime LIMIT_HOUR_CORREO = LocalTime.of(14,30);
 
     static LocalTime MORNING_FROM = LocalTime.of(7,00);
     static LocalTime MORNING_TO = LocalTime.of(13,00);
