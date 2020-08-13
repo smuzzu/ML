@@ -214,6 +214,10 @@ public class SalesChecker {
                 if (pendingOrder.shippingOptionNameDescription != null && !pendingOrder.shippingOptionNameDescription.isEmpty()) {
                     mailBody += pendingOrder.shippingOptionNameDescription + "<br/>";
                 }
+                if (pendingOrder.shippingType == Order.FLEX) {
+                    mailBody += "Entrega: "+getWhen('F') + "<br/>";
+
+                }
 
                 if (phone != null && !phone.isEmpty()) {
                     mailBody += phone + "<br/>";
@@ -240,7 +244,7 @@ public class SalesChecker {
                 }
 
                 String destinationAdress="sebamuzzu2@gmail.com, centroequipamientos@centroequipamientos.com.ar";
-                if (usuario.equals(ACACIA)){
+                if (usuario.equals(ACACIA)){//sacar esto para que las ventas de Acacia manden mail directo a centro
                     destinationAdress=null;
                 }
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAdress, attachments);
@@ -298,105 +302,21 @@ public class SalesChecker {
                                     }
                                 }
 
-                                //todo controlar por si acaso que la orden este pendiente de envio
                                 if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
                                     String shippingCurrier = "Mercadoenvíos";
-
-                                    if (hollydays == null) {
-                                        hollydays = DatabaseHelper.fetchHolidaysFromCloud();
-                                    }
-
-                                    boolean atLeastOneHoliday = false;
-                                    Date nextDeliveryDate = getDate(TODAY, null);
-                                    boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                    if (isHoliday) {
-                                        atLeastOneHoliday = true;
-                                    }
-                                    boolean isWeekend = isWeekend(nextDeliveryDate);
-                                    if (!isCorreoDayTimeLimitPassed() && !isWeekend && !isHoliday) {
-                                        firstMsgToBuyer += "Esta tarde te estaremos despachando por " + shippingCurrier
-                                                + productTitle;
-                                    } else {
-                                        nextDeliveryDate = getDate(TOMORROW, null);
-                                        isWeekend = isWeekend(nextDeliveryDate);
-                                        isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                        if (isHoliday) {
-                                            atLeastOneHoliday = true;
-                                        }
-                                        if (!isHoliday && !isWeekend) {
-                                            firstMsgToBuyer += "Mañana por la tarde te estaremos despachando por "
-                                                    + shippingCurrier + productTitle;
-                                        } else {
-                                            while (isHoliday || isWeekend) {
-                                                nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
-                                                isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                                if (isHoliday) {
-                                                    atLeastOneHoliday = true;
-                                                }
-                                                isWeekend = isWeekend(nextDeliveryDate);
-                                            }
-                                            firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde estaremos despachando por " + shippingCurrier
-                                                    + productTitle;
-                                        }
-                                        if (atLeastOneHoliday) {
-                                            firstMsgToBuyer += " (tener en cuenta que los días feriados los servicios de correo estan cerrados).";
-                                        } else {
-                                            firstMsgToBuyer += ".";
-                                        }
-                                    }
+                                    String when=getWhen('C');
+                                    firstMsgToBuyer = when+" te estaremos despachando por " + shippingCurrier
+                                            + productTitle;
                                 }
 
-                                //todo controlar por si acaso que la orden este pendiente de envio
                                 if (pendingOrder.shippingType == Order.FLEX) {
-                                    if (hollydays == null) {
-                                        hollydays = DatabaseHelper.fetchHolidaysFromCloud();
-                                    }
-
-                                    Date nextDeliveryDate = getDate(TODAY, null);
-                                    boolean atLeastOneHoliday = false;
-                                    boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                    if (isHoliday) {
-                                        atLeastOneHoliday = true;
-                                    }
-                                    boolean isWeekend = isWeekend(nextDeliveryDate);
-                                    if (!isFlexDayTimeLimitPassed() && !isWeekend && !isHoliday) {
-                                        firstMsgToBuyer += "Esta tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
-                                                + productTitle;
-                                    } else {
-                                        nextDeliveryDate = getDate(TOMORROW, null);
-                                        isWeekend = isWeekend(nextDeliveryDate);
-                                        isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                        if (isHoliday) {
-                                            atLeastOneHoliday = true;
-                                        }
-                                        if (!isHoliday && !isWeekend) {
-                                            firstMsgToBuyer += "Mañana por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
-                                                    + productTitle;
-                                        } else {
-                                            while (isHoliday || isWeekend) {
-                                                nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
-                                                isHoliday = isHoliday(nextDeliveryDate, hollydays);
-                                                if (isHoliday) {
-                                                    atLeastOneHoliday = true;
-                                                }
-                                                isWeekend = isWeekend(nextDeliveryDate);
-                                            }
-                                            firstMsgToBuyer += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde de 15 a 20 hs va a llegar una moto a tu domicilio con"
-                                                    + productTitle;
-                                        }/*
-                                if (atLeastOneHoliday){
-                                    firstMsgToBuyer += " (tener en cuenta que los días feriados "+onlineOrder.shippingCurrier
-                                            +" esta cerrado).";
-                                }else {
-                                    firstMsgToBuyer +=".";
-                                }*/
-                                    }
+                                    String when = getWhen('F');
+                                    firstMsgToBuyer = when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                            + productTitle;
                                 }
-                            } else {//hay un mensaje custom
-                                firstMsgToBuyer += product.customMessage.trim() + ".";
                             }
 
-                            firstMsgToBuyer += " Muchas gracias por tu compra!";
+                            firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
 
                             // mandar mensaje aca
                             String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + pendingOrder.id + "/detalle";
@@ -663,17 +583,49 @@ public class SalesChecker {
         return result;
     }
 
-    private static boolean isFlexDayTimeLimitPassed(){
+    private static boolean isDayTimeLimitPassed(char correoOrFlex){
         LocalTime now = LocalTime.now();
-        boolean result=now.isAfter(LIMIT_HOUR_FLEX);
+        boolean result=false;
+        if (correoOrFlex=='C'){ //correo
+            result=now.isAfter(LIMIT_HOUR_CORREO);
+        }
+        else { //flex 'F'
+            result=now.isAfter(LIMIT_HOUR_FLEX);
+        }
         return result;
     }
 
-    private static boolean isCorreoDayTimeLimitPassed(){
-        LocalTime now = LocalTime.now();
-        boolean result=now.isAfter(LIMIT_HOUR_CORREO);
+    private static String getWhen(char correoOrFlex){
+        String result="";
+
+        if (hollydays == null) {
+            hollydays = DatabaseHelper.fetchHolidaysFromCloud();
+        }
+
+        Date nextDeliveryDate = getDate(TODAY, null);
+        boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
+        boolean isWeekend = isWeekend(nextDeliveryDate);
+        if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday) {
+            result = "Esta tarde";
+        } else {
+            nextDeliveryDate = getDate(TOMORROW, null);
+            isWeekend = isWeekend(nextDeliveryDate);
+            isHoliday = isHoliday(nextDeliveryDate, hollydays);
+            if (!isHoliday && !isWeekend) {
+                result += "Mañana por la tarde";
+            } else {
+                while (isHoliday || isWeekend) {
+                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                    isWeekend = isWeekend(nextDeliveryDate);
+                }
+                result += "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde";
+            }
+        }
         return result;
+
     }
+
 
     private static String getDayOfWeek(Date date){
         String result=null;
