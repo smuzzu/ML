@@ -32,8 +32,16 @@ public class SalesChecker {
 
         LocalTime now = LocalTime.now();
         if (now.isAfter(NON_WORKING_HOURS_FROM) && now.isBefore(NON_WORKING_HOURS_TO)) {
-            System.out.println("Zzzzzzzz "+now.toString());
-            Logger.log("Zzzzzzzz "+now.toString());
+            String msg = "Zzzzzzzz "+now.toString();
+            System.out.println(msg);
+            Logger.log(msg);
+            System.exit(0);
+        }
+
+        if (!DatabaseHelper.isServiceEnabledOnCloud()) {
+            String msg = "SalesChecker deshabilitado en cloud";
+            System.out.println(msg);
+            Logger.log(msg);
             System.exit(0);
         }
 

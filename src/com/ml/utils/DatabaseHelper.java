@@ -38,6 +38,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectSales2 = null;
     private static PreparedStatement globalSelectHolidays = null;
     private static PreparedStatement globalSelectProductOnCloud = null;
+    private static PreparedStatement globalSelectServiceStatusOnCloud = null;
     private static PreparedStatement globalSelectToken = null;
 
     private static PreparedStatement globalInsertProduct = null;
@@ -988,7 +989,7 @@ public class DatabaseHelper {
             globalSelectProductOnCloud.setString(1, id);
             ResultSet resultSet = globalSelectProductOnCloud.executeQuery();
             if (resultSet==null){
-                Logger.log("Couldn't get holidays on cloud database");
+                Logger.log("Couldn't get products on cloud database");
             }
             if (resultSet.next()){
                 product=new Product();
@@ -1008,12 +1009,41 @@ public class DatabaseHelper {
 
         }catch(SQLException e){
             e.printStackTrace();
-            Logger.log("Exception getting holidays on cloud database");
+            Logger.log("Exception getting products on cloud database");
             Logger.log(e);
         }
         return product;
     }
 
+    public static boolean isServiceEnabledOnCloud() {
+
+        boolean serviceEnabled = true;
+        Connection selectConnection = getCloudConnection();
+        String query = "SELECT habilitado FROM public.servicio";
+
+        try{
+            if (globalSelectServiceStatusOnCloud ==null) {
+                globalSelectServiceStatusOnCloud = selectConnection.prepareStatement(query);
+            }
+
+            ResultSet resultSet = globalSelectServiceStatusOnCloud.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get service status on cloud database");
+            }
+            if (resultSet.next()){
+                Boolean data = resultSet.getBoolean(1);
+                if (data!=null && !data){
+                    serviceEnabled=false;
+                }
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Exception getting service status on cloud database");
+            Logger.log(e);
+        }
+        return serviceEnabled;
+    }
 
     public static synchronized Date fetchLastUpdate(String productId, String database) {
         Date lastUpdate=null;
