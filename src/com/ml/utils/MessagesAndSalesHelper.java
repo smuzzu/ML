@@ -626,7 +626,7 @@ public class MessagesAndSalesHelper {
                 order.shippingType = Order.FULL;
             }else {
                 //acordar o mercadoenvios
-                if (order.shippingStatus!=null && order.shippingStatus.equals("to_be_agreed")) {
+                if (order.shippingStatus==null || order.shippingStatus.equals("to_be_agreed")) {
                     order.shippingType = Order.ACORDAR;
                     order.shippingOptionNameDescription = "Acordar";
                 } else { //mercadoenvios

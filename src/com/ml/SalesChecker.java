@@ -260,69 +260,69 @@ public class SalesChecker {
                     if (pendingOrder.messageArrayList.size() == 0) {//primer mensaje al usuario debe ser diferenciado.
                         Product product = DatabaseHelper.getProductFromCloud(pendingOrder.productId);
                         if (product == null || !product.disabled) {
-                            String productTitle = buildProductTitle(product, pendingOrder);
-
-
                             String firstMsgToBuyer = null;
-                            int dayPeriod = getDayPeriod();
-                            if (dayPeriod == MORNING) {
-                                firstMsgToBuyer = "Buen dia ";
-                            } else {
-                                if (dayPeriod == AFTERNOON) {
-                                    firstMsgToBuyer = "Buenas tardes ";
+                            if (product != null && product.customMessage != null && !product.customMessage.isEmpty()) {
+                                firstMsgToBuyer = product.customMessage;
+                            }else{
+                                String productTitle = buildProductTitle(product, pendingOrder);
+                                int dayPeriod = getDayPeriod();
+                                if (dayPeriod == MORNING) {
+                                    firstMsgToBuyer = "Buen dia ";
                                 } else {
-                                    if (dayPeriod == EVENING) {
-                                        firstMsgToBuyer = "Buenas noches ";
+                                    if (dayPeriod == AFTERNOON) {
+                                        firstMsgToBuyer = "Buenas tardes ";
                                     } else {
-                                        if (dayPeriod == IMPRECISE_TIME) {
-                                            firstMsgToBuyer = "Hola ";
+                                        if (dayPeriod == EVENING) {
+                                            firstMsgToBuyer = "Buenas noches ";
+                                        } else {
+                                            if (dayPeriod == IMPRECISE_TIME) {
+                                                firstMsgToBuyer = "Hola ";
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            firstMsgToBuyer += processBuyerName(pendingOrder) + ". ";
+                                firstMsgToBuyer += processBuyerName(pendingOrder) + ". ";
 
-                            if (product == null || product.customMessage == null || product.customMessage.trim().isEmpty()) {
+                                if (product == null || product.customMessage == null || product.customMessage.trim().isEmpty()) {
 
-                                if (pendingOrder.shippingType == Order.PERSONALIZADO) {
-                                    firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
-                                            + productTitle
-                                            + " Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00";
-                                }
-
-                                if (pendingOrder.shippingType == Order.ACORDAR) {
-                                    if (pendingOrder.productManufacturingDays==0){//entrega inmediata
-                                        firstMsgToBuyer += "Podes pasar a retirar tu "+ productTitle +" en Av. Rivadavia 3756 CABA. <br>"
-                                                + "Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00 "
-                                                +"y nuestro teléfono es 4982-2519.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
-                                    }else {
-                                        firstMsgToBuyer += "Ya nos podremos a preparar tu "
+                                    if (pendingOrder.shippingType == Order.PERSONALIZADO) {
+                                        firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
                                                 + productTitle
-                                                + " Y te avisaremos cuando tengamos listo.  Ante cualquier consulta no dudes en escribirnos por este chat";
+                                                + " Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00";
+                                    }
+
+                                    if (pendingOrder.shippingType == Order.ACORDAR) {
+                                        if (pendingOrder.productManufacturingDays == 0) {//entrega inmediata
+                                            firstMsgToBuyer += "Podes pasar a retirar tu " + productTitle + " en Av. Rivadavia 3756 CABA. <br>"
+                                                    + "Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00 "
+                                                    + "y nuestro teléfono es 4982-2519.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
+                                        } else {
+                                            firstMsgToBuyer += "Ya nos podremos a preparar tu "
+                                                    + productTitle
+                                                    + " Y te avisaremos cuando tengamos listo.  Ante cualquier consulta no dudes en escribirnos por este chat";
+                                        }
+                                    }
+
+                                    if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
+                                        String shippingCurrier = "Mercadoenvíos";
+                                        String when = getWhen('C');
+                                        firstMsgToBuyer = when + " te estaremos despachando por " + shippingCurrier
+                                                + productTitle;
+                                    }
+
+                                    if (pendingOrder.shippingType == Order.FLEX) {
+                                        String when = getWhen('F');
+                                        firstMsgToBuyer = when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                                + productTitle;
                                     }
                                 }
 
-                                if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
-                                    String shippingCurrier = "Mercadoenvíos";
-                                    String when=getWhen('C');
-                                    firstMsgToBuyer = when+" te estaremos despachando por " + shippingCurrier
-                                            + productTitle;
-                                }
+                                firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
 
-                                if (pendingOrder.shippingType == Order.FLEX) {
-                                    String when = getWhen('F');
-                                    firstMsgToBuyer = when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
-                                            + productTitle;
-                                }
                             }
-
-                            firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
-
-                            // mandar mensaje aca
-                            String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + pendingOrder.id + "/detalle";
                             String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
-                            pendingOrder.chatSent=GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
-                            if (!usuario.equals(ACACIA) && !ignorarEtiquetayMail){
+                            pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
+                            if (!usuario.equals(ACACIA) && !ignorarEtiquetayMail) {
                                 pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
                             }
                             statusChanged = true;
