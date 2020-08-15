@@ -399,7 +399,7 @@ public class SalesChecker {
         String qtyPrefix=" tu ";
         if (quantity > 1) {
             String unitName="";
-            if (product.unitName!=null && !product.unitName.trim().isEmpty()){
+            if (product !=null && product.unitName!=null && !product.unitName.trim().isEmpty()){
                 unitName=product.unitName.trim();
                 qtyPrefix = " " + quantity + " " + unitName + " de ";
             }else {
