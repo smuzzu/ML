@@ -314,13 +314,13 @@ public class SalesChecker {
                                     if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
                                         String shippingCurrier = "Mercadoenvíos";
                                         String when = getWhen('C');
-                                        firstMsgToBuyer = when + " te estaremos despachando por " + shippingCurrier
+                                        firstMsgToBuyer += when + " te estaremos despachando por " + shippingCurrier
                                                 + productTitle;
                                     }
 
                                     if (pendingOrder.shippingType == Order.FLEX) {
                                         String when = getWhen('F');
-                                        firstMsgToBuyer = when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
+                                        firstMsgToBuyer += when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
                                                 + productTitle;
                                     }
                                 }
