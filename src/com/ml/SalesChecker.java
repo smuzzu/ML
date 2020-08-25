@@ -22,11 +22,9 @@ public class SalesChecker {
 
     static String ACACIA = "ACACIAYLENGA";
 
-    //static String usuario = "ACACIAYLENGA";
-    static String usuario ="SOMOS_MAS";
+    static String usuario = "ACACIAYLENGA";
+    //static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
-    
-    static boolean ignorarEtiquetayMail=false;
 
     public static void main(String[] args) {
 
@@ -51,11 +49,8 @@ public class SalesChecker {
                 usuario=usuarioArg;
             }
         }
-        if (usuario.charAt(0)=='X'){//todo sacar !!
-            usuario=usuario.substring(1,usuario.length());
-            ignorarEtiquetayMail=true;
-        }
-        
+
+
         String msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
@@ -134,7 +129,7 @@ public class SalesChecker {
                 boolean labelIsOk = true;
                 String labelFileName = null;
                 //if (hasLabel){ //con envio
-                if (hasLabel && !ignorarEtiquetayMail) { //TODO CAMBIAR CUANDO SE HABILITE LA IMPREISON DE ETIQUETA DE ACACIA
+                if (hasLabel) { //TODO CAMBIAR CUANDO SE HABILITE LA IMPREISON DE ETIQUETA DE ACACIA
                     labelFileName = downloadLabel(httpClient, pendingOrder.shippingId);
                     if (labelFileName == null || labelFileName.isEmpty()) {
                         labelIsOk = false;
@@ -252,9 +247,7 @@ public class SalesChecker {
                 }
 
                 String destinationAdress="sebamuzzu2@gmail.com, centroequipamientos@centroequipamientos.com.ar";
-                if (usuario.equals(ACACIA)){//sacar esto para que las ventas de Acacia manden mail directo a centro
-                    destinationAdress=null;
-                }
+
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAdress, attachments);
 
                 pendingOrder.mailSent = mailIsOk && labelIsOk;
@@ -313,6 +306,9 @@ public class SalesChecker {
 
                                     if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
                                         String shippingCurrier = "Mercadoenvíos";
+                                        if (pendingOrder.shippingCurrier!=null && !pendingOrder.shippingCurrier.isEmpty()){
+                                            shippingCurrier+="/"+pendingOrder.shippingCurrier;
+                                        }
                                         String when = getWhen('C');
                                         firstMsgToBuyer += when + " te estaremos despachando por " + shippingCurrier
                                                 + productTitle;
@@ -328,10 +324,10 @@ public class SalesChecker {
                                 firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
 
                             }
-                            String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
-                            pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
-                            if (!usuario.equals(ACACIA) && !ignorarEtiquetayMail) {
-                                pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
+                            pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
+                            if (pendingOrder.chatSent) {
+                                String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
+                                GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
                             }
                             statusChanged = true;
                         }
@@ -683,7 +679,6 @@ public class SalesChecker {
             nombresDobles.add("Jose");
             nombresDobles.add("José");
             nombresDobles.add("Juan");
-            nombresDobles.add("Cristian");//todo sacar
         }
 
         String result=order.buyerFirstName.trim();
