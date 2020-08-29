@@ -96,15 +96,10 @@ public class MercadoLibre06Empresas extends Thread {
                     "DIGITAL_MEGA_STORE",
                     "CERRAJERIA63",
                     "ITPROUSER",
-                    "CONGRESOINSUMOSSA",
-                    "EGRENTUS2007",
                     "DECOHOGAR",
-                    "TIENDAIKEA.COM.AR",
                     "KADIMA-STUFF",
                     "JUGUETERIA+MARGARITA",
-                    "WARNESTELAS2001",
                     "OLD-RIDER",
-                    "COMERCIALICSA",
                     "SANITARIOS-ARIETA",
                     "LACASA+DELFARO",
                     "AMITOSAI+STORES",
@@ -118,8 +113,6 @@ public class MercadoLibre06Empresas extends Thread {
                     "GALARDI-MUEBLES",
                     "ELEGANCE_JARDIN",
                     "CHESTER-MANIA",
-                    "DEBORAOCHOTECO",
-                    "DEBUENDISE%C3%91O",
                     "GUIK+DESIGN",
                     "ELECTROMEDINA",
 
@@ -141,20 +134,14 @@ public class MercadoLibre06Empresas extends Thread {
                     "CONFORTSURSA",
                     "MLAT_ARG",
                     "ELECTROLED+SA",
-                    "DANPER+COMPLEMENTOS",
                     "MI-BIOMBO-ES-TU-BIOMBO",
                     "PUFFYFIACAS",
-                    "ARBOVERDE.SA",
                     "CARELLI+COMPANY",
-                    "ESCANDINAVIA+ARG",
                     "VST+ONLINE",
-                    "ELMUNDODELASCAJAS",
-                    "COLOMBRARO+ONLINE",
                     "SUFERRETERIAONLINE",
                     "OTHERBRANDS",
                     "CAPRICHOSA+CAROLA",
                     "PLASTICHEMONDO",
-                    "IMPERIO+DESIGN",
                     "INTERMARBLE-SRL",
                     "CEGEVAHOGAR",
                     "BAIRES+4",
@@ -164,9 +151,7 @@ public class MercadoLibre06Empresas extends Thread {
                     "MORSHOP",
                     "NEWMO",
                     "BALL_SELLINGS",
-                    "AMOBLAMIENTOS+A.S",
                     "MUEBO",
-                    "GLOBAL+GROUP10",
                     "DAMPLAST-RAMOS",
                     "MOBILARG",
                     "INTEGRAL+DECO",
@@ -176,7 +161,118 @@ public class MercadoLibre06Empresas extends Thread {
                     "MUNDO+SHOPS",
                     "LEATHERPLAST_MUEBLES",
                     "INSUOFFICE",
-                    "AMV-TIENDA+ONLINE"
+                    "AMV-TIENDA+ONLINE",
+
+                    //hafele + frank
+                    "ALLSURHERRAJES",
+                    "ATILIOOSCARFARAONE",
+                    "BOLZANRG",
+                    "CALZAVARA+SRL",
+                    "COMERCIAL+CAB",
+                    "DELBRE+SRL",
+                    "DISTRIBUIDORA+MECH",
+                    "HERRAFE.COM",
+                    "HERRAJEMANIA",
+                    "HERRAJES+DIAGONAL",
+                    "HERRAJES+ESTILO",
+                    "HERRAJES+MAGLIOLA",
+                    "HERRAJES+P.KRAMAR",
+                    "HERRAJESFORTALEZA",
+                    "HERRAJESPATRICIOS",
+                    "HERRAJESREVELLI",
+                    "HERRAJESTRONADOR",
+                    "HERRAJESVEIGA+LINE",
+                    "HERRAMELSC",
+                    "KRAMAR+LAFERRERE",
+                    "LAMARINA.",
+                    "MADERERALLAVALLOLSA",
+                    "MUNDOCIMA",
+
+                    //hafele + frank otros
+                    "AUTO_UNO_CASEROS",
+                    "CIGAPLACSRL",
+                    "ESTILO+DK",
+                    "HCI+OBRAS",
+                    "HERGUTI45",
+                    "HERRAJES+TOTITO",
+                    "HERRAJESBALDANSRL",
+                    "HERRAJESHILTON1",
+                    "HERRAJESMITRE",
+                    "HERRAJES+TUYU",
+                    "HERRAPEI",
+                    "HT+HERRAJES",
+                    "LUCIAZAFFRANI",
+
+
+                    //alfombreros
+                    "ABELEDOJAVIER",
+                    "AGBPISOSYREVESTIMIENTOS",
+                    "ALFOMBRAS+HIPOLITO",
+                    "AMBIANCEDECO",
+                    "AMBIANCEPALERMO",
+                    "AYLUMA",
+                    "BEELLESTYLE",
+                    "COMO.EN.CASA",
+                    "CORIMEL+ALFOMBRAS",
+                    "DECORACIONESGIMBATTI",
+                    "DECORD+CENTER",
+                    "ELCHEALMOHADON",
+                    "ELUNEYDECO",
+                    "EXITO+DISEÑO",
+                    "FULLHOUSEWEB",
+                    "GLAUCO0112005",
+                    "GRDO2013",
+                    "IMPORT+MIS",
+                    "JUAMPY-712",
+                    "KEOPS_ALFOMBRAS",
+                    "KREATEX_SA",
+                    "LEDERHD",
+                    "MENTAYROMERODECO",
+                    "MGBALFOMBRAS",
+                    "MICKYCO1",
+                    "MUEBLES-COSAS",
+                    "RASI6160647",
+                    "TIENDA+BAZHARS",
+                    "TODD+ARGENTINA",
+
+                    //alfombreros otros
+                    "ABETEYCIAMDP",
+                    "BELLIZZIHNOSSRL",
+                    "BRUMS+DECO",
+                    "COLCHONEXPRESS",
+                    "COSECOSRL",
+                    "DECO-GSD",
+                    "DECONAMOR+REGALOS",
+                    "DECOR+ITUZAINGO",
+                    "EL+RELLENON",
+                    "ENTUCASA.ONLINE",
+                    "ESTANCIA-MUEBLES",
+                    "FORM+HOMESTORE",
+                    "GAMULANYCAMPERAS+ARGENTINA",
+                    "GPINDUSTRIAL",
+                    "GUALASD",
+                    "HALCON+SHOP",
+                    "MARCARIMPORT",
+                    "MARYL77",
+                    "MASAL.BA",
+                    "MEWADECO",
+                    "MISIONLIVE",
+                    "PRIMERO+UNO",
+                    "PRODUCTOPATAGONIA",
+                    "ROCIOPAISSAN",
+                    "ROSANAMARICELMACIEL",
+                    "RUPLESS",
+                    "SHEM+GROUP",
+                    "SANTAFE+MARKET",
+                    "SOUL+DESIGN",
+                    "TIENDA+BALLERINA",
+                    "TOBLANC",
+
+                    //mormetal
+                    "MUNDO+OFI-MAX",
+                    "HERRAJES+CASTELMAX",
+
+                    "MODULAR+DRAWERS"
 
 
             };
@@ -188,17 +284,12 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //ELSITIOREPUESTOS
             {0, 70, 100, 150, 200, 250, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2147483647}, //ANIKASHOP
             {0, 5000, 5500, 6000, 7000, 8000, 11000, 16000, 2147483647},  //DIGITAL_MEGA_STORE
-            {0, 200, 400, 700, 1400, 5000, 2147483647},   //CERRAJERIA63
+            {0, 200, 400, 700, 1400, 2500, 5000, 2147483647},   //CERRAJERIA63
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //ITPROUSER
-            {0, 8000, 2147483647}, //CONGRESOINSUMOSSA
-            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647},  //EGRENTUS2007
             {0, 2000, 4000, 8000, 12000, 15000, 22000, 2147483647},    //DECOHOGAR
-            {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //TIENDAIKEA.COM.AR
             {0, 700, 1000, 3000, 2147483647}, //KADIMA-STUFF
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //JUGUETERIA+MARGARITA
-            {0, 200, 300, 400, 500, 600, 750, 850, 1000, 1200, 1500, 1800, 2100, 2500, 2900, 3400, 4000, 5000, 6000, 8000, 12000, 2147483647},  //WARNESTELAS2001
-            {0, 198, 200, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3400, 3500, 4000, 5000, 7000, 8000, 14000, 16000, 17999, 18000, 25000, 2147483647}, //OLD-RIDER
-            {0, 60, 150, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647},  //COMERCIALICSA
+            {0, 198, 200, 300, 500, 700, 900, 1000, 1200, 1350, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3400, 3500, 4000, 5000, 7000, 8000, 14000, 16000, 17999, 18000, 25000, 2147483647}, //OLD-RIDER
             {0, 5000, 9000, 13000, 20000, 2147483647},   //SANITARIOS-ARIETA
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 2147483647},  //LACASA+DELFARO
             {0, 300, 500, 700, 900, 1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3500, 4000, 5000, 8000, 2147483647}, //AMITOSAI+STORES
@@ -212,8 +303,6 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 2147483647}, //GALARDI-MUEBLES
             {0, 2147483647}, //ELEGANCE_JARDIN
             {0, 2147483647}, //CHESTER-MANIA
-            {0, 2147483647}, //DEBORAOCHOTECO
-            {0, 2147483647}, //DEBUENDISE%C3%91O
             {0, 2147483647}, //GUIK+DESIGN
             {0, 2147483647}, //ELECTROMEDINA
 
@@ -223,7 +312,7 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 2147483647}, //ALAVUELTA+CERAMICOS
 
             {0, 2147483647}, //GREENDECO
-            {0, 2147483647}, //SHESHU+WEB
+            {0, 2000, 2147483647}, //SHESHU+WEB
             {0, 2147483647}, //DISTRITOBLANCO
             {0, 2147483647}, //N2M-ELECTRONICA
             {0, 2147483647}, //ARGENSHOP+BSAS
@@ -235,20 +324,14 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 2147483647}, //CONFORTSURSA
             {0, 2147483647}, //MLAT_ARG
             {0, 2147483647}, //ELECTROLED+SA
-            {0, 2147483647}, //DANPER+COMPLEMENTOS
             {0, 2147483647}, //MI-BIOMBO-ES-TU-BIOMBO
             {0, 2147483647}, //PUFFYFIACAS
-            {0, 2147483647}, //ARBOVERDE.SA
             {0, 2147483647}, //CARELLI+COMPANY
-            {0, 2147483647}, //ESCANDINAVIA+ARG
             {0, 2147483647}, //VST+ONLINE
-            {0, 2147483647}, //ELMUNDODELASCAJAS
-            {0, 2147483647}, //COLOMBRARO+ONLINE
             {0, 2147483647}, //SUFERRETERIAONLINE
             {0, 2147483647}, //OTHERBRANDS
             {0, 2147483647}, //CAPRICHOSA+CAROLA
             {0, 2147483647}, //PLASTICHEMONDO
-            {0, 2147483647}, //IMPERIO+DESIGN
             {0, 2147483647}, //INTERMARBLE-SRL
             {0, 2147483647}, //CEGEVAHOGAR
             {0, 2147483647}, //BAIRES+4
@@ -258,9 +341,7 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 2147483647}, //MORSHOP
             {0, 2147483647}, //NEWMO
             {0, 2147483647}, //BALL_SELLINGS
-            {0, 2147483647}, //AMOBLAMIENTOS+A.S
             {0, 2147483647}, //MUEBO
-            {0, 2147483647}, //GLOBAL+GROUP10
             {0, 2147483647}, //DAMPLAST-RAMOS
             {0, 2147483647}, //MOBILARG
             {0, 2147483647}, //INTEGRAL+DECO
@@ -270,7 +351,117 @@ public class MercadoLibre06Empresas extends Thread {
             {0, 2147483647}, //MUNDO+SHOPS
             {0, 2147483647}, //LEATHERPLAST_MUEBLES
             {0, 2147483647}, //INSUOFFICE
-            {0, 2147483647}  //AMV-TIENDA+ONLINE
+            {0, 2147483647}, //AMV-TIENDA+ONLINE
+
+            //hafele + frank
+            {0, 2147483647}, //ALLSURHERRAJES
+            {0, 2147483647}, //ATILIOOSCARFARAONE
+            {0, 2147483647}, //BOLZANRG
+            {0, 2147483647}, //CALZAVARA+SRL
+            {0, 2147483647}, //COMERCIAL+CAB
+            {0, 2147483647}, //DELBRE+SRL
+            {0, 2147483647}, //DISTRIBUIDORA+MECH
+            {0, 2147483647}, //HERRAFE.COM
+            {0, 2147483647}, //HERRAJEMANIA
+            {0, 2147483647}, //HERRAJES+DIAGONAL
+            {0, 2147483647}, //HERRAJES+ESTILO
+            {0, 2147483647}, //HERRAJES+MAGLIOLA
+            {0, 2147483647}, //HERRAJES+P.KRAMAR
+            {0, 2147483647}, //HERRAJESFORTALEZA
+            {0, 2147483647}, //HERRAJESPATRICIOS
+            {0, 2147483647}, //HERRAJESREVELLI
+            {0, 2147483647}, //HERRAJESTRONADOR
+            {0, 2147483647}, //HERRAJESVEIGA+LINE
+            {0, 2147483647}, //HERRAMELSC
+            {0, 2147483647}, //KRAMAR+LAFERRERE
+            {0, 2147483647}, //LAMARINA.
+            {0, 2147483647}, //MADERERALLAVALLOLSA
+            {0, 2147483647}, //MUNDOCIMA
+
+            //hafele + frank otros
+            {0, 2147483647}, //AUTO_UNO_CASEROS
+            {0, 2147483647}, //CIGAPLACSRL
+            {0, 2147483647}, //ESTILO+DK
+            {0, 2147483647}, //HCI+OBRAS
+            {0, 2147483647}, //HERGUTI45
+            {0, 2147483647}, //HERRAJES+TOTITO
+            {0, 2147483647}, //HERRAJESBALDANSRL
+            {0, 2147483647}, //HERRAJESHILTON1
+            {0, 2147483647}, //HERRAJESMITRE
+            {0, 2147483647}, //HERRAJES+TUYU
+            {0, 2147483647}, //HERRAPEI"
+            {0, 2147483647}, //HT+HERRAJES
+            {0, 2147483647}, //LUCIAZAFFRANI
+
+            //alfombreros
+            {0, 2147483647}, //ABELEDOJAVIER
+            {0, 2147483647}, //AGBPISOSYREVESTIMIENTOS
+            {0, 2147483647}, //ALFOMBRAS+HIPOLITO
+            {0, 2147483647}, //AMBIANCEDECO
+            {0, 2147483647}, //AMBIANCEPALERMO
+            {0, 2147483647}, //AYLUMA
+            {0, 2147483647}, //BEELLESTYLE
+            {0, 2147483647}, //COMO.EN.CASA
+            {0, 2147483647}, //CORIMEL+ALFOMBRAS
+            {0, 2147483647}, //DECORACIONESGIMBATTI
+            {0, 2147483647}, //DECORD+CENTER
+            {0, 2147483647}, //ELCHEALMOHADON
+            {0, 2147483647}, //ELUNEYDECO
+            {0, 2147483647}, //EXITO+DISEÑO
+            {0, 2147483647}, //FULLHOUSEWEB
+            {0, 2147483647}, //GLAUCO0112005
+            {0, 2147483647}, //GRDO2013
+            {0, 2147483647}, //IMPORT+MIS
+            {0, 2147483647}, //JUAMPY-712
+            {0, 2147483647}, //KEOPS_ALFOMBRAS
+            {0, 2147483647}, //KREATEX_SA
+            {0, 2147483647}, //LEDERHD
+            {0, 2147483647}, //MENTAYROMERODECO
+            {0, 2147483647}, //MGBALFOMBRAS
+            {0, 2147483647}, //MICKYCO1
+            {0, 2147483647}, //MUEBLES-COSAS
+            {0, 2147483647}, //RASI6160647
+            {0, 2147483647}, //TIENDA+BAZHARS
+            {0, 2147483647}, //TODD+ARGENTINA
+
+            //alfombreros otros
+            {0, 2147483647}, //ABETEYCIAMDP
+            {0, 2147483647}, //BELLIZZIHNOSSRL
+            {0, 2147483647}, //BRUMS+DECO
+            {0, 2147483647}, //COLCHONEXPRESS
+            {0, 2147483647}, //COSECOSRL
+            {0, 2147483647}, //DECO-GSD
+            {0, 2147483647}, //DECONAMOR+REGALOS
+            {0, 2147483647}, //DECOR+ITUZAINGO
+            {0, 2147483647}, //EL+RELLENON
+            {0, 2147483647}, //ENTUCASA.ONLINE
+            {0, 2147483647}, //ESTANCIA-MUEBLES
+            {0, 2147483647}, //FORM+HOMESTORE
+            {0, 2147483647}, //GAMULANYCAMPERAS+ARGENTINA
+            {0, 2147483647}, //GPINDUSTRIAL
+            {0, 2147483647}, //GUALASD
+            {0, 2147483647}, //HALCON+SHOP
+            {0, 2147483647}, //MARCARIMPORT
+            {0, 2147483647}, //MARYL77
+            {0, 2147483647}, //MASAL.BA
+            {0, 2147483647}, //MEWADECO
+            {0, 2147483647}, //MISIONLIVE
+            {0, 2147483647}, //PRIMERO+UNO
+            {0, 2147483647}, //PRODUCTOPATAGONIA
+            {0, 2147483647}, //ROCIOPAISSAN
+            {0, 2147483647}, //ROSANAMARICELMACIEL
+            {0, 2147483647}, //RUPLESS
+            {0, 2147483647}, //SHEM+GROUP
+            {0, 2147483647}, //SANTAFE+MARKET
+            {0, 2147483647}, //SOUL+DESIGN
+            {0, 2147483647}, //TIENDA+BALLERINA
+            {0, 2147483647}, //TOBLANC
+
+            //mormetal
+            {0, 2147483647},//MUNDO+OFI-MAX,
+            {0, 2147483647},//HERRAJES+CASTELMAX
+
+            {0, 2147483647} //MODULAR+DRAWERS
 
     };
 
