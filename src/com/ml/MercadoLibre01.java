@@ -341,7 +341,7 @@ public class MercadoLibre01  extends Thread {
 
                     System.out.println(runnerID+" "+uRL);
                     Logger.log(runnerID+" "+uRL);
-                    String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG);
+                    String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL,httpClient,DEBUG,true);
                     if (!HttpUtils.isOK(htmlStringFromPage)) { //suponemos que se terminó
                         // pero tambien hacemos pausa por si es problema de red
                         try {
@@ -444,16 +444,16 @@ public class MercadoLibre01  extends Thread {
                             Logger.log(runnerID+" I couldn't get the price on " + productUrl);
                         }
 
-                        String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
-                            if (!HttpUtils.isOK(htmlStringFromProductPage)) {
-                            String msg="All retries failed.  Ignoring this url "+uRL;
+                        String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG, true);
+                        if (!HttpUtils.isOK(htmlStringFromProductPage)) {
+                            String msg="All retries failed.  Ignoring this url "+productUrl;
                             System.out.println(msg);
                             Logger.log(msg);
                             continue;//salteamos este producto
-                                }
+                        }
 
                         int totalSold = HTMLParseUtils.getTotalSold(htmlStringFromProductPage, productUrl);
-                                if (totalSold == -1) {//error
+                        if (totalSold == -1) {//error
                             String msg="totalSold unknown "+uRL;
                             System.out.println(msg);
                             Logger.log(msg);

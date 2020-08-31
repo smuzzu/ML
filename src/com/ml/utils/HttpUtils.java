@@ -2,6 +2,7 @@ package com.ml.utils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.RequestLine;
 import org.apache.http.StatusLine;
@@ -14,6 +15,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestWrapper;
+import org.apache.http.cookie.CookieOrigin;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -32,17 +34,58 @@ public class HttpUtils {
     public static final String URLChanged="urlChanged|";
     public static final String EXPIRED_TOKEN = "401|";
 
+    private static int currentProxyNumber=0;
+
+    private static boolean PROXY_ENABLED=false;
+    private static String[] proxyList= new String[]{
+        "83.97.23.90:18080",
+        "178.35.230.10:8080",
+        "179.228.138.152:3128",
+        "191.233.198.18:80",
+        "199.247.9.182:443"
+    };
+    static long requestCount=0;
+    static long timeRequestCount=System.nanoTime();
+
+
+    synchronized private static String getProxy() {
+        int totalproxies=proxyList.length;
+        currentProxyNumber++;
+        if (currentProxyNumber>=totalproxies){
+            currentProxyNumber=0;
+        }
+        return proxyList[currentProxyNumber];
+    }
+
+
+    public static RequestConfig buildRequestConfig(String proxyHostStr){
+        RequestConfig requestConfig = null;
+        if (proxyHostStr==null || proxyHostStr.equals("NADA")) {
+            requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(40000) //40 seconds in milliseconds
+                    .setConnectionRequestTimeout(40000)
+                    .setSocketTimeout(40000)
+                    .setCookieSpec(CookieSpecs.STANDARD)
+                    .build();
+        }else {
+            HttpHost proxyHost = HttpHost.create(proxyHostStr);
+            requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(40000) //40 seconds in milliseconds
+                    .setConnectionRequestTimeout(40000)
+                    .setSocketTimeout(40000)
+                    .setCookieSpec(CookieSpecs.STANDARD)
+                    .setProxy(proxyHost)
+                    .build();
+        }
+        return requestConfig;
+    }
+
     public static CloseableHttpClient buildHttpClient() {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials("random", "random"));
 
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(40000) //40 seconds in milliseconds
-                .setConnectionRequestTimeout(40000)
-                .setSocketTimeout(40000)
-                .setCookieSpec(CookieSpecs.STANDARD)
-                .build();
+        RequestConfig requestConfig = buildRequestConfig(null);
 
         CloseableHttpClient httpclient =
                 HttpClientBuilder.create()
@@ -60,7 +103,7 @@ public class HttpUtils {
 
         JSONObject jsonResponse=null;
 
-        String jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(uRL, httpClient, false);
+        String jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false);
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
             if (jsonStringFromRequest.startsWith("[")){
@@ -122,12 +165,12 @@ public class HttpUtils {
         JSONObject jsonResponse=null;
         String token= TokenUtils.getToken(usuario);
         String urlWithToken = uRL + "&access_token=" + token;
-        String jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+        String jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
         if (jsonStringFromRequest.equals(EXPIRED_TOKEN)) {
             TokenUtils.refreshToken(httpClient,usuario);
             token= TokenUtils.getToken(usuario);
             urlWithToken = uRL + "&access_token=" + token;
-            jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+            jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
         }
         if (!isOK(jsonStringFromRequest)){ //1 solo reintento
             try {
@@ -143,7 +186,7 @@ public class HttpUtils {
             }
             httpClient = null;
             httpClient = HttpUtils.buildHttpClient();
-            jsonStringFromRequest = HttpUtils.getHTMLStringFromPage(urlWithToken, httpClient, false);
+            jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
         }
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
@@ -160,8 +203,17 @@ public class HttpUtils {
         return jsonResponse;
     }
 
+    synchronized static long increaseRequestCount(boolean reset){
+        requestCount++;
+        if (reset){
+            requestCount=0;
+            timeRequestCount=System.nanoTime();
+        }
+        return requestCount;
+    }
 
-    public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG) {
+
+    public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy) {
 
         HttpGet httpGet = new HttpGet(uRL);
 
@@ -174,22 +226,64 @@ public class HttpUtils {
 
         while (retry && retries < 5) {
             retries++;
+
+            String proxy = "NO_PROXY";
+            if (PROXY_ENABLED) {
+                proxy = getProxy();
+                RequestConfig requestConfig = buildRequestConfig(proxy);
+                httpGet.setConfig(requestConfig);
+            }
+
             try {
                 response = client.execute(httpGet, context);
             } catch (IOException e) {
                 response = null;
-                Logger.log("Error en getHTMLStringFromPage intento #" + retries + " " + uRL);
+                Logger.log("Error en getHTMLStringFromPage intento #" + retries + " " + uRL+ " con proxy "+proxy);
                 Logger.log(e);
             }
+
+            long requestCount=increaseRequestCount(false);
+            if (requestCount>=8500){
+                int eplapsedSeconds = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
+                int minSeconds=420;
+                if (eplapsedSeconds<minSeconds) {
+                    if (PROXY_ENABLED && useProxy) {
+
+                    } else {
+                        long pasuseMilliseconds = (minSeconds - eplapsedSeconds) * 1000L;
+                        System.out.println("Aguantamos los trapos " + pasuseMilliseconds + " milisegundos ");
+                        try {
+                            Thread.sleep(pasuseMilliseconds);
+                        } catch (InterruptedException e) {
+                            Logger.log(e);
+                        }
+                        requestCount=increaseRequestCount(false);
+                        if (requestCount>=9000){
+                            increaseRequestCount(true);
+                        }
+                    }
+                }else {
+                    increaseRequestCount(true);
+                }
+            }
+
+
+
+
+
+
 
             if (response != null) {
                 StatusLine statusline = response.getStatusLine();
                 if (statusline != null) {
                     statusCode = statusline.getStatusCode();
-                    if (statusCode!=420) { //429=too many requests
+                    if (statusCode!=420 && statusCode!=403) { //429=too many requests
                         retry = false;
                     } else {
-                        Logger.log("Http 420 en getHTMLStringFromPage intento #" + retries + " " + uRL);
+                        Logger.log("Http "+statusCode+" en getHTMLStringFromPage intento #" + retries + " " + uRL);
+                        //todo en el 403 hacemos algo?
+                        int segundosQuePasaron = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
+                        boolean b=false;
                     }
                 }
             }
@@ -427,10 +521,17 @@ public class HttpUtils {
     }
 
     private static synchronized boolean isUrlChanged(HttpContext context, String url) {
-        HttpRequestWrapper httpRequestWrapper = (HttpRequestWrapper) context.getAttribute("http.request");
-        HttpRequest newRequest = httpRequestWrapper.getOriginal();
-        RequestLine requestLine = newRequest.getRequestLine();
-        String newURL = requestLine.getUri();
+        String newURL = null;
+        if (context.getAttribute("http.request") instanceof HttpRequestWrapper) {
+            HttpRequestWrapper httpRequestWrapper = (HttpRequestWrapper) context.getAttribute("http.request");
+            HttpRequest newRequest = httpRequestWrapper.getOriginal();
+            RequestLine requestLine = newRequest.getRequestLine();
+            newURL = requestLine.getUri();
+        }else {
+            CookieOrigin cookieOrigin = (CookieOrigin)context.getAttribute("http.cookie-origin");
+            HttpHost httpHost = (HttpHost)context.getAttribute("http.target_host");
+            newURL=httpHost.toURI()+cookieOrigin.getPath();
+        }
         if (newURL == null || newURL.indexOf("NoIndex_True") > 0 || newURL.indexOf("redirectedFromVip") > 0 || (newURL.indexOf("mercadolibre.com.ar") == -1 && newURL.indexOf("api.mercadolibre.com") == -1)) {
             return true;
         }
@@ -449,7 +550,7 @@ public class HttpUtils {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(uRL);
-        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG);
+        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, false);
         if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red
             try {

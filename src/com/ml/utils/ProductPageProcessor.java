@@ -45,7 +45,7 @@ public class ProductPageProcessor extends Thread {
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
-        String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG);
+        String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
 
         if (!HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
             // hacemos pausa por si es problema de red
@@ -62,7 +62,7 @@ public class ProductPageProcessor extends Thread {
             }
             httpClient = null;
             httpClient = HttpUtils.buildHttpClient();
-            htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG);
+            htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
         }
 
         boolean disable=false;

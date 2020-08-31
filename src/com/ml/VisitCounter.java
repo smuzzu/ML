@@ -81,7 +81,7 @@ public class VisitCounter extends Thread {
 
         String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
 
-        String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG);
+        String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true);
 
         if (!HttpUtils.isOK(htmlString)) {
             // hacemos pausa por si es problema de red
@@ -100,7 +100,7 @@ public class VisitCounter extends Thread {
             httpClient = HttpUtils.buildHttpClient();
         }
 
-        htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
+        htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true); // just 1 retry
         if (!HttpUtils.isOK(htmlString)) {
             httpClient=null;
             return;
@@ -191,7 +191,7 @@ public class VisitCounter extends Thread {
 
             allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
             String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
-            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG);
+            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true);
             if (!HttpUtils.isOK(htmlString)) {
                 // hacemos pausa por si es problema de red
                 try {
@@ -208,7 +208,7 @@ public class VisitCounter extends Thread {
                 httpClient = HttpUtils.buildHttpClient();
             }
 
-            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG); // just 1 retry
+            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true); // just 1 retry
             boolean processItems=true;
             int pos1=0;
             int pos2=0;

@@ -509,7 +509,7 @@ public class MercadoLibre06Empresas extends Thread {
 
             while (retry && retries < 4) {
                 retries++;
-                htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG);
+                htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG, true);
                 if (HttpUtils.isOK(htmlStringFromPage)) {
                     retry = false;
                 } else {
@@ -677,7 +677,7 @@ public class MercadoLibre06Empresas extends Thread {
 
                 while (retry && retries < 20) {
                     retries++;
-                    htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG);
+                    htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, httpClient, DEBUG, true);
                     if (HttpUtils.isOK(htmlStringFromPage)) {
                         retry = false;
                     } else {
@@ -798,7 +798,7 @@ public class MercadoLibre06Empresas extends Thread {
                         Logger.log(runnerID + " I couldn't get the price on " + productUrl);
                     }
 
-                    String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG);
+                    String htmlStringFromProductPage = HttpUtils.getHTMLStringFromPage(productUrl, httpClient, DEBUG, true);
                     if (!HttpUtils.isOK(htmlStringFromProductPage)) {
                         String msg = "All retries failed.  Ignoring this url " + uRL;
                         try {

@@ -129,7 +129,7 @@ public class SalesChecker {
                 boolean labelIsOk = true;
                 String labelFileName = null;
                 //if (hasLabel){ //con envio
-                if (hasLabel) { //TODO CAMBIAR CUANDO SE HABILITE LA IMPREISON DE ETIQUETA DE ACACIA
+                if (hasLabel) {
                     labelFileName = downloadLabel(httpClient, pendingOrder.shippingId);
                     if (labelFileName == null || labelFileName.isEmpty()) {
                         labelIsOk = false;

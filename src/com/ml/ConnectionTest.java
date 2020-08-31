@@ -132,13 +132,12 @@ public class ConnectionTest {
     private static  ArrayList<String> getProxies(){
         ArrayList<String> proxies = new ArrayList<String>();
 
+        proxies.add("81.201.60.130:80");
+        proxies.add("83.97.23.90:18080");
         proxies.add("178.35.230.10:8080");
         proxies.add("179.228.138.152:3128");
+        //proxies.add("191.233.198.18:80");
         proxies.add("199.247.9.182:443");
-
-
-
-
 
         return proxies;
     }

@@ -316,7 +316,7 @@ public class MLSellerStatistics extends Thread {
             sellerUrl= PROFILE_BASE_URL +formatSeller(seller);
 
             long timestamp1 = System.currentTimeMillis();
-            String htmlString = HttpUtils.getHTMLStringFromPage(sellerUrl,httpClient,DEBUG);
+            String htmlString = HttpUtils.getHTMLStringFromPage(sellerUrl,httpClient,DEBUG, true);
             long timestamp2 = System.currentTimeMillis();
             long secondsElapsed = (timestamp2-timestamp1)/1000;
             if (secondsElapsed>30){
@@ -391,7 +391,7 @@ public class MLSellerStatistics extends Thread {
                 }
 
                 timestamp1 = System.currentTimeMillis();
-                htmlString = HttpUtils.getHTMLStringFromPage(sellerUrl,httpClient,DEBUG);
+                htmlString = HttpUtils.getHTMLStringFromPage(sellerUrl,httpClient,DEBUG, true);
                 timestamp2 = System.currentTimeMillis();
                 secondsElapsed = (timestamp2-timestamp1)/1000;
                 if (secondsElapsed>30){
@@ -1147,7 +1147,7 @@ public class MLSellerStatistics extends Thread {
 
             if (!seller.equals(seller.toUpperCase())){ //tiene minuscula / posible tienda oficial
                 String officialStoreUrl = OFFICIAL_STORE_BASE_URL + formatSeller(seller);
-                String officialStoreHtmlString = HttpUtils.getHTMLStringFromPage(officialStoreUrl, httpClient,DEBUG);
+                String officialStoreHtmlString = HttpUtils.getHTMLStringFromPage(officialStoreUrl, httpClient,DEBUG, true);
 
                 if (officialStoreHtmlString==null) {
                     String msg = "la tienda oficial no aparecio de entrada " + officialStoreUrl;
@@ -1169,7 +1169,7 @@ public class MLSellerStatistics extends Thread {
                     httpClient = HttpUtils.buildHttpClient();
                     ////////////////////////////////////////////
 
-                    officialStoreHtmlString = HttpUtils.getHTMLStringFromPage(officialStoreUrl, httpClient,DEBUG);
+                    officialStoreHtmlString = HttpUtils.getHTMLStringFromPage(officialStoreUrl, httpClient,DEBUG, true);
                     if (officialStoreHtmlString!=null && !officialStoreHtmlString.contains("Escribí en el buscador lo que querés encontrar")) {
                         oficialStore=true;
                     }
@@ -1183,7 +1183,7 @@ public class MLSellerStatistics extends Thread {
 
             productsUrl = PRODUCT_LIST_BASE_URL + custId;
 
-            htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient, DEBUG);
+            htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient, DEBUG, true);
 
             if (!HttpUtils.isOK(htmlString)) {
                 String msg = "el listado no aparecio de entrada " + productsUrl;
@@ -1203,18 +1203,18 @@ public class MLSellerStatistics extends Thread {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                httpClient = null;
+    httpClient = null;
                 httpClient = HttpUtils.buildHttpClient();
                 ////////////////////////////////////////////
 
-                htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient,DEBUG);
+                htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient,DEBUG, true);
                 if (!HttpUtils.isOK(htmlString)) {
                     if(DEBUG) {
                         msg = "al final el listado no aparecio nunca 2: " + productsUrl;
                         System.out.println(msg);
                         Logger.log(msg);
                     }
-                    //rebuild httpClient
+                                //rebuild httpClient
                     try {
                         Thread.sleep(5000);
                     } catch (InterruptedException e) {
@@ -1395,7 +1395,7 @@ public class MLSellerStatistics extends Thread {
                 while (retry && retries<5) {
                     retry=false;
                     retries++;
-                    String htmlString3 = HttpUtils.getHTMLStringFromPage(visitUrl, httpClient,DEBUG);
+                    String htmlString3 = HttpUtils.getHTMLStringFromPage(visitUrl, httpClient,DEBUG, true);
                     if (HttpUtils.isOK(htmlString3)) {
                         int pos1 = htmlString3.indexOf("total_visits\":");
                         if (pos1 > 0) {
@@ -1532,7 +1532,7 @@ public class MLSellerStatistics extends Thread {
         String page=null;
 
         for (String url:urls) {
-            page=HttpUtils.getHTMLStringFromPage(url,client,DEBUG);
+            page=HttpUtils.getHTMLStringFromPage(url,client,DEBUG, true);
             if (HttpUtils.isOK(page)){
                 break;
             }else {
