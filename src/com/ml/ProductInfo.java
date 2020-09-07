@@ -108,7 +108,7 @@ public class ProductInfo {
             productInfo.user=usuario;
             productInfo.productId=productId;
             String productDetailsUrl="https://api.mercadolibre.com/items/"+productId;
-            JSONObject jsonProductDetail = HttpUtils.getJsonObjectWithoutToken(productDetailsUrl, httpClient);
+            JSONObject jsonProductDetail = HttpUtils.getJsonObjectWithoutToken(productDetailsUrl, httpClient,false );
             String dateCreatedStr= (String) jsonProductDetail.get("date_created");
             String priceStr="0.0";
             String title=null;
@@ -474,7 +474,7 @@ public class ProductInfo {
         HashMap<String,ArrayList> productsInCatetoriesHashMap = new HashMap<String,ArrayList>();
         for (String categoryID: categoriesArrayList){
             String categoryUrl = "https://api.mercadolibre.com/categories/"+categoryID;
-            JSONObject categoryObject = HttpUtils.getJsonObjectWithoutToken(categoryUrl,httpClient);
+            JSONObject categoryObject = HttpUtils.getJsonObjectWithoutToken(categoryUrl,httpClient,false );
             JSONArray categoryPathArray = categoryObject.getJSONArray("path_from_root");
             String categoryFullPath="";
             for (int j=0; j<categoryPathArray.length(); j++){
@@ -494,7 +494,7 @@ public class ProductInfo {
             for (int offset=0; offset<=maxProductsInCategory; offset+=50) {
                 String itemsInCategoryURL = "https://api.mercadolibre.com/sites/MLA/search?search_type=scan&category=" + categoryID + "&offset="+offset;
                 if (offset<=1000) {
-                    jsonResponse = HttpUtils.getJsonObjectWithoutToken(itemsInCategoryURL, httpClient);
+                    jsonResponse = HttpUtils.getJsonObjectWithoutToken(itemsInCategoryURL, httpClient, false);
                 }else {
                     jsonResponse = HttpUtils.getJsonObjectUsingToken(itemsInCategoryURL, httpClient,usuario);
                 }
@@ -690,7 +690,7 @@ public class ProductInfo {
     private static Date getRegistrationDate(CloseableHttpClient httpClient){
         Date result=null;
         String userUrl="https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(usuario);
-        JSONObject jsonCustomer = HttpUtils.getJsonObjectWithoutToken(userUrl, httpClient);
+        JSONObject jsonCustomer = HttpUtils.getJsonObjectWithoutToken(userUrl, httpClient, false);
         String registrationDateStr= (String) jsonCustomer.get("registration_date");
         registrationDateStr=registrationDateStr.substring(0,10);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

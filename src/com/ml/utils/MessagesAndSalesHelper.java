@@ -152,7 +152,7 @@ public class MessagesAndSalesHelper {
             int offset=0;
             while (!finished) {
                 String feedbackUrl = "https://www.mercadolibre.com.ar/perfil/api/feedback/askForFeedback?userIdentifier=nickname%3D" + user + "&rating=all&limit=200&offset=" + offset + "&role=seller";
-                JSONObject feedbacksObj = HttpUtils.getJsonObjectWithoutToken(feedbackUrl, httpClient);
+                JSONObject feedbacksObj = HttpUtils.getJsonObjectWithoutToken(feedbackUrl, httpClient, false);
                 JSONArray feedbacksArray = feedbacksObj.getJSONArray("feedbacks");
                 for (Object feedbackObject : feedbacksArray){
                     JSONObject feedbackJSONObject = (JSONObject)feedbackObject;
@@ -512,7 +512,7 @@ public class MessagesAndSalesHelper {
         }
 
         String url = "https://api.mercadolibre.com/items/"+order.productId;
-        JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient);
+        JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient, false);
         order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,false);
         order.productPictureThumbnailURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,true);
 
@@ -718,7 +718,7 @@ public class MessagesAndSalesHelper {
 
         if (!messagesOnly) {
             String buyerUrl = "https://api.mercadolibre.com/users/" + buyerId;
-            JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient);
+            JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient, false);
             JSONObject addressObj = buyerObj.getJSONObject("address");
 
             String stateId = null;
@@ -726,7 +726,7 @@ public class MessagesAndSalesHelper {
                 stateId = addressObj.getString("state");
                 if (!stateHashMap.containsKey(stateId)) {
                     String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
-                    JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient);
+                    JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient, false);
                     String stateName = stateObj.getString("name");
                     stateHashMap.put(stateId, stateName);
                 }

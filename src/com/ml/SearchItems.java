@@ -45,7 +45,7 @@ public class SearchItems {
             int totalItems = 999999;
             for (int offset = 0; offset <= totalItems; offset += 50) {
                 String searchUrl = "https://api.mercadolibre.com/sites/MLA/search?q=" + searchTerms + "&price=" + priceRangeId + "&offset=" + offset;
-                JSONObject jsonSearchDetails = HttpUtils.getJsonObjectWithoutToken(searchUrl, httpClient);
+                JSONObject jsonSearchDetails = HttpUtils.getJsonObjectWithoutToken(searchUrl, httpClient, false);
                 if (offset == 0) {
                     JSONObject pagingObj = jsonSearchDetails.getJSONObject("paging");
                     totalItems = pagingObj.getInt("total");

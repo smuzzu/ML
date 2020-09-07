@@ -23,6 +23,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -99,7 +100,7 @@ public class HttpUtils {
     }
 
 
-    public static JSONObject getJsonObjectWithoutToken(String uRL, CloseableHttpClient httpClient) {
+    public static JSONObject getJsonObjectWithoutToken(String uRL, CloseableHttpClient httpClient, boolean giveMeArray) {
 
         JSONObject jsonResponse=null;
 
@@ -107,7 +108,11 @@ public class HttpUtils {
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
             if (jsonStringFromRequest.startsWith("[")){
-                jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
+                if (giveMeArray) {
+                    jsonStringFromRequest = "{\"elArray\":"+jsonStringFromRequest+"}";
+                }else {
+                    jsonStringFromRequest = jsonStringFromRequest.substring(1, jsonStringFromRequest.length() - 1);
+                }
             }
             try {
                 jsonResponse = new JSONObject(jsonStringFromRequest);
@@ -243,14 +248,14 @@ public class HttpUtils {
             }
 
             long requestCount=increaseRequestCount(false);
-            if (requestCount>=8500){
+            if (requestCount>=9000){
                 int eplapsedSeconds = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
-                int minSeconds=420;
+                int minSeconds=360;
                 if (eplapsedSeconds<minSeconds) {
                     if (PROXY_ENABLED && useProxy) {
 
                     } else {
-                        long pasuseMilliseconds = (minSeconds - eplapsedSeconds) * 1000L;
+                        long pasuseMilliseconds = (minSeconds - eplapsedSeconds) * 2 *  1000L;
                         System.out.println("Aguantamos los trapos " + pasuseMilliseconds + " milisegundos ");
                         try {
                             Thread.sleep(pasuseMilliseconds);

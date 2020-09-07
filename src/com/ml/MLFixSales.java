@@ -139,7 +139,7 @@ public class MLFixSales {
                 String idProducto = selectResultSet.getString(1);
                 Date fecha = selectResultSet.getDate(2);
                 String url = selectResultSet.getString(3);
-                String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(url,httpClient,false);
+                String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(url,httpClient,false, true);
                 Double price = HTMLParseUtils.getPrice(htmlStringFromPage,url);
                 String titulo = HTMLParseUtils.getTitle2(htmlStringFromPage);
 
