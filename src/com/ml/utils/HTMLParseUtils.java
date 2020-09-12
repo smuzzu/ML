@@ -229,7 +229,20 @@ public class HTMLParseUtils {
     public static String getProductIdFromURL(String productUrl) {
         int idPos1 = productUrl.indexOf(ARTICLE_PREFIX);
         int idPos2 = idPos1 + 13;
-        String productId = productUrl.substring(idPos1, idPos2);
+        if (idPos2>productUrl.length()){
+            idPos2=productUrl.length();
+        }
+        String productId = null;
+        try {
+            productId = productUrl.substring(idPos1, idPos2);
+        }catch (Exception e){
+            boolean b=false;
+        }
+
+        if (!productId.contains("-")){
+            productId=getFormatedId(productId);
+        }
+
         return productId;
     }
 
