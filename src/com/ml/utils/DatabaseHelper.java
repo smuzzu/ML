@@ -28,6 +28,7 @@ public class DatabaseHelper {
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
+    private static PreparedStatement globalSelectSellerName = null;
     private static PreparedStatement globalSelectLastQuestion = null;
     private static PreparedStatement globalSelectAllDaily = null;
     private static PreparedStatement globalSelectValidProductsOnDates = null;
@@ -1120,6 +1121,33 @@ public class DatabaseHelper {
         return totalSold;
     }
 
+    public static synchronized String fetchSellerName(String productId, String database) {
+        String sellerName="";
+        Connection connection = DatabaseHelper.getSelectConnection(database);
+        try{
+            if (globalSelectSellerName ==null) {
+                globalSelectSellerName = connection.prepareStatement("SELECT proveedor FROM public.productos WHERE id=?;");
+            }
+
+            globalSelectSellerName.setString(1,productId);
+
+            ResultSet rs = globalSelectSellerName.executeQuery();
+            if (rs==null){
+                Logger.log("Couldn't get seller name "+productId);
+                return sellerName;
+            }
+
+            if (rs.next()){
+                sellerName=rs.getString(1);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get total sold ii"+productId);
+        }
+        return sellerName;
+    }
+
+
     public static synchronized String fetchLastQuestion(String productId, String database) {
         String lastQuestion=null;
         Connection connection=DatabaseHelper.getSelectConnection(database);
@@ -1273,6 +1301,39 @@ public class DatabaseHelper {
         return result;
     }
 
+    public static ArrayList<String> getPossiblePausedProducts(String database, ArrayList<String> proccessedItemsArrayList, Date date) {
+        ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
+
+        String productId=null;
+        Connection selectConnection = DatabaseHelper.getSelectConnection(database);
+        try{
+            PreparedStatement globalSelectPossiblyPaused = null;
+            //option 1
+            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate<? and deshabilitado=false order by lastupdate");
+            globalSelectPossiblyPaused.setDate(1,date);
+
+            String msg="Buscando pausados en databasse"+" - "+ globalSelectPossiblyPaused.toString();
+            System.out.println(msg);
+            Logger.log(msg);
+
+            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
+            if (rs2==null){
+                Logger.log("Couldn't get Possibly Paused Products");
+                return null;
+            }
+
+            while (rs2.next()){
+                productId=rs2.getString(1);
+                if (!proccessedItemsArrayList.contains(productId)) {
+                    possiblyPausedProductList.add(productId);
+                }
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't get Possibly Paused Products II");
+            Logger.log(e);
+        }
+        return possiblyPausedProductList;
+    }
 
     public static void main(String[] args) {
         Product product = getProductFromCloud("MLA-831749248");

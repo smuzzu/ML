@@ -10,6 +10,7 @@ public class HTMLParseUtils {
 
     public static String OFICIAL_STORE_LABEL = "Tienda oficial de Mercado Libre";
     public static String PROFILE_BASE_URL = "https://perfil.mercadolibre.com.ar/";
+    public static String PROFILE_BASE_URL2 = "http://perfil.mercadolibre.com.ar/";
     public static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/";
     public static String QUESTIONS_BASE_URL = "https://articulo.mercadolibre.com.ar/noindex/questions/";
     public static String ARTICLE_PREFIX = "MLA";
@@ -49,17 +50,42 @@ public class HTMLParseUtils {
                 sellerPos1 += 7;
                 sellerPos2 = htmlStringFromProductPage.indexOf("<", sellerPos1);
                 seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+            }else {
+                sellerPos1=htmlStringFromProductPage.indexOf("ui-pdp-seller__header__title");
+                sellerPos1=htmlStringFromProductPage.indexOf(">",sellerPos1)+1;
+                sellerPos2=htmlStringFromProductPage.indexOf("<",sellerPos1);
+                seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+
             }
         } else {
             sellerPos1 = htmlStringFromProductPage.indexOf("reputation-info block");
+            if (sellerPos1==-1){
+                sellerPos1=htmlStringFromProductPage.indexOf("ui-pdp-seller__list-extra-info");
+            }
             if (sellerPos1 > 0) {
                 sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL,sellerPos1);
-                if (sellerPos1 > 0) {
+                if (sellerPos1>0){
                     sellerPos1 += 35;
-                    sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
-                    if (sellerPos2 > 0) {
-                        seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+                }else {
+                    sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL2,sellerPos1);
+                    if (sellerPos1 > 0){
+                        sellerPos1 += 34;
                     }
+                }
+                sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
+                if (sellerPos2 > 0) {
+                    seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+                }
+            }else {
+                sellerPos1=htmlStringFromProductPage.indexOf("Vendido por");
+                if (sellerPos1>0){
+                    sellerPos2=htmlStringFromProductPage.indexOf("</a>",sellerPos1);
+                    String sellerStr= htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
+                    sellerPos2=sellerStr.lastIndexOf("</span>");
+                    sellerStr=sellerStr.substring(0,sellerPos2);
+                    sellerPos1=sellerStr.lastIndexOf("<span");
+                    sellerPos1=sellerStr.indexOf(">",sellerPos1)+1;
+                    seller=sellerStr.substring(sellerPos1,sellerPos2);
                 }
             }
         }
@@ -72,6 +98,17 @@ public class HTMLParseUtils {
         }
         return seller;
 
+    }
+
+
+    public static String getFormatedId(String itemId) {
+        String formatedId= itemId.substring(0,3)+"-"+ itemId.substring(3);
+        return formatedId;
+    }
+
+    public static String getUnformattedId(String itemId) {
+        String formatedId= itemId.substring(0,3)+ itemId.substring(4);
+        return formatedId;
     }
 
     public static String unFormatSeller(String seller) {
@@ -87,26 +124,38 @@ public class HTMLParseUtils {
     public static int getTotalSold(String htmlStringFromProductPage, String productUrl) {
         int totalSold = 0;
         try {
-            int soldPos1 = htmlStringFromProductPage.indexOf("item-conditions\">") + 18;
-            if (soldPos1 > 18) {
-                int soldPos2 = htmlStringFromProductPage.indexOf("item-title", soldPos1);
-                if (soldPos2 > soldPos1) {
-                    String soldStr = htmlStringFromProductPage.substring(soldPos1, soldPos2);
-                    soldPos2 = soldStr.indexOf("vendido");
-                    if (soldPos2 == -1) {
-                        return 0;//no vendio
-                    }
-                    soldStr = soldStr.substring(0, soldPos2);
-                    soldPos1 = soldStr.lastIndexOf(">") + 1;
-                    if (soldPos1 < 1) {
-                        soldPos1 = soldStr.lastIndexOf(";") + 1;
-                    }
-                    soldStr = soldStr.substring(soldPos1);
-                    soldStr = soldStr.replaceAll("\\p{Cntrl}", "");
-                    soldStr = soldStr.trim();
-                    totalSold = Integer.parseInt(soldStr);
+            if (!htmlStringFromProductPage.contains("vendido")){
+                return 0;
+            }
+            String clossingTag="";
+            int soldPos1 = htmlStringFromProductPage.indexOf("item-conditions\">");
+            if (soldPos1>-1){
+                soldPos1+=18;
+                clossingTag="</div>";
+            }else {
+                soldPos1 = htmlStringFromProductPage.indexOf("ui-pdp-subtitle\">");
+                if (soldPos1>-1){
+                    soldPos1+=17;
+                    clossingTag="</span>";
+                }else {
+                    Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXX LA PUTA QUE TE PARIO ML ");
+                    Logger.log("No se pudo reconocer cantidad vendida en " + productUrl);
+                    return -1;
                 }
             }
+
+            int soldPos2 = htmlStringFromProductPage.indexOf(clossingTag, soldPos1);
+
+            String soldStr = htmlStringFromProductPage.substring(soldPos1, soldPos2);
+            soldPos2 = soldStr.indexOf("vendido");
+            if (soldPos2 == -1) {
+                return 0;//no vendio
+            }
+            soldStr = soldStr.substring(0, soldPos2);
+            //cualquier cosa que no es numero se elimina
+            soldStr=soldStr.replaceAll("[^\\d.]", "");
+            totalSold = Integer.parseInt(soldStr);
+
         } catch (Exception e) {
             String msg = "I couldn't get total sold on " + productUrl;
             System.out.println(msg);
@@ -325,9 +374,13 @@ public class HTMLParseUtils {
         String msg = null;
         int pos1 = htmlString.indexOf("item-title__primary");
         if (pos1 == -1) {
-            msg = "Cannot find title on " + url;
-            Logger.log(msg);
-            System.out.println(msg);
+            pos1 = htmlString.indexOf("ui-pdp-title");
+            if (pos1==-1){
+                msg = "Cannot find title on " + url;
+                Logger.log(msg);
+                System.out.println(msg);
+                return null;
+            }
         }
         pos1 = htmlString.indexOf(">", pos1);
         if (pos1 == -1) {

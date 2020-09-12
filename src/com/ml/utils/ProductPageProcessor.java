@@ -1,6 +1,7 @@
 package com.ml.utils;
 
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -10,10 +11,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ProductPageProcessor extends Thread {
 
     private String url;
+    private int sellerId;
+    private int page;
+    private int ranking;
     private boolean SAVE;
     private boolean DEBUG;
     private String DATABASE;
@@ -24,10 +29,13 @@ public class ProductPageProcessor extends Thread {
     static int TIMEOUT_MIN=10;
 
 
-    public ProductPageProcessor(String url, boolean SAVE, boolean DEBUG, String DATABASE, Date globalDate, boolean localRun){
+    public ProductPageProcessor(String url, int sellerId, int page, int ranking, boolean save, boolean debug, String DATABASE, Date globalDate, boolean localRun){
         this.url=url;
-        this.SAVE=SAVE;
-        this.DEBUG=DEBUG;
+        this.sellerId=sellerId;
+        this.page=page;
+        this.ranking=ranking;
+        this.SAVE=save;
+        this.DEBUG=debug;
         this.DATABASE=DATABASE;
         this.globalDate=globalDate;
         this.localRun=localRun;
@@ -41,7 +49,6 @@ public class ProductPageProcessor extends Thread {
         if (DEBUG) {
             Logger.log(msg);
         }
-        System.out.println(msg);
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
@@ -90,7 +97,7 @@ public class ProductPageProcessor extends Thread {
         }
 
         int previousTotalSold = DatabaseHelper.fetchTotalSold(productId, DATABASE);
-        if (totalSold>0 && totalSold != previousTotalSold) { //actualizar
+        if (totalSold != previousTotalSold) { //actualizar o agregar
             int newSold = totalSold - previousTotalSold;
 
             boolean officialStore=HTMLParseUtils.getOfficialStore(htmlString);
@@ -122,12 +129,20 @@ public class ProductPageProcessor extends Thread {
 
             Counters.incrementGlobalNewsCount();
 
-            msg = runnerID+" new sale. productID: " + productId + " quantity: " + newSold;
-            System.out.println(msg);
-            Logger.log(msg);
-
-            if (SAVE && !localRun) {
-                DatabaseHelper.updateProductAddActivity(DATABASE,false,globalDate,productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
+            if (previousTotalSold>0) { //actualizar
+                msg = runnerID+" new sale. productID: " + productId + " quantity: " + newSold;
+                System.out.println(msg);
+                Logger.log(msg);
+                if (SAVE && !localRun) {
+                    DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
+                }
+            }else {//nuevo registro. agregar
+                msg = runnerID+" new product " + newSold + " " + url;
+                System.out.println(msg);
+                Logger.log(msg);
+                if (SAVE && !localRun) {
+                    DatabaseHelper.insertProduct(DATABASE,false,globalDate,productId, seller, totalSold, lastQuestion, url, officialStore);
+                }
             }
 
         }
@@ -220,7 +235,7 @@ public class ProductPageProcessor extends Thread {
 
         Counters.initGlobalRunnerCount();
         for (String url:possiblyPausedProductList){
-            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, SAVE, DEBUG, database,globalDate,localRun);
+            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, 0, 0,0 ,SAVE, DEBUG, database,globalDate,localRun);
             threadArrayList.add(productPageProcessor);
             productPageProcessor.start();
             currentTime = System.currentTimeMillis();
@@ -261,8 +276,59 @@ public class ProductPageProcessor extends Thread {
         String DATABASE="ML2";
         boolean SAVE=true;
         boolean DEBUG=false;
+        HashMap<Integer,String> sellerIds=new HashMap<Integer, String>();
         Date globalDate= Date.valueOf("2019-08-21");
-        ProductPageProcessor.processPossiblyPausedProducts(DATABASE, globalDate,null,SAVE,DEBUG);
+//        ProductPageProcessor.processPossiblyPausedProducts(DATABASE, globalDate,null,SAVE,DEBUG);
+
+        Connection selectConnection = DatabaseHelper.getSelectConnection(DATABASE);
+        try{
+            PreparedStatement globalSelectPossiblyPaused = null;
+            //option 1
+
+            String START_FROM="MLA-768627928";
+
+            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT url,proveedor,tiendaoficial,idproducto FROM movimientos WHERE fecha='2020-09-08' and idproducto<'"+START_FROM+"' order by idproducto");
+
+            String msg="Buscando pausados en databasse"+" - "+ globalSelectPossiblyPaused.toString();
+            System.out.println(msg);
+            Logger.log(msg);
+
+            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
+            if (rs2==null){
+                System.out.println("Couldn't get Possibly Paused Products");
+            }
+
+            CloseableHttpClient client=HttpUtils.buildHttpClient();
+            while (rs2.next()) {
+                String proveedor = rs2.getString(2);
+                String idproducto = rs2.getString(4);
+                JSONObject productObj = HttpUtils.getJsonObjectWithoutToken("https://api.mercadolibre.com/items/" + HTMLParseUtils.getUnformattedId(idproducto), client, false);
+                int sellerID = productObj.getInt("seller_id");
+                String nickname = null;
+                if (sellerIds.containsKey(sellerID)) {
+                    nickname = sellerIds.get(sellerID);
+                } else{
+                    JSONObject sellerObj = HttpUtils.getJsonObjectWithoutToken("https://api.mercadolibre.com/users/" + sellerID, client, false);
+                    nickname = sellerObj.getString("nickname");
+                    sellerIds.put(sellerID,nickname);
+                }
+                if (nickname==null || nickname.isEmpty()){
+                    boolean kaka=true;
+                }
+                if (proveedor==null || !proveedor.equals(nickname)){
+                    String msg1 = "update movimientos set proveedor ='"+nickname+"' where idproducto='"+idproducto+"' and fecha='2020-09-08';";
+                    String msg2 = "update productos set proveedor ='"+nickname+"' where id='"+idproducto+"';";
+                    System.out.println(msg1);
+                    System.out.println(msg2);
+                    boolean kaka=true;
+                }
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't get Possibly Paused Products II");
+            Logger.log(e);
+        }
+
+
     }
 
 

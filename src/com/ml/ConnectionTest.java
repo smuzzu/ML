@@ -53,15 +53,15 @@ public class ConnectionTest {
 
 
     private static int isProxyAlive(CloseableHttpClient client ,String proxyStr){
-        //HttpGet httpGet = new HttpGet("https://www.mercadolibre.com.ar/");
-        HttpGet httpGet = new HttpGet("https://www.lanacion.com.ar/");
+        HttpGet httpGet = new HttpGet("https://www.mercadolibre.com.ar/");
+        //HttpGet httpGet = new HttpGet("https://www.lanacion.com.ar/");
 
         HttpHost proxyHost = HttpHost.create(proxyStr);
 
         RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(40000) //40 seconds in milliseconds
-                .setConnectionRequestTimeout(40000)
-                .setSocketTimeout(40000)
+                .setConnectTimeout(20000) //40 seconds in milliseconds
+                .setConnectionRequestTimeout(20000)
+                .setSocketTimeout(20000)
                 .setCookieSpec(CookieSpecs.STANDARD)
                 .setProxy(proxyHost)
                 .build();
@@ -132,12 +132,36 @@ public class ConnectionTest {
     private static  ArrayList<String> getProxies(){
         ArrayList<String> proxies = new ArrayList<String>();
 
-        proxies.add("81.201.60.130:80");
-        proxies.add("83.97.23.90:18080");
-        proxies.add("178.35.230.10:8080");
+
+/*
+        proxies.add("18.141.216.9:80");     //transparent
+        proxies.add("52.179.18.244:8080");
+        proxies.add("54.169.225.153:80");   //transparent
+        proxies.add("54.255.19.255:80");    //transparent
+        proxies.add("83.97.23.90:18080");   //high anonymous
+        proxies.add("95.174.67.50:18080");  //high anonymous
         proxies.add("179.228.138.152:3128");
-        //proxies.add("191.233.198.18:80");
         proxies.add("199.247.9.182:443");
+        proxies.add("213.174.89.7:3128");
+*/
+
+
+        //proxies.add("186.211.177.161:8082");
+        //proxies.add("125.177.124.73:80");
+        //proxies.add("191.241.39.42:3128");
+        proxies.add("199.247.9.182:443");
+        proxies.add("200.225.198.170:3128");
+        proxies.add("213.137.240.243:81");
+        //proxies.add("213.174.89.7:3128");
+        //proxies.add("34.80.14.167:3128");
+        proxies.add("45.79.225.183:3128");
+        //proxies.add("54.37.130.205:3128");
+        proxies.add("71.174.241.163:3128");
+        //proxies.add("77.94.245.73:8080");
+        proxies.add("78.96.125.24:3128");
+        proxies.add("85.214.244.174:3128");
+        proxies.add("91.214.179.24:8080");
+        proxies.add("94.251.95.94:81");
 
         return proxies;
     }

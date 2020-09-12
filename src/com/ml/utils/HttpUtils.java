@@ -27,8 +27,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class HttpUtils {
 
@@ -37,16 +47,35 @@ public class HttpUtils {
 
     private static int currentProxyNumber=0;
 
-    private static boolean PROXY_ENABLED=false;
-    private static String[] proxyList= new String[]{
-        "83.97.23.90:18080",
-        "178.35.230.10:8080",
-        "179.228.138.152:3128",
-        "191.233.198.18:80",
-        "199.247.9.182:443"
-    };
+    private static boolean PROXY_ENABLED=true;
+    private static long MIN_REQUEST_NANOS=4L*1000000000L;
+    //todo revisar stop1 y 2
+    private static long PROXY_REQUEST_NUMBER=200;
+    private static long PROXY_STOP1_SECONDS=60;
+    private static long PROXY_STOP2_SECONDS=60;
+
+    private static boolean proxyOn=false;//no tocar
+    private static String[] proxyList=null;
     static long requestCount=0;
     static long timeRequestCount=System.nanoTime();
+
+
+    private static void loadProxiesFromFile(){
+        String proxiesFile="C:\\centro\\proxyList.txt";
+        StringBuilder contentBuilder = new StringBuilder();
+        try (Stream<String> stream = Files.lines(Paths.get(proxiesFile), StandardCharsets.UTF_8)) {
+            stream.forEach(s -> contentBuilder.append(s).append("\n"));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        String proxiesListStr =  contentBuilder.toString();
+        String [] proxies = proxiesListStr.split("\n");
+        proxyList= Arrays.stream(proxies)
+                .filter(s -> s.contains("//")==false)
+                .toArray(String[]::new);
+    }
+
 
 
     synchronized private static String getProxy() {
@@ -208,11 +237,12 @@ public class HttpUtils {
         return jsonResponse;
     }
 
-    synchronized static long increaseRequestCount(boolean reset){
+    synchronized static long increaseOrResetRequestCountersAndProxy(boolean reset){
         requestCount++;
         if (reset){
             requestCount=0;
             timeRequestCount=System.nanoTime();
+            proxyOn=false;
         }
         return requestCount;
     }
@@ -229,14 +259,12 @@ public class HttpUtils {
         boolean retry = true;
         int statusCode = 0;
 
+        String proxy = null;
         while (retry && retries < 5) {
             retries++;
 
-            String proxy = "NO_PROXY";
-            if (PROXY_ENABLED) {
-                proxy = getProxy();
-                RequestConfig requestConfig = buildRequestConfig(proxy);
-                httpGet.setConfig(requestConfig);
+            if (!uRL.contains("api")) {
+                proxyAndPauseManagement(useProxy);
             }
 
             try {
@@ -247,7 +275,7 @@ public class HttpUtils {
                 Logger.log(e);
             }
 
-            long requestCount=increaseRequestCount(false);
+            long requestCount=increaseOrResetRequestCountersAndProxy(false);
             if (requestCount>=9000){
                 int eplapsedSeconds = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
                 int minSeconds=360;
@@ -262,13 +290,13 @@ public class HttpUtils {
                         } catch (InterruptedException e) {
                             Logger.log(e);
                         }
-                        requestCount=increaseRequestCount(false);
+                        requestCount=increaseOrResetRequestCountersAndProxy(false);
                         if (requestCount>=9000){
-                            increaseRequestCount(true);
+                            increaseOrResetRequestCountersAndProxy(true);
                         }
                     }
                 }else {
-                    increaseRequestCount(true);
+                    increaseOrResetRequestCountersAndProxy(true);
                 }
             }
 
@@ -285,7 +313,7 @@ public class HttpUtils {
                     if (statusCode!=420 && statusCode!=403) { //429=too many requests
                         retry = false;
                     } else {
-                        Logger.log("Http "+statusCode+" en getHTMLStringFromPage intento #" + retries + " " + uRL);
+                        Logger.log("Http "+statusCode+" en getHTMLStringFromPage intento #" + retries + " " + uRL+" whith proxy"+proxy);
                         //todo en el 403 hacemos algo?
                         int segundosQuePasaron = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
                         boolean b=false;
@@ -295,7 +323,11 @@ public class HttpUtils {
 
             if (retry) {
                 try {
-                    Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
+                    long pause=2000 * retries * retries;
+                    if (statusCode==403 && proxy==null){
+                        pause=2L*pause;
+                    }
+                    Thread.sleep(pause);//aguantamos los trapos 5 segundos antes de reintentar
                     } catch (InterruptedException e) {
                         Logger.log(e);
                     }
@@ -311,7 +343,7 @@ public class HttpUtils {
 
         if (statusCode != 200) {
             if ((DEBUG) || (statusCode != 404 && statusCode != 403)) {  //403 y 404 se loguea solo con debug
-                Logger.log("new status code " + statusCode + " " + uRL);
+                Logger.log("new status code " + statusCode + " " + uRL+" con proxy "+proxy);
             }
             return ""+statusCode+"|";
         }
@@ -343,6 +375,40 @@ public class HttpUtils {
         }
 
         return "nullORempty|";
+    }
+
+    private static void proxyAndPauseManagement(boolean useProxy) {
+        long eplapsedSeconds = (System.nanoTime() - timeRequestCount) / 1000000000L;
+        long requestCount = increaseOrResetRequestCountersAndProxy(false);
+        if (proxyOn){
+            if (eplapsedSeconds > PROXY_STOP2_SECONDS) {
+                increaseOrResetRequestCountersAndProxy(true);
+            }
+        }else {
+            if (requestCount >= PROXY_REQUEST_NUMBER) {
+                if (eplapsedSeconds < PROXY_STOP1_SECONDS) {
+                    if (PROXY_ENABLED && useProxy) {
+                        loadProxiesFromFile();
+                        proxyOn = true;
+                    } else {
+                        long pasuseMilliseconds = (PROXY_STOP2_SECONDS - eplapsedSeconds) * 1000L;
+                        System.out.println(PROXY_REQUEST_NUMBER+" transacciones en menos de "+PROXY_STOP1_SECONDS
+                                +" segundos. Aguantamos los trapos " + pasuseMilliseconds/1000 + " segundos ");
+                        try {
+                            Thread.sleep(pasuseMilliseconds);
+                        } catch (InterruptedException e) {
+                            Logger.log(e);
+                        }
+                        requestCount = increaseOrResetRequestCountersAndProxy(false);
+                        if (requestCount >= PROXY_REQUEST_NUMBER) {
+                            increaseOrResetRequestCountersAndProxy(true);
+                        }
+                    }
+                } else {
+                    increaseOrResetRequestCountersAndProxy(true);
+                }
+            }
+        }
     }
 
     public static boolean isOK(String hmlString){
