@@ -26,17 +26,21 @@ public class ReportRunner {
     static final int RESULTS_LIMIT = 10000;
 
     static int MAX_THREADS = 20;//14
-    static final boolean SAVE = false;
+    static final boolean SAVE = true;
     static final boolean DEBUG = false;
     static final int MINIMUM_SALES = 1;
     static final boolean FOLLOWING_DAY = false;
     static final boolean PREVIOUS_DAY = false;
+    static final boolean IGNORE_VISITS = false;
+
+    static final boolean REBUILD_INTERVALS = false;
+    static final int MAX_INTERVAL_SIZE = 800;
 
 
     static int requestCount = 0;
     static Date globalDate = null;
 
-    protected static ArrayList<Integer> buildIntervals(String url1, int maxItemsInRange, CloseableHttpClient client) {
+    protected static int[] buildIntervals(String url1, int maxItemsInRange, CloseableHttpClient client) {
         ArrayList<Integer> intervals = new ArrayList<Integer>();
         rebuildInterval(url1,0,Integer.MAX_VALUE,intervals,maxItemsInRange, client);
         Collections.sort(intervals);
@@ -61,7 +65,6 @@ public class ReportRunner {
 
         boolean itemRemoved=true;
         while (itemRemoved) {
-            itemRemoved=false;
             for (int i = 1; i < (intervals.size() - 1); i++) {
                 int since = intervals.get(i - 1) + 1;
                 int to = intervals.get(i + 1);
@@ -81,13 +84,36 @@ public class ReportRunner {
             removelist.clear();
         }
 
+        if (!intervals.contains(0)){
+            intervals.add(0);
+        }
+        Collections.sort(intervals);
+        if (!intervals.contains(Integer.MAX_VALUE)){
+            if (intervals.size()>1) {
+                intervals.remove(intervals.size()-1);//volamos el ultimo
+            }
+            intervals.add(Integer.MAX_VALUE);
+        }
+        Collections.sort(intervals);
 
-        for (int i = 0; i < intervals.size(); i++) {
-            System.out.print(intervals.get(i)+",");
+        int[] intArray = new int[intervals.size()];
+        for (int j=0; j < intArray.length; j++)
+        {
+            intArray[j] = intervals.get(j).intValue();
         }
 
 
-        for (int i = 1; 0 < intervals.size(); i++) {
+
+        String intervalStr=url1+" -> {";
+        for (int i = 0; i < intervals.size(); i++) {
+            intervalStr+=intervals.get(i)+",";
+        }
+        intervalStr=intervalStr.substring(0,intervalStr.length()-1)+"}";
+        System.out.println(intervalStr);
+        Logger.log(intervalStr);
+
+
+        for (int i = 1; i < intervals.size(); i++) {
             int since = intervals.get(i - 1) + 1;
             int to = intervals.get(i);
             String newurl = url1 + "&price=" + since + "-" + to;
@@ -95,13 +121,13 @@ public class ReportRunner {
             JSONObject pagingObject = itemListObject.getJSONObject("paging");
             int total = pagingObject.getInt("total");
             if (total >maxItemsInRange) {
-                System.out.println("XXXXXXXXXXXX "+since+"-"+to+" = " + total);
+                Logger.log("XXXXXXXXXXXX "+since+"-"+to+" = " + total);
             }else {
-                System.out.println(""+since+"-"+to+" = " + total);
+                Logger.log(""+since+"-"+to+" = " + total);
             }
 
         }
-        return intervals;
+        return intArray;
     }
 
     private static void rebuildInterval(String url, int since, int to, ArrayList<Integer> valuesArrayList,
@@ -248,6 +274,10 @@ public class ReportRunner {
                     JSONObject productObj = itemObject2.getJSONObject("body");
                     String id = productObj.getString("id");
                     Item item = itemHashMap.get(id);
+                    if (item==null){
+                        Logger.log("Item is nul.  Why? "+id);
+                        continue;
+                    }
                     boolean completed = completeItem(productObj, item);
                     if (!completed) {
                         itemHashMap.remove(id);
@@ -517,6 +547,16 @@ public class ReportRunner {
     }
 
     protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals, CloseableHttpClient client, String usuario, String DATABASE, boolean ONLY_RELEVANT) {
+        getGlobalDate(); //seteamos al principio de la corrida
+
+        if (REBUILD_INTERVALS){
+            System.out.println("Reconstruyendo intervalos...");
+            for (int i=0; i<apiBaseUrls.length; i++) {
+                intervals[i]=buildIntervals(apiBaseUrls[i],MAX_INTERVAL_SIZE, client);
+            }
+        }
+
+
         HashMap<String, Item> itemHashMap = new HashMap<String, Item> ();
         for (String webBaseUrl : webBaseUrls) {
             Logger.log("XXXXXXXXXXXXX Procesando nueava web url " + webBaseUrl);
@@ -542,7 +582,9 @@ public class ReportRunner {
         }
 
         Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
-        addPossiblePaused(itemHashMap, DATABASE);
+        if (!ONLY_RELEVANT) {
+            addPossiblePaused(itemHashMap, DATABASE);
+        }
 
         //removemos lo que no nos interesa o ya fue procesado
         Logger.log("XXXXXXXXXX Purgando items 1. itemHashMap=" + itemHashMap.size());
@@ -595,6 +637,10 @@ public class ReportRunner {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+
+        if (!IGNORE_VISITS) {
+            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
         }
     }
 

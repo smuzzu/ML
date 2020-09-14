@@ -96,6 +96,14 @@ public class ProductPageProcessor extends Thread {
             return;
         }
 
+        Date lastUpdate = DatabaseHelper.fetchLastUpdate(productId,DATABASE);
+        if (lastUpdate != null){
+            boolean sameDate = Counters.isSameDate(lastUpdate, this.globalDate);
+            if (sameDate){
+                return; //este ya lo hicimos
+            }
+        }
+
         int previousTotalSold = DatabaseHelper.fetchTotalSold(productId, DATABASE);
         if (totalSold != previousTotalSold) { //actualizar o agregar
             int newSold = totalSold - previousTotalSold;
