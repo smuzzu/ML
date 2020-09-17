@@ -280,54 +280,68 @@ public class ProductPageProcessor extends Thread {
 
 
 
-    public static void main(String[] args){
+        public static void main(String[] args){
 
-        String DATABASE="ML6";
+            String DATABASE="ML1";
+            boolean DEBUG=false;
 
-        String filename="sqls.txt";
+            Connection selectConnection = DatabaseHelper.getSelectConnection(DATABASE);
+            try{
+                String START_FROM="";
 
-        Connection selectConnection = DatabaseHelper.getSelectConnection(DATABASE);
-        try{
+                PreparedStatement globalSelect = selectConnection.prepareStatement("select url,id from productos where lastquestion like '%div%' and id>'"+START_FROM+"' order by id");
 
-            String START_FROM="";
+                CloseableHttpClient client=HttpUtils.buildHttpClient();
 
-            PreparedStatement globalSelect1 = selectConnection.prepareStatement("SELECT id,totalvendidos from productos where lastupdate = '2020-09-14' and id>'"+START_FROM+"'");
+                String msg="Buscando ultimas actualizaciones en databasse"+" - "+ globalSelect.toString();
+                System.out.println(msg);
+                Logger.log(msg);
 
-            PreparedStatement globalSelect2 = selectConnection.prepareStatement("SELECT id,totalvendidos from productos where id =? and lastupdate < '2020-09-14'");
-
-
-            ResultSet rs1 = globalSelect1.executeQuery();
-            if (rs1==null){
-                System.out.println("Couldn't products");
-            }
-
-            while (rs1.next()) {
-                String id = rs1.getString(1);
-                int totalvendidos = rs1.getInt(2);
-                String formattedId=HTMLParseUtils.getFormatedId(id);
-
-                globalSelect2.setString(1,formattedId);
-                ResultSet rs2 =globalSelect2.executeQuery();
+                ResultSet rs2 = globalSelect.executeQuery();
                 if (rs2==null){
-                    System.out.println("Couldn't product "+formattedId);
+                    System.out.println("Couldn't get Possibly Paused Products");
                 }
-                if (rs2.next()) {
-                    int totalvendidosOLD = rs2.getInt(2);
-                    Logger.writeOnFile(filename,"delete from productos where id='"+id+"';");
-                    Logger.writeOnFile(filename,"update productos set totalvendidos="+totalvendidos+", lastupdate = '2020-09-14' where id='"+formattedId+"';");
-                }else {
-                    Logger.writeOnFile(filename,"update productos set id='"+formattedId+"' where id='"+id+"';");
+
+                int count=0;
+                long min = 10;
+                long max = 100;
+                while (rs2.next()) {
+                    count++;
+                    String url = rs2.getString(1);
+                    String idproducto = rs2.getString(2);
+
+                    long time1=System.nanoTime();
+                    String htmlString = HttpUtils.getHTMLStringFromPage(url, client, DEBUG, true);
+                    long time2=System.nanoTime();
+                    long elapsed=(time2-time1)/1000000;
+                    long random = (long) (Math.random() * (max - min + 1) + min);
+                    long pause=2000-elapsed+random;
+
+
+                    if (HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
+                        String lastQustion = HTMLParseUtils.getLastQuestion(htmlString);
+                        String msg3="update productos set lastquestion='"+lastQustion+"' where id='"+idproducto+"';";
+                        Logger.writeOnFile("sqls.txt",msg3);
+                        System.out.println(msg3);
+                    }else {
+                        String msg1="No se pudo recuperar "+url;
+                        Logger.log(msg1);
+                        System.out.println(msg1);
+                    }
+
+                    if (count==25){
+                        client=HttpUtils.buildHttpClient();
+                        count=0;
+                    }
+
                 }
-                boolean b=false;
+            }catch(SQLException e){
+                Logger.log("Couldn't get Possibly Paused Products II");
+                Logger.log(e);
             }
-        }catch(SQLException e){
-            Logger.log("Couldn't get Possibly Paused Products II");
-            Logger.log(e);
+
+
         }
-
-
-    }
-
 
 
 }

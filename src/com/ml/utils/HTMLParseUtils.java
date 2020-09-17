@@ -177,10 +177,10 @@ public class HTMLParseUtils {
 
     public static String getLastQuestion(String htmlStringFromProductPage) {
         String lastQuestion = null;
-        int lastQuestionPos1 = htmlStringFromProductPage.indexOf("questions__content");
+        int lastQuestionPos1 = htmlStringFromProductPage.indexOf("list__question\">");
         if (lastQuestionPos1 > 0) {
-            lastQuestionPos1 = htmlStringFromProductPage.indexOf("p>", lastQuestionPos1) + 2;
-            int lastQuestionPos2 = htmlStringFromProductPage.indexOf("</p>", lastQuestionPos1);
+            lastQuestionPos1+=16;
+            int lastQuestionPos2 = htmlStringFromProductPage.indexOf("<", lastQuestionPos1);
             lastQuestion = htmlStringFromProductPage.substring(lastQuestionPos1, lastQuestionPos2);
             if (lastQuestion != null) {
                 lastQuestion = lastQuestion.trim();
