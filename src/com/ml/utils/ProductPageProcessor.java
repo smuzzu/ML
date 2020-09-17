@@ -289,7 +289,7 @@ public class ProductPageProcessor extends Thread {
             try{
                 String START_FROM="";
 
-                PreparedStatement globalSelect = selectConnection.prepareStatement("select url,id from productos where lastquestion like '%div%' and id>'"+START_FROM+"' order by id");
+                PreparedStatement globalSelect = selectConnection.prepareStatement("select url,id from productos where (lastquestion like '%div%' or lastquestion is null) and id>'"+START_FROM+"' order by id");
 
                 CloseableHttpClient client=HttpUtils.buildHttpClient();
 
@@ -320,6 +320,9 @@ public class ProductPageProcessor extends Thread {
 
                     if (HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
                         String lastQustion = HTMLParseUtils.getLastQuestion(htmlString);
+                        if (lastQustion==null){
+                            continue;
+                        }
                         String msg3="update productos set lastquestion='"+lastQustion+"' where id='"+idproducto+"';";
                         Logger.writeOnFile("sqls.txt",msg3);
                         System.out.println(msg3);

@@ -181,6 +181,11 @@ public class HTMLParseUtils {
         if (lastQuestionPos1 > 0) {
             lastQuestionPos1+=16;
             int lastQuestionPos2 = htmlStringFromProductPage.indexOf("<", lastQuestionPos1);
+            if (lastQuestionPos2==lastQuestionPos1){
+                lastQuestionPos2++;
+                lastQuestionPos1 = htmlStringFromProductPage.indexOf(">", lastQuestionPos2)+1;
+                lastQuestionPos2 = htmlStringFromProductPage.indexOf("<", lastQuestionPos2);
+            }
             lastQuestion = htmlStringFromProductPage.substring(lastQuestionPos1, lastQuestionPos2);
             if (lastQuestion != null) {
                 lastQuestion = lastQuestion.trim();
