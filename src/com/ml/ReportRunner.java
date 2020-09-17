@@ -30,7 +30,7 @@ public class ReportRunner {
     static final boolean DEBUG = false;
     static final int MINIMUM_SALES = 1;
     static final boolean FOLLOWING_DAY = false;
-    static final boolean PREVIOUS_DAY = false;
+    static final boolean PREVIOUS_DAY = true;
     static final boolean IGNORE_VISITS = false;
 
     static final boolean REBUILD_INTERVALS = false;
@@ -403,33 +403,29 @@ public class ReportRunner {
 
             ArrayList<String> productsURLArrayList = new ArrayList();
             for (String href : allHrefsOnPage) {
-                if (href.indexOf(HTMLParseUtils.ARTICLE_PREFIX) > 0 && href.indexOf("-_JM") > 0) {
-                    href = href.substring(href.indexOf("http"), href.indexOf("-_JM")) + "-_JM";
-                    if (!productsURLArrayList.contains(href)) {
-                        productsURLArrayList.add(href);
+                if (href.indexOf(HTMLParseUtils.ARTICLE_PREFIX) > 0 ){
+                    if (href.indexOf("-_JM") > 0) {
+                        href = href.substring(href.indexOf("http"), href.indexOf("-_JM")) + "-_JM";
+                        if (!productsURLArrayList.contains(href)) {
+                            productsURLArrayList.add(href);
+                        }
+                    }else {
+                        if (href.indexOf("/p/"+HTMLParseUtils.ARTICLE_PREFIX)>0){
+                            href = href.substring(href.indexOf("http"), href.indexOf("?"));
+                            if (!productsURLArrayList.contains(href)) {
+                                productsURLArrayList.add(href);
+                            }
+                        }
                     }
                 }
             }
             int productsOnPage = productsURLArrayList.size();
-            if (productsOnPage < 47) {//EL NUMERO ES 47 TODO VER QUE PASA CON LOS ITEMS QUE TIENEN URL DISTINTA
+            if (productsOnPage < ITEMS_PER_PAGE) {
                 processFinished = true;
             }
 
             for (String productUrl : productsURLArrayList) {
                 Counters.incrementGlobalProductCount();
-                Item item = null;
-                String productId = HTMLParseUtils.getProductIdFromURL(productUrl);
-                productId = productId.substring(0, 3) + productId.substring(4);
-                if (itemHashMap.containsKey(productId)) {
-                    item = itemHashMap.get(productId);
-                } else {
-                    item = new Item();
-                    item.id = productId;
-                    itemHashMap.put(productId, item);
-                }
-
-                item.page = page;
-                item.permalink = productUrl;
 
                 int initPoint = resultListHMTLData.indexOf(productUrl);
                 int nextPoint = resultListHMTLData.length();//just for the last item #48 o #50 depending on the page layout
@@ -445,6 +441,24 @@ public class ReportRunner {
                 if (productHTMLdata != null) {
                     productHTMLdata = productHTMLdata.toString(); //aca le sacamos los caracteres de control que impiden hacer los search dentro del string
                 }
+
+                Item item = null;
+                String productId = HTMLParseUtils.getProductIdFromHtmldata(productHTMLdata);
+                if (productId==null){
+                    String msg="No se pudo recuperar item ID \n"+uRL+"\n"+productUrl;
+                    continue;
+                }
+                if (itemHashMap.containsKey(productId)) {
+                    item = itemHashMap.get(productId);
+                } else {
+                    item = new Item();
+                    item.id = productId;
+                    itemHashMap.put(productId, item);
+                }
+
+                item.page = page;
+                item.permalink = productUrl;
+
 
                 item.title = HTMLParseUtils.getTitle2(productHTMLdata);
                 if (item.title != null) {
@@ -490,7 +504,11 @@ public class ReportRunner {
             item.title = productObj.getString("title");
         }
         if (item.price <= 0) {
-            item.price = productObj.getDouble("price");
+            if (productObj.has("price") && !productObj.isNull("price")) {
+                item.price = productObj.getDouble("price");
+            }else {
+                item.price=0.01;
+            }
         }
         if (item.discount < 0) {
             item.discount = 0;
@@ -581,8 +599,8 @@ public class ReportRunner {
             }
         }
 
-        Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
         if (!ONLY_RELEVANT) {
+            Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
             addPossiblePaused(itemHashMap, DATABASE);
         }
 
@@ -609,7 +627,7 @@ public class ReportRunner {
         for (Item item : itemHashMap.values()) {
 
 
-            ProductPageProcessor ppp = new ProductPageProcessor(item.permalink, item.sellerId, item.page, item.ranking, SAVE, DEBUG, DATABASE, getGlobalDate(), false);
+            ProductPageProcessor ppp = new ProductPageProcessor(item.permalink, item.id, item.sellerId, item.page, item.ranking, SAVE, DEBUG, DATABASE, getGlobalDate(), false);
             threadArrayList.add(ppp);
             ppp.start();
 
@@ -677,7 +695,11 @@ public class ReportRunner {
                 jsonObject = HttpUtils.getJsonObjectUsingToken(apiSearchUrl, client, usuario);
             }
             requestCount++;
-
+            if (jsonObject == null) {
+                String msg = "No se pudo recuperar el item " + apiSearchUrl;
+                Logger.log(msg);
+                return;
+            }
             JSONArray resultsArray = jsonObject.getJSONArray("results");
             for (int i = 0; i < resultsArray.length(); i++) {
                 JSONObject productObj = resultsArray.getJSONObject(i);

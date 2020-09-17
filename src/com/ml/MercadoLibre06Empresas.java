@@ -851,7 +851,7 @@ public class MercadoLibre06Empresas extends Thread {
                                         String lastQuestion = HTMLParseUtils.getLastQuestion(htmlStringFromProductPage);
 
                                         String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId, DATABASE);
-                                        ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(productUrl, httpClient, runnerID, DEBUG, previousLastQuestion);
+                                        ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(productUrl, productId, httpClient, runnerID, DEBUG, previousLastQuestion);
                                         int newQuestions = newQuestionsList.size();
 
                                         Counters.incrementGlobalNewsCount();

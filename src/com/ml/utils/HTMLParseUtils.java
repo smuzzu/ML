@@ -124,9 +124,11 @@ public class HTMLParseUtils {
     public static int getTotalSold(String htmlStringFromProductPage, String productUrl) {
         int totalSold = 0;
         try {
-            if (!htmlStringFromProductPage.contains("vendido")){
+            if (!htmlStringFromProductPage.contains("vendido")
+                    && !htmlStringFromProductPage.contains("contrataci")){ //servicios
                 return 0;
             }
+            String vendidoStr="vendido";
             String clossingTag="";
             int soldPos1 = htmlStringFromProductPage.indexOf("item-conditions\">");
             if (soldPos1>-1){
@@ -138,16 +140,23 @@ public class HTMLParseUtils {
                     soldPos1+=17;
                     clossingTag="</span>";
                 }else {
-                    Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXX LA PUTA QUE TE PARIO ML ");
-                    Logger.log("No se pudo reconocer cantidad vendida en " + productUrl);
-                    return -1;
+                    soldPos1 = htmlStringFromProductPage.indexOf("vip-classified-info\">");
+                    if (soldPos1>-1){
+                        soldPos1+=21;
+                        clossingTag="</article>";
+                        vendidoStr="contratac";
+                    }else {
+                        Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXX LA PUTA QUE TE PARIO ML ");
+                        Logger.log("No se pudo reconocer cantidad vendida en " + productUrl);
+                        return -1;
+                    }
                 }
             }
 
             int soldPos2 = htmlStringFromProductPage.indexOf(clossingTag, soldPos1);
 
             String soldStr = htmlStringFromProductPage.substring(soldPos1, soldPos2);
-            soldPos2 = soldStr.indexOf("vendido");
+            soldPos2 = soldStr.indexOf(vendidoStr);
             if (soldPos2 == -1) {
                 return 0;//no vendio
             }
@@ -219,8 +228,7 @@ public class HTMLParseUtils {
         return premium;
     }
 
-    public static String getQuestionsURL(String productUrl) {
-        String productId = HTMLParseUtils.getProductIdFromURL(productUrl);
+    public static String getQuestionsURL(String productId) {
         String questionsURL = QUESTIONS_BASE_URL + ARTICLE_PREFIX + productId.substring(4);
         return questionsURL;
     }
@@ -245,6 +253,28 @@ public class HTMLParseUtils {
 
         return productId;
     }
+
+
+    public static String getProductIdFromHtmldata(String htmlData) {
+        String productId = null;
+        int pos1 = htmlData.indexOf("itemId");
+        if (pos1>0){
+            pos1=htmlData.indexOf("value=\"",pos1);
+            if (pos1>0){
+                pos1+=7;
+                int pos2=htmlData.indexOf("\"",pos1);
+                if (pos2>0) {
+                    productId = htmlData.substring(pos1, pos2);
+                }
+            }
+        }
+        if (productId==null){
+            String msg="no se pudo recuperar item id \n"+htmlData.substring(0,200)+"...";
+            Logger.log(msg);
+        }
+        return productId;
+    }
+
 
 
     public static int getDiscount(String htmlString, String url) {
@@ -291,6 +321,9 @@ public class HTMLParseUtils {
     }
 
     public static double getPrice(String htmlString, String url) {
+        if (htmlString.indexOf("Precio a convenir") >0){
+            return 0.01; //servicio
+        }
         int pricePos1 = htmlString.indexOf("price-tag-fraction\">") + 20;
         int pricePos2 = htmlString.indexOf("<", pricePos1);
         String priceStr = htmlString.substring(pricePos1, pricePos2);
@@ -472,7 +505,14 @@ public class HTMLParseUtils {
         if (pricePos1>0){
             pricePos1+=17;
         }else { //hacemos esto porque hay productos con tags distintos
-            pricePos1 = productHTMLdata.indexOf("price-tag-fraction\">") + 20;
+            pricePos1 = productHTMLdata.indexOf("price-tag-fraction\">");
+            if (pricePos1>0){
+                pricePos1+=20;
+            } else  {
+                if (productHTMLdata.indexOf("Precio a convenir") >0){
+                    return 0.01; //servicio
+                }
+            }
         }
         int pricePos2 = productHTMLdata.indexOf("<", pricePos1);
         String priceStr = productHTMLdata.substring(pricePos1, pricePos2);

@@ -264,7 +264,7 @@ public class HttpUtils {
             retries++;
 
             if (!uRL.contains("api")) {
-                proxyAndPauseManagement(useProxy);
+                proxyAndPauseManagement(useProxy,httpGet);
             }
 
             try {
@@ -377,13 +377,16 @@ public class HttpUtils {
         return "nullORempty|";
     }
 
-    private static void proxyAndPauseManagement(boolean useProxy) {
+    private static void proxyAndPauseManagement(boolean useProxy,HttpGet httpGet) {
         long eplapsedSeconds = (System.nanoTime() - timeRequestCount) / 1000000000L;
         long requestCount = increaseOrResetRequestCountersAndProxy(false);
         if (proxyOn){
             if (eplapsedSeconds > PROXY_STOP2_SECONDS) {
                 increaseOrResetRequestCountersAndProxy(true);
             }
+            String proxy=getProxy();
+            RequestConfig requestConfig=buildRequestConfig(proxy);
+            httpGet.setConfig(requestConfig);
         }else {
             if (requestCount >= PROXY_REQUEST_NUMBER) {
                 if (eplapsedSeconds < PROXY_STOP1_SECONDS) {
@@ -617,10 +620,10 @@ public class HttpUtils {
         return false;
     }
 
-    public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
+    public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, String productId, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
-        String questionsURL = HTMLParseUtils.getQuestionsURL(uRL);
+        String questionsURL = HTMLParseUtils.getQuestionsURL(productId);
         String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, false);
         if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red

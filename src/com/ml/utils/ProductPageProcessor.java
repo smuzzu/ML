@@ -1,7 +1,6 @@
 package com.ml.utils;
 
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -17,6 +16,7 @@ public class ProductPageProcessor extends Thread {
 
     private String url;
     private int sellerId;
+    private String productId;
     private int page;
     private int ranking;
     private boolean SAVE;
@@ -29,8 +29,9 @@ public class ProductPageProcessor extends Thread {
     static int TIMEOUT_MIN=10;
 
 
-    public ProductPageProcessor(String url, int sellerId, int page, int ranking, boolean save, boolean debug, String DATABASE, Date globalDate, boolean localRun){
+    public ProductPageProcessor(String url, String productId, int sellerId, int page, int ranking, boolean save, boolean debug, String DATABASE, Date globalDate, boolean localRun){
         this.url=url;
+        this.productId=productId;
         this.sellerId=sellerId;
         this.page=page;
         this.ranking=ranking;
@@ -74,7 +75,7 @@ public class ProductPageProcessor extends Thread {
 
         boolean disable=false;
         int totalSold=0;
-        String productId = HTMLParseUtils.getProductIdFromURL(url);
+        String productId = HTMLParseUtils.getFormatedId(this.productId);
         if (!HttpUtils.isOK(htmlString)) {
             Logger.log(htmlString); // todo sacar
             disable=true;
@@ -115,7 +116,7 @@ public class ProductPageProcessor extends Thread {
             String lastQuestion=HTMLParseUtils.getLastQuestion(htmlString);
 
             String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId,DATABASE);
-            ArrayList<String> newQuestionsList= HttpUtils.getNewQuestionsFromPreviousLastQuestion(url,httpClient,runnerID,DEBUG,previousLastQuestion);
+            ArrayList<String> newQuestionsList= HttpUtils.getNewQuestionsFromPreviousLastQuestion(url,productId,httpClient,runnerID,DEBUG,previousLastQuestion);
             int newQuestions = newQuestionsList.size();
 
             String title=HTMLParseUtils.getTitle(htmlString,url);
@@ -243,7 +244,7 @@ public class ProductPageProcessor extends Thread {
 
         Counters.initGlobalRunnerCount();
         for (String url:possiblyPausedProductList){
-            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, 0, 0,0 ,SAVE, DEBUG, database,globalDate,localRun);
+            ProductPageProcessor productPageProcessor = new ProductPageProcessor(url, productId,0, 0,0 ,SAVE, DEBUG, database,globalDate,localRun);
             threadArrayList.add(productPageProcessor);
             productPageProcessor.start();
             currentTime = System.currentTimeMillis();
@@ -281,55 +282,43 @@ public class ProductPageProcessor extends Thread {
 
     public static void main(String[] args){
 
-        String DATABASE="ML2";
-        boolean SAVE=true;
-        boolean DEBUG=false;
-        HashMap<Integer,String> sellerIds=new HashMap<Integer, String>();
-        Date globalDate= Date.valueOf("2019-08-21");
-//        ProductPageProcessor.processPossiblyPausedProducts(DATABASE, globalDate,null,SAVE,DEBUG);
+        String DATABASE="ML6";
+
+        String filename="sqls.txt";
 
         Connection selectConnection = DatabaseHelper.getSelectConnection(DATABASE);
         try{
-            PreparedStatement globalSelectPossiblyPaused = null;
-            //option 1
 
-            String START_FROM="MLA-768627928";
+            String START_FROM="";
 
-            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT url,proveedor,tiendaoficial,idproducto FROM movimientos WHERE fecha='2020-09-08' and idproducto<'"+START_FROM+"' order by idproducto");
+            PreparedStatement globalSelect1 = selectConnection.prepareStatement("SELECT id,totalvendidos from productos where lastupdate = '2020-09-14' and id>'"+START_FROM+"'");
 
-            String msg="Buscando pausados en databasse"+" - "+ globalSelectPossiblyPaused.toString();
-            System.out.println(msg);
-            Logger.log(msg);
+            PreparedStatement globalSelect2 = selectConnection.prepareStatement("SELECT id,totalvendidos from productos where id =? and lastupdate < '2020-09-14'");
 
-            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
-            if (rs2==null){
-                System.out.println("Couldn't get Possibly Paused Products");
+
+            ResultSet rs1 = globalSelect1.executeQuery();
+            if (rs1==null){
+                System.out.println("Couldn't products");
             }
 
-            CloseableHttpClient client=HttpUtils.buildHttpClient();
-            while (rs2.next()) {
-                String proveedor = rs2.getString(2);
-                String idproducto = rs2.getString(4);
-                JSONObject productObj = HttpUtils.getJsonObjectWithoutToken("https://api.mercadolibre.com/items/" + HTMLParseUtils.getUnformattedId(idproducto), client, false);
-                int sellerID = productObj.getInt("seller_id");
-                String nickname = null;
-                if (sellerIds.containsKey(sellerID)) {
-                    nickname = sellerIds.get(sellerID);
-                } else{
-                    JSONObject sellerObj = HttpUtils.getJsonObjectWithoutToken("https://api.mercadolibre.com/users/" + sellerID, client, false);
-                    nickname = sellerObj.getString("nickname");
-                    sellerIds.put(sellerID,nickname);
+            while (rs1.next()) {
+                String id = rs1.getString(1);
+                int totalvendidos = rs1.getInt(2);
+                String formattedId=HTMLParseUtils.getFormatedId(id);
+
+                globalSelect2.setString(1,formattedId);
+                ResultSet rs2 =globalSelect2.executeQuery();
+                if (rs2==null){
+                    System.out.println("Couldn't product "+formattedId);
                 }
-                if (nickname==null || nickname.isEmpty()){
-                    boolean kaka=true;
+                if (rs2.next()) {
+                    int totalvendidosOLD = rs2.getInt(2);
+                    Logger.writeOnFile(filename,"delete from productos where id='"+id+"';");
+                    Logger.writeOnFile(filename,"update productos set totalvendidos="+totalvendidos+", lastupdate = '2020-09-14' where id='"+formattedId+"';");
+                }else {
+                    Logger.writeOnFile(filename,"update productos set id='"+formattedId+"' where id='"+id+"';");
                 }
-                if (proveedor==null || !proveedor.equals(nickname)){
-                    String msg1 = "update movimientos set proveedor ='"+nickname+"' where idproducto='"+idproducto+"' and fecha='2020-09-08';";
-                    String msg2 = "update productos set proveedor ='"+nickname+"' where id='"+idproducto+"';";
-                    System.out.println(msg1);
-                    System.out.println(msg2);
-                    boolean kaka=true;
-                }
+                boolean b=false;
             }
         }catch(SQLException e){
             Logger.log("Couldn't get Possibly Paused Products II");

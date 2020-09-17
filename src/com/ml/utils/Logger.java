@@ -15,6 +15,7 @@ import java.util.Calendar;
 public class Logger {
 
     private static BufferedWriter globalLogger = null;
+    private static BufferedWriter globalFile = null;
     private static DateFormat globalDateformat = null;
 
     private static BufferedWriter getLogger() {
@@ -70,5 +71,47 @@ public class Logger {
     public static void log(Throwable throwable) {
         log(ExceptionUtils.getStackTrace(throwable));
     }
+
+
+    private static BufferedWriter getFileWriter(String fileName) {
+        if (globalFile == null) {
+            File file = new File(fileName);
+            FileWriter fileWriter = null;
+            if (file.exists()) {
+                try {
+                    fileWriter = new FileWriter(file, true);//if file exists append to file. Works fine.
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                try {
+                    file.createNewFile();
+                    fileWriter = new FileWriter(file);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            try {
+                globalFile = new BufferedWriter(fileWriter);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return globalFile;
+    }
+
+    public static synchronized void writeOnFile(String fileName, String str) {
+        try {
+            BufferedWriter log = getFileWriter(fileName);
+            log.write(str + "\n");
+            log.newLine();
+            log.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
 }
