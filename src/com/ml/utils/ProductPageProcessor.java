@@ -287,7 +287,7 @@ public class ProductPageProcessor extends Thread {
 
             Connection selectConnection = DatabaseHelper.getSelectConnection(DATABASE);
             try{
-                String START_FROM="";
+                String START_FROM="MLA-607052690";
 
                 PreparedStatement globalSelect = selectConnection.prepareStatement("select url,id from productos where (lastquestion like '%div%' or lastquestion is null) and id>'"+START_FROM+"' order by id");
 
@@ -304,9 +304,20 @@ public class ProductPageProcessor extends Thread {
 
                 int count=0;
                 long min = 10;
-                long max = 100;
+                long max = 50;
                 while (rs2.next()) {
                     count++;
+                    if (count==25){
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            Logger.log(e);
+                        }
+                        client=HttpUtils.buildHttpClient();
+                        count=0;
+                    }
+
+
                     String url = rs2.getString(1);
                     String idproducto = rs2.getString(2);
 
@@ -317,25 +328,23 @@ public class ProductPageProcessor extends Thread {
                     long random = (long) (Math.random() * (max - min + 1) + min);
                     long pause=2000-elapsed+random;
 
+                    try {
+                        Thread.sleep(random);
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
 
-                    if (HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
-                        String lastQustion = HTMLParseUtils.getLastQuestion(htmlString);
-                        if (lastQustion==null){
-                            continue;
-                        }
-                        String msg3="update productos set lastquestion='"+lastQustion+"' where id='"+idproducto+"';";
-                        Logger.writeOnFile("sqls.txt",msg3);
-                        System.out.println(msg3);
-                    }else {
+
+                    String lastQustion = HTMLParseUtils.getLastQuestion(htmlString);
+                    if (lastQustion==null){
                         String msg1="No se pudo recuperar "+url;
                         Logger.log(msg1);
                         System.out.println(msg1);
+                        continue;
                     }
-
-                    if (count==25){
-                        client=HttpUtils.buildHttpClient();
-                        count=0;
-                    }
+                    String msg3="update productos set lastquestion='"+lastQustion+"' where id='"+idproducto+"';";
+                    Logger.writeOnFile("sqls.txt",msg3);
+                    System.out.println(msg3);
 
                 }
             }catch(SQLException e){
