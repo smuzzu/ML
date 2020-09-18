@@ -635,7 +635,8 @@ public class MessagesAndSalesHelper {
                             order.shippingType = Order.FLEX;
                         } else {
                             if (order.shippingOptionNameDescription.contains("ormal a domicilio") ||//Normal a domicilio
-                                    order.shippingOptionNameDescription.equals("Prioritario a domicilio")) {
+                                    order.shippingOptionNameDescription.equals("Prioritario a domicilio") ||
+                                    order.shippingOptionNameDescription.contains("ndar a domicilio")) { //Estándar a domicilio
                                 order.shippingType = Order.CORREO_A_DOMICILIO;
                             } else {
                                 if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
