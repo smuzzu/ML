@@ -471,12 +471,12 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, int totalSold, String latestquestion, String url, boolean officialStore) {
+    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, int sellerId, int totalSold, String latestquestion, String url, boolean officialStore) {
 
         try{
             if (globalInsertProduct ==null) {
                 Connection connection= DatabaseHelper.getAddProductConnection(database);
-                globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, url, tiendaoficial) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, url, tiendaoficial, idproveedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
             }
 
             globalInsertProduct.setString(1,idProduct);
@@ -487,6 +487,7 @@ public class DatabaseHelper {
             globalInsertProduct.setInt(6,totalSold);
             globalInsertProduct.setString(7,url);
             globalInsertProduct.setBoolean(8,officialStore);
+            globalInsertProduct.setInt(9,sellerId);
 
             int registrosInsertados = globalInsertProduct.executeUpdate();
 

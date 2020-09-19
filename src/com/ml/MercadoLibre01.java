@@ -518,7 +518,7 @@ public class MercadoLibre01  extends Thread {
                                 Logger.log(msg);
 
                                 if (SAVE) {
-                                    DatabaseHelper.insertProduct(DATABASE,getGlobalDate(),productId, seller, totalSold, lastQuestion, productUrl, officialStore);
+                                    DatabaseHelper.insertProduct(DATABASE,getGlobalDate(),productId, seller, -1,  totalSold, lastQuestion, productUrl, officialStore);
                                 }
                             }
                         }

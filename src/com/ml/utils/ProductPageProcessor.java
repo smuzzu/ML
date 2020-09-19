@@ -150,7 +150,7 @@ public class ProductPageProcessor extends Thread {
                 System.out.println(msg);
                 Logger.log(msg);
                 if (SAVE && !localRun) {
-                    DatabaseHelper.insertProduct(DATABASE,globalDate,productId, seller, totalSold, lastQuestion, url, officialStore);
+                    DatabaseHelper.insertProduct(DATABASE,globalDate,productId, seller, sellerId, totalSold, lastQuestion, url, officialStore);
                 }
             }
 
