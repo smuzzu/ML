@@ -143,14 +143,14 @@ public class ProductPageProcessor extends Thread {
                 System.out.println(msg);
                 Logger.log(msg);
                 if (SAVE && !localRun) {
-                    DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, 0, shipping, discount, premium);
+                    DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, page, ranking, shipping, discount, premium);
                 }
             }else {//nuevo registro. agregar
                 msg = runnerID+" new product " + newSold + " " + url;
                 System.out.println(msg);
                 Logger.log(msg);
                 if (SAVE && !localRun) {
-                    DatabaseHelper.insertProduct(DATABASE,false,globalDate,productId, seller, totalSold, lastQuestion, url, officialStore);
+                    DatabaseHelper.insertProduct(DATABASE,globalDate,productId, seller, totalSold, lastQuestion, url, officialStore);
                 }
             }
 

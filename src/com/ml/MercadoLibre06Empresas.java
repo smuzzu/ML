@@ -861,7 +861,7 @@ public class MercadoLibre06Empresas extends Thread {
                                         Logger.log(msg);
 
                                         if (SAVE) {
-                                            DatabaseHelper.updateProductAddActivity(DATABASE, OVERRIDE_TODAYS_RUN, getGlobalDate(), productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, shipping, discount, premium);
+                                            DatabaseHelper.updateProductAddActivity(DATABASE, OVERRIDE_TODAYS_RUN, getGlobalDate(), productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, 0, shipping, discount, premium);
                                         }
                                     } else {//no vendió esta semana
                                         addProcesedProductToList(productId);
@@ -883,7 +883,7 @@ public class MercadoLibre06Empresas extends Thread {
                             Logger.log(msg);
 
                             if (SAVE) {
-                                DatabaseHelper.insertProduct(DATABASE, OVERRIDE_TODAYS_RUN, getGlobalDate(), productId, seller, totalSold, lastQuestion, productUrl, officialStore);
+                                DatabaseHelper.insertProduct(DATABASE, getGlobalDate(), productId, seller, totalSold, lastQuestion, productUrl, officialStore);
                             }
                         }
                     }

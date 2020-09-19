@@ -387,7 +387,7 @@ public class DatabaseHelper {
 
 /***************************************************************************************************/
 
-    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate, String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int shipping, int discount, boolean premium) {
+    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate, String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int ranking, int shipping, int discount, boolean premium) {
         Connection connection = getAddActivityConnection(database);
         try{
             if (globalUpdateProduct ==null) {
@@ -421,7 +421,7 @@ public class DatabaseHelper {
             }
 
             if (globalInsertActivity ==null){
-                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium, ranking) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);");
             }
 
             globalInsertActivity.setDate(1,globalDate);
@@ -441,6 +441,7 @@ public class DatabaseHelper {
             globalInsertActivity.setInt(14,shipping);
             globalInsertActivity.setInt(15,discount);
             globalInsertActivity.setBoolean(16,premium);
+            globalInsertActivity.setInt(17,ranking);
 
             insertedRecords = globalInsertActivity.executeUpdate();
             if (insertedRecords!=1){
@@ -470,7 +471,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertProduct(String database, boolean overrideTodaysRun, Date globalDate,String idProduct, String seller, int totalSold, String latestquestion, String url, boolean officialStore) {
+    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, int totalSold, String latestquestion, String url, boolean officialStore) {
 
         try{
             if (globalInsertProduct ==null) {
