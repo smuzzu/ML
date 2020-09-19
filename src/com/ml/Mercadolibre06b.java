@@ -399,6 +399,14 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=265586075",  //LAMARINA.
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=168573716",  //MADERERALLAVALLOLSA
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=87052493",   //MUNDOCIMA
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=7477051",    //HERRAJES-ARGENTINOS
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=75471238",   //HERRAJES-ARGENTINOS-BALLESTER
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=355221540",  //HERRAJES OLIVER
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=141299067",  //HERRAJESSOIFER
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=323780517",  //HOME.MARKET
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=22579885",   //KEUKEN HERRAJES
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=577706727",  //REALHERRAJES
+
 
             //hafele + frank otros
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=92758705",   //AUTO_UNO_CASEROS
@@ -414,6 +422,7 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=357639575",  //HERRAPEI
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=163421387",  //HT+HERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=172619074",  //LUCIAZAFFRANI
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=209025171",  //AMOBLAMIENTOS INTEVIL
 
 
             //alfombreros
@@ -690,6 +699,13 @@ public class Mercadolibre06b {
             {0, 2147483647}, //LAMARINA.
             {0, 2147483647}, //MADERERALLAVALLOLSA
             {0, 2147483647}, //MUNDOCIMA
+            {0, 2147483647}, //HERRAJES-ARGENTINOS
+            {0, 2147483647}, //HERRAJES-ARGENTINOS-BALLESTER
+            {0, 2147483647}, //HERRAJES OLIVER
+            {0, 2147483647}, //HERRAJESSOIFER
+            {0, 2147483647}, //HOME.MARKET
+            {0, 2147483647}, //KEUKEN HERRAJES
+            {0, 2147483647}, //REALHERRAJES
 
             //hafele + frank otros
             {0, 2147483647}, //AUTO_UNO_CASEROS
@@ -705,6 +721,7 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HERRAPEI"
             {0, 2147483647}, //HT+HERRAJES
             {0, 2147483647}, //LUCIAZAFFRANI
+            {0, 2147483647}, //AMOBLAMIENTOS INTEVIL
 
             //alfombreros
             {0, 2147483647}, //ABELEDOJAVIER
@@ -782,6 +799,18 @@ public class Mercadolibre06b {
     public static void main(String[] args) {
 
 
+        /* version reducida para pruebas
+
+        String[] webBaseUrls1=new String[]{webBaseUrls[6]};
+        webBaseUrls=webBaseUrls1;
+
+        String[] apiBaseUrls1=new String[]{apiBaseUrls[6]};
+        apiBaseUrls=apiBaseUrls1;
+
+        int[][] intervals1=new int[][]{intervals[6]};
+        intervals=intervals1;
+        */
+
         for (int i = 0; i < intervals.length; i++) { //validacion de intervalos
             for (int j = 1; j < intervals[i].length; j++) {
                 if (intervals[i][j - 1] >= intervals[i][j]) {
@@ -792,7 +821,7 @@ public class Mercadolibre06b {
         }
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
-        HashMap<String, Item> itemHashMap = new HashMap<String, Item>();
+
         String usuario = "SOMOS_MAS";
 
         ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT);
@@ -803,10 +832,6 @@ public class Mercadolibre06b {
                 + Counters.getGlobalNewsCount() + " productos con novedades";
         System.out.println(msg);
         Logger.log(msg);
-
-        boolean b = false;
-
-
 
     }
 

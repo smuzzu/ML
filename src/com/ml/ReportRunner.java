@@ -25,7 +25,7 @@ public class ReportRunner {
     static final int RESULTS_WITHOUT_TOKEN = 1000;
     static final int RESULTS_LIMIT = 10000;
 
-    static int MAX_THREADS = 20;//14
+    static int MAX_THREADS = 50;//14
     static final boolean SAVE = true;
     static final boolean DEBUG = false;
     static final int MINIMUM_SALES = 1;

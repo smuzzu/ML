@@ -248,6 +248,16 @@ public class HttpUtils {
     }
 
 
+    synchronized static void rebuildClient(CloseableHttpClient client){
+        requestCount++;
+        if (requestCount>=40){
+            requestCount=0;
+            client=buildHttpClient();
+            System.out.println("Rebuiding Client");
+        }
+    }
+
+
     public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy) {
 
         HttpGet httpGet = new HttpGet(uRL);
@@ -263,9 +273,7 @@ public class HttpUtils {
         while (retry && retries < 5) {
             retries++;
 
-            if (!uRL.contains("api")) {
-                proxyAndPauseManagement(useProxy,httpGet);
-            }
+            rebuildClient(client);
 
             try {
                 response = client.execute(httpGet, context);
@@ -274,37 +282,6 @@ public class HttpUtils {
                 Logger.log("Error en getHTMLStringFromPage intento #" + retries + " " + uRL+ " con proxy "+proxy);
                 Logger.log(e);
             }
-
-            long requestCount=increaseOrResetRequestCountersAndProxy(false);
-            if (requestCount>=9000){
-                int eplapsedSeconds = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
-                int minSeconds=360;
-                if (eplapsedSeconds<minSeconds) {
-                    if (PROXY_ENABLED && useProxy) {
-
-                    } else {
-                        long pasuseMilliseconds = (minSeconds - eplapsedSeconds) * 2 *  1000L;
-                        System.out.println("Aguantamos los trapos " + pasuseMilliseconds + " milisegundos ");
-                        try {
-                            Thread.sleep(pasuseMilliseconds);
-                        } catch (InterruptedException e) {
-                            Logger.log(e);
-                        }
-                        requestCount=increaseOrResetRequestCountersAndProxy(false);
-                        if (requestCount>=9000){
-                            increaseOrResetRequestCountersAndProxy(true);
-                        }
-                    }
-                }else {
-                    increaseOrResetRequestCountersAndProxy(true);
-                }
-            }
-
-
-
-
-
-
 
             if (response != null) {
                 StatusLine statusline = response.getStatusLine();
