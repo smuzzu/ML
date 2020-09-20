@@ -253,7 +253,6 @@ public class HttpUtils {
         if (requestCount>=40){
             requestCount=0;
             client=buildHttpClient();
-            System.out.println("Rebuiding Client");
         }
     }
 
