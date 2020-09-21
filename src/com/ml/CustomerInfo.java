@@ -1,7 +1,7 @@
 package com.ml;
 
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Message;
+import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,18 +15,45 @@ public class CustomerInfo {
 
     static int RESULTS_WITHOUT_TOKEN=1000;
     static final int RESULTS_LIMIT = 10000;
+    static final char ALFOMBRAS='A';
+    static final char CESTOS_COCINA ='C';
+    static final char CORREDERAS_TELESCOPICAS='K';
+    static final char ORGANIZADDOR_ROPA='O';
+    static final char ORDENADORES_FILA='F';
+    static final char COCINA_ALMACENAMIENTO='T'; //portacopas
+    static final char CESTOS_PAPELERO ='P';
+
 
     public static void main (String[] args) {
 
 
 
-        String nickname="AMQUILMES2010";
+        String nickname="HEJU9604843";
+        //String nickname="AMQUILMES2010";
         //String nickname="ANTONELLAGAZZANO";
-        String categoria="alfombras";
+        char categoria=CORREDERAS_TELESCOPICAS;
 
         String categoryId=null;
-        if (categoria.equals("alfombras")){
+        if (categoria==ALFOMBRAS){
             categoryId="MLA2513";
+        }
+        if (categoria== CESTOS_COCINA){
+            categoryId="MLA121951";
+        }
+        if (categoria==CORREDERAS_TELESCOPICAS){
+            categoryId="MLA432104";
+        }
+        if (categoria==ORGANIZADDOR_ROPA){
+            categoryId="MLA414192";
+        }
+        if (categoria==ORDENADORES_FILA){
+            categoryId="MLA412739";
+        }
+        if (categoria==COCINA_ALMACENAMIENTO){
+            categoryId="MLA436298";
+        }
+        if (categoria==CESTOS_PAPELERO){
+            categoryId="MLA105430";
         }
 
 
@@ -155,14 +182,34 @@ public class CustomerInfo {
 
         if (!sellerColor.equals("N/A")) {
             System.out.println("Color: "+sellerColor+" Seller level: "+sellerLevel);
-            System.out.println(sellerRating+ "\n");
+            System.out.println(sellerRating+ "\n    ");
         }
+
         System.out.println("---------------------------------------------------------------------------------------------------------");
 
+        String customerItemsUrl="https://api.mercadolibre.com/sites/MLA/search?seller_id="+custId;
+        JSONObject itemsObj=HttpUtils.getJsonObjectWithoutToken(customerItemsUrl,client,false);
+        JSONArray itemsArray = itemsObj.getJSONArray("results");
+        System.out.println("Items on Sale: "+itemsArray.length());
+        for (int i=0; i<itemsArray.length() && i<10; i++){
+            JSONObject itemObject = itemsArray.getJSONObject(i);
+            String permalink = itemObject.getString("permalink");
+            System.out.println(permalink);
+        }
+
+        System.out.println("---------------------------------------------------------------------------------------------------------");
 
         ArrayList<String> itemsInCategory = getAllRelevantItems(categoryId,client,user);
 
+        System.out.println("Analizando "+itemsInCategory.size()+" publicaciones");
+
+        int count=0;
         for (String productId: itemsInCategory) {
+            count++;
+            if (count>50) {
+                System.out.print(".");
+                count=0;
+            }
             String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+productId+"&from="+custId;
             JSONObject questionsObj = HttpUtils.getJsonObjectWithoutToken(questionsUrl, client, false);
             if (questionsObj == null) {
@@ -185,6 +232,7 @@ public class CustomerInfo {
                 String itemUrl="https://api.mercadolibre.com/items/"+productId;
                 JSONObject itemObj = HttpUtils.getJsonObjectWithoutToken(itemUrl, client, false);
                 String itemPermalink = itemObj.getString("permalink");
+                System.out.println(" ");
                 System.out.println(dateStr+" "+itemPermalink);
                 System.out.println("P: "+questionText);
                 System.out.println("R: "+answerText);
@@ -231,77 +279,55 @@ public class CustomerInfo {
         ArrayList<String> itemsArrayList = new ArrayList<>();
 
         //acacia  TODO meter todos los items, usando tokens
-        boolean finished=false;
-        int offset=0;
-        JSONObject itemsObj;
-        while (!finished) {
-            String itemsUrl = "https://api.mercadolibre.com/sites/MLA/search?seller_id=241751796&offset="+offset;
-            System.out.println(itemsUrl);
-            if (offset > RESULTS_LIMIT) {
-                finished=true;
-                continue;
+        String acaciaylenga = "ACACIAYLENGA";
+        boolean moreItems=true;
+        String productListURL =null;
+        JSONObject jsonResponse=null;
+        JSONArray jsonProductArray=null;
+        String scrollId=null;
+        while (moreItems){
+            productListURL = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(acaciaylenga) + "/items/search?search_type=scan";
+            if (scrollId!=null){
+                productListURL+="&scroll_id="+scrollId;
             }
-            if (offset < RESULTS_WITHOUT_TOKEN) {
-                itemsObj = HttpUtils.getJsonObjectWithoutToken(itemsUrl,httpClient,false);
-            }else {
-                itemsObj = HttpUtils.getJsonObjectUsingToken(itemsUrl,httpClient,user);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,acaciaylenga);
+            scrollId=(String) jsonResponse.get("scroll_id");
+            jsonProductArray = jsonResponse.getJSONArray("results");
+            if (jsonProductArray.length()<50){
+                moreItems=false;//end
             }
-            if (itemsObj==null){
-                finished=true;
-                continue;
-            }
-            JSONArray itemsObjJSONArray = itemsObj.getJSONArray("results");
-            for (Object itemObject : itemsObjJSONArray){
-                JSONObject itemJSONObject = (JSONObject)itemObject;
-                String itemId=itemJSONObject.getString("id");
-                if (!itemsArrayList.contains(itemId)){
-                    itemsArrayList.add(itemId);
-                }
-            }
-            offset+=50;
-            if (itemsObjJSONArray.length()<50){
-                finished=true;
+            for (Object productIdÒbj : jsonProductArray) {
+                String productId = (String) productIdÒbj;
+                itemsArrayList.add(productId);
             }
         }
 
         //somos
-        finished=false;
-        offset=0;
-        while (!finished) {
-            String itemsUrl = "https://api.mercadolibre.com/sites/MLA/search?seller_id=67537324&offset="+offset;
-            System.out.println(itemsUrl);
-            if (offset > RESULTS_LIMIT) {
-                finished=true;
-                continue;
+        String somos = "SOMOS_MAS";
+        moreItems=true;
+        scrollId=null;
+        while (moreItems){
+            productListURL = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(somos) + "/items/search?search_type=scan";
+            if (scrollId!=null){
+                productListURL+="&scroll_id="+scrollId;
             }
-            if (offset < RESULTS_WITHOUT_TOKEN) {
-                itemsObj = HttpUtils.getJsonObjectWithoutToken(itemsUrl,httpClient,false);
-            }else {
-                itemsObj = HttpUtils.getJsonObjectUsingToken(itemsUrl,httpClient,user);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,somos);
+            scrollId=(String) jsonResponse.get("scroll_id");
+            jsonProductArray = jsonResponse.getJSONArray("results");
+            if (jsonProductArray.length()<50){
+                moreItems=false;//end
             }
-            if (itemsObj==null){
-                finished=true;
-                continue;
-            }
-            JSONArray itemsObjJSONArray = itemsObj.getJSONArray("results");
-            for (Object itemObject : itemsObjJSONArray){
-                JSONObject itemJSONObject = (JSONObject)itemObject;
-                String itemId=itemJSONObject.getString("id");
-                if (!itemsArrayList.contains(itemId)){
-                    itemsArrayList.add(itemId);
-                }
-            }
-            offset+=50;
-            if (itemsObjJSONArray.length()<50){
-                finished=true;
+            for (Object productIdÒbj : jsonProductArray) {
+                String productId = (String) productIdÒbj;
+                itemsArrayList.add(productId);
             }
         }
 
-        finished=false;
-        offset=0;
+        boolean finished=false;
+        int offset=0;
+        JSONObject itemsObj;
         while (!finished) {
             String itemsUrl = "https://api.mercadolibre.com/sites/MLA/search?category="+categoryId+"&offset="+offset;
-            System.out.println(itemsUrl);
             if (offset > RESULTS_LIMIT) {
                 finished=true;
                 continue;
@@ -324,10 +350,13 @@ public class CustomerInfo {
                 }
             }
             offset+=50;
+            /*
             if (itemsObjJSONArray.length()<50){
+                System.out.println("itemsObjJSONArray.length()<50");
                 finished=true;
-            }
+            }*/
         }
+
         return itemsArrayList;
     }
 

@@ -43,6 +43,7 @@ public class TokenUtils {
     static String appSecretSOMOS_MAS = "TTNJrRQwILKSuPnv4VlE0huxtSkwpsFe";
 
     static String token = null;
+    static String tokenUser = null;
     static String refresh_token = null;
 
     private static String getFileStr(String user){
@@ -70,19 +71,21 @@ public class TokenUtils {
 
 
     public static synchronized String getToken(String user){
-        if (token==null){
+        if (token==null || !tokenUser.equals(user)){
             String encodedToken=DatabaseHelper.fetchTokenOnCloud(user);
             if (encodedToken==null){
                 String fileStr = getFileStr(user);
                 int eolPos1 = fileStr.indexOf("\n");
                 int eolPos2 = fileStr.length()-1;
                 token = fileStr.substring(0, eolPos1);
+                tokenUser= user;
                 String theRefreshToken = fileStr.substring(eolPos1+1,eolPos2);
                 encodedToken=encode(token);
                 String encodedRefreshToken=encode(theRefreshToken);
                 DatabaseHelper.addTokenOnCloud(user,encodedToken,encodedRefreshToken);
             }else {
                 token=decode(encodedToken);
+                tokenUser=user;
             }
         }
         return token;
@@ -185,6 +188,7 @@ public class TokenUtils {
             Object tokenObject = jsonResponse.get("access_token");
             if (tokenObject != null) {
                 token = (String) tokenObject;
+                tokenUser=user;
             }
             Object refreshTokenObject = jsonResponse.get("refresh_token");
             if (refreshTokenObject != null) {
