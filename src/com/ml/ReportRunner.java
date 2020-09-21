@@ -28,15 +28,14 @@ public class ReportRunner {
     static int MAX_THREADS = 50;//14
     static final boolean SAVE = true;
     static final boolean DEBUG = false;
-    static final int MINIMUM_SALES = 1;
-    static final boolean FOLLOWING_DAY = false;
-    static final boolean PREVIOUS_DAY = true;
     static final boolean IGNORE_VISITS = false;
 
     static final boolean REBUILD_INTERVALS = false;
     static final int MAX_INTERVAL_SIZE = 800;
 
-
+    static int globalMinimumSales = 1;
+    static boolean globalFollowingDay = false;
+    static boolean globalPreviousDay = false;
     static int requestCount = 0;
     static Date globalDate = null;
 
@@ -291,7 +290,7 @@ public class ReportRunner {
         ArrayList<String> removeList = new ArrayList<String>();
         ArrayList<String> incompleteList = new ArrayList<String>();
         for (Item item : itemHashMap.values()) {
-            if (item.totalSold > -1 && item.totalSold < MINIMUM_SALES) {
+            if (item.totalSold > -1 && item.totalSold < globalMinimumSales) {
                 removeList.add(item.id);
                 continue;
             }
@@ -323,10 +322,10 @@ public class ReportRunner {
             Calendar cal = Calendar.getInstance();
             long milliseconds = cal.getTimeInMillis();
             long oneDayinMiliseconds = 0;
-            if (FOLLOWING_DAY) {
+            if (globalFollowingDay) {
                 oneDayinMiliseconds = 86400000; //this will add a complete day on milliseconds
             }
-            if (PREVIOUS_DAY) {
+            if (globalPreviousDay) {
                 oneDayinMiliseconds = -86400000; //this will add a complete day on milliseconds
             }
             Date date = new Date(milliseconds + oneDayinMiliseconds);
@@ -564,7 +563,13 @@ public class ReportRunner {
         return true;
     }
 
-    protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals, CloseableHttpClient client, String usuario, String DATABASE, boolean ONLY_RELEVANT) {
+    protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals,
+                                          CloseableHttpClient client, String usuario, String DATABASE, boolean ONLY_RELEVANT,
+                                          boolean previousDay, boolean followingDay, int minimumSales) {
+        globalPreviousDay=previousDay;
+        globalFollowingDay=followingDay;
+        globalMinimumSales=minimumSales;
+
         getGlobalDate(); //seteamos al principio de la corrida
 
         if (REBUILD_INTERVALS){

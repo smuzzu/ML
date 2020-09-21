@@ -3,11 +3,8 @@ package com.ml;
 
 import com.ml.utils.Counters;
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Item;
 import com.ml.utils.Logger;
 import org.apache.http.impl.client.CloseableHttpClient;
-
-import java.util.HashMap;
 
 
 public class Mercadolibre02b {
@@ -15,8 +12,9 @@ public class Mercadolibre02b {
 
     static final String DATABASE="ML2";
     static final boolean ONLY_RELEVANT = false;
-
-
+    static final int MINIMUM_SALES = 1;
+    static final boolean FOLLOWING_DAY = false;
+    static final boolean PREVIOUS_DAY = false;
 
     public static void main(String[] args) {
 
@@ -102,10 +100,10 @@ public class Mercadolibre02b {
         }
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
-        HashMap<String, Item> itemHashMap = new HashMap<String, Item>();
         String usuario = "SOMOS_MAS";
 
-        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT);
+        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
+                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
@@ -114,7 +112,6 @@ public class Mercadolibre02b {
         System.out.println(msg);
         Logger.log(msg);
 
-        boolean b = false;
 
     }
 

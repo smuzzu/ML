@@ -12,7 +12,9 @@ public class Mercadolibre06b {
 
     static final String DATABASE = "ML6";
     static final Boolean ONLY_RELEVANT = true;
-
+    static final int MINIMUM_SALES = 10;
+    static final boolean FOLLOWING_DAY = false;
+    static final boolean PREVIOUS_DAY = false;
 
     static String[] webBaseUrls = new String[]
             {
@@ -824,7 +826,8 @@ public class Mercadolibre06b {
 
         String usuario = "SOMOS_MAS";
 
-        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT);
+        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
+                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "

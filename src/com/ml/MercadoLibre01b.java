@@ -12,6 +12,9 @@ import java.util.HashMap;
 public class MercadoLibre01b {
     static final String DATABASE = "ML1";
     static final Boolean ONLY_RELEVANT =false;
+    static final int MINIMUM_SALES = 1;
+    static final boolean FOLLOWING_DAY = false;
+    static final boolean PREVIOUS_DAY = false;
 
     public static void main(String[] args) {
 
@@ -164,7 +167,17 @@ public class MercadoLibre01b {
         HashMap<String, Item> itemHashMap = new HashMap<String, Item>();
         String usuario = "SOMOS_MAS";
 
-        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT);
+        //esto es para una prueba minima tambien hay que comentar los posible pausados
+/*        int selectedRecord=webBaseUrls.length-1;
+        String[] webBaseUrls1=new String[]{webBaseUrls[selectedRecord]};
+        webBaseUrls=webBaseUrls1;
+        String[] apiBaseUrls1=new String[]{apiBaseUrls[selectedRecord]};
+        apiBaseUrls=apiBaseUrls1;
+        int[][] intervals1=new int[][]{intervals[selectedRecord]};
+        intervals=intervals1;*/
+
+        ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
+                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
