@@ -57,7 +57,7 @@ public class SalesChecker {
 
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> pendingOrdersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, true, usuario,httpClient);
+        ArrayList<Order> pendingOrdersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false, true, usuario,httpClient);
 
         for (Order pendingOrder: pendingOrdersOnlineArrayList) {
             boolean alreadyStoredInDB = DatabaseHelper.alreadyStoredInDB(pendingOrder.id);

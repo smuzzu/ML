@@ -74,7 +74,7 @@ public class Logger {
 
 
     private static BufferedWriter getFileWriter(String fileName) {
-        if (globalFile == null) {
+        if (globalFile == null || !globalFile.equals(fileName)) {
             File file = new File(fileName);
             FileWriter fileWriter = null;
             if (file.exists()) {

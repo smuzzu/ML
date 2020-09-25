@@ -5,17 +5,26 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 
 public class MessagesAndSalesHelper {
 
     static ArrayList<Message> allQuestionsArrayList=new ArrayList<Message>();
+    static HashMap<Long,String> reviewsHashMap = new HashMap<Long,String>();
+    static ArrayList<String> allMyItems=new ArrayList<String>();
 
     //static final String usuario="ACACIAYLENGA";
     //static final String usuario="QUEFRESQUETE";
@@ -26,6 +35,16 @@ public class MessagesAndSalesHelper {
         boolean result = false;
         String shippingStatus=getStringValue(orderShippingObj,shippingObject,"status");
         if (shippingStatus != null && (shippingStatus.equals("shipped") || shippingStatus.equals("delivered"))) {
+            result = true;
+        }
+        return result;
+    }
+
+
+    public static boolean isReadyForSending(JSONObject orderShippingObj, JSONObject shippingObject){
+        boolean result = false;
+        String shippingStatus=getStringValue(orderShippingObj,shippingObject,"substatus");
+        if (shippingStatus != null && (shippingStatus.equals("ready_to_print") || shippingStatus.equals("printed"))) {
             result = true;
         }
         return result;
@@ -132,7 +151,7 @@ public class MessagesAndSalesHelper {
 
 
 
-    public static ArrayList<Order>  requestOrdersAndMessages(boolean messagesOnly, boolean ordersOnly, boolean onlyPending,  String user, CloseableHttpClient httpClient){
+    public static ArrayList<Order> requestOrdersAndMessages(boolean includeDetails, boolean onlyPending,  String user, CloseableHttpClient httpClient){
 
 
         int totalOrders=Integer.MAX_VALUE;
@@ -147,7 +166,8 @@ public class MessagesAndSalesHelper {
         HashMap<String,String> userFeedbackMessages = new HashMap<String,String>();
         HashMap<String,Integer> usersInOrders = new HashMap<String,Integer>();
 
-        if (!messagesOnly){
+
+        if (includeDetails){
             boolean finished=false;
             int offset=0;
             while (!finished) {
@@ -209,6 +229,7 @@ public class MessagesAndSalesHelper {
 
                 JSONObject shippingObj = getShippingObjectIfNeeded(orderShippingObj,httpClient,user);
                 order.delivered=isDelivered(orderShippingObj,shippingObj);
+                order.readyForSending=isReadyForSending(orderShippingObj,shippingObj);
 
                 order.fulfilled=isFulfilled(jsonOrder);
                 order.cancelled=isCancelled(jsonOrder);
@@ -222,7 +243,7 @@ public class MessagesAndSalesHelper {
                     }
                 }
 
-                order=processOrder(order,jsonOrder,shippingObj,stateHashMap,usersInOrders,messagesOnly,ordersOnly,user,httpClient);
+                order=processOrder(order,jsonOrder,shippingObj,stateHashMap,usersInOrders,includeDetails,user,httpClient);
                 orderArrayList.add(order);
 
                 System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.userNickName + " "+order.buyerAddressState+","+order.buyerAddressCity);
@@ -258,6 +279,7 @@ public class MessagesAndSalesHelper {
                     JSONObject orderShippingObj = jsonOrder.getJSONObject("shipping");
                     JSONObject shippingObj = getShippingObjectIfNeeded(jsonOrder,httpClient,user);
                     order.delivered=isDelivered(orderShippingObj,shippingObj);
+                    order.readyForSending=isReadyForSending(orderShippingObj,shippingObj);
 
                     order.fulfilled=isFulfilled(jsonOrder);
                     order.cancelled=isCancelled(jsonOrder);
@@ -267,7 +289,7 @@ public class MessagesAndSalesHelper {
                         order.pending=false;
                     }
 
-                    order = processOrder(order, jsonOrder, shippingObj, stateHashMap, usersInOrders, messagesOnly, ordersOnly, user, httpClient);
+                    order = processOrder(order, jsonOrder, shippingObj, stateHashMap, usersInOrders, includeDetails, user, httpClient);
 
                     orderArrayList.add(order);
 
@@ -301,47 +323,347 @@ public class MessagesAndSalesHelper {
     }
 
     private static ArrayList<Message> getAllQuestions(String user, CloseableHttpClient httpClient) {
+        System.out.println("Cargando todas las preguntas de "+user);
         ArrayList<Message> previousQuestionsArrayList = new ArrayList<>();
         boolean finished=false;
         int offset=0;
+
+        ArrayList<String> itemsIdArrayList = new ArrayList<String>();
+        offset=0;
+        finished=false;
         while (!finished) {
-            String questionsUrl = "https://api.mercadolibre.com/questions/search?seller_id="+ TokenUtils.getIdCliente(user)
-                    +"&offset=" + offset;
-            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
-            if (questionsObj==null){
+            String publicationsUrl = "https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(user)
+                    +"/items/search?offset=" + offset;
+            JSONObject publicationsObj = HttpUtils.getJsonObjectUsingToken(publicationsUrl,httpClient,user);
+            if (publicationsObj==null){
                 finished=true;
-                break;
+                continue;
             }
-            JSONArray questionsArray = questionsObj.getJSONArray("questions");
-            for (Object questionObject : questionsArray){
-                JSONObject questionJSONObject = (JSONObject)questionObject;
-                Message question = new Message();
-                Message answer = new Message();
-                question.id=""+questionJSONObject.getLong("id");
-                answer.id=question.id;
-                JSONObject from = questionJSONObject.getJSONObject("from");
-                question.customerId=from.getLong("id");
-                answer.customerId=question.customerId;
-                question.text=questionJSONObject.getString("text");
-                question.direction='R';
-                answer.direction='E';
-                if (questionJSONObject.has("answer") && !questionJSONObject.isNull("answer")) {
-                    JSONObject answerJSONObject = questionJSONObject.getJSONObject("answer");
-                    answer.text=answerJSONObject.getString("text");
-                }else {
-                    answer.text="";
-                }
-                question.productId=questionJSONObject.getString("item_id");
-                answer.productId=question.productId;
-                previousQuestionsArrayList.add(question);
-                previousQuestionsArrayList.add(answer);
+            JSONArray itemsArray = publicationsObj.getJSONArray("results");
+            if (itemsArray.length()==0){
+                finished=true;
+                continue;
+            }
+            for (Object itemObject : itemsArray) {
+                String itemId=(String) itemObject;
+                itemsIdArrayList.add(itemId);
             }
             offset+=50;
-            if (questionsArray.length()<50){
-                finished=true;
+        }
+
+        for (String itemId: itemsIdArrayList){
+            offset=0;
+            finished=false;
+            while (!finished) {
+                String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+itemId+"&offset="+ offset;
+                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
+                if (questionsObj==null){
+                    finished=true;
+                    continue;
+                }
+                JSONArray questionsArray = questionsObj.getJSONArray("questions");
+                if (questionsArray.length()==0){
+                    finished=true;
+                    continue;
+                }
+                for (Object questionObject : questionsArray){
+                    JSONObject questionJSONObject = (JSONObject)questionObject;
+                    addQuestionToArray(previousQuestionsArrayList, questionJSONObject);
+                }
+                offset+=50;
+            }
+        }
+
+        Collections.sort(previousQuestionsArrayList);
+
+        return previousQuestionsArrayList;
+    }
+
+    private static String getQuestionFileName(String user){
+        return "C:\\centro\\questions_"+ user +".txt";
+    }
+
+
+    private static ArrayList<Message> updateQuestionsFile(String user, CloseableHttpClient httpClient) {
+        System.out.println("Buscando las nuevas preguntas de "+user);
+
+        String fileName = getQuestionFileName(user);
+
+        ArrayList<Message> previousQuestionsArrayList  = new ArrayList<Message>();
+        ArrayList<Message> newQuestionsArrayList = new ArrayList<>();
+        Timestamp weekBefore=getTimestamp("1970-01-01 03:10:00.001-03");
+
+        File f = new File(fileName);
+        if (f.exists() && !f.isDirectory()) {
+            previousQuestionsArrayList  = getQuestionsFromFile(fileName);
+
+            int lastItem=previousQuestionsArrayList.size()-1;
+            Message lastQuestion = previousQuestionsArrayList.get(lastItem);
+            weekBefore=new Timestamp(lastQuestion.creationTimestamp.getTime()-604800000L);
+
+            boolean finished=false;
+            int offset=0;
+            while (!finished) {
+                String questionsUrl = "https://api.mercadolibre.com/my/received_questions/search?sort_fields=date_created&sort_types=DESC&offset="+ offset;
+                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
+                if (questionsObj==null){
+                    finished=true;
+                    continue;
+                }
+                JSONArray questionsArray = questionsObj.getJSONArray("questions");
+                if (questionsArray.length()==0){
+                    finished=true;
+                    continue;
+                }
+                for (Object questionObject : questionsArray){
+                    JSONObject questionJSONObject = (JSONObject)questionObject;
+                    addQuestionToArray(newQuestionsArrayList, questionJSONObject);
+                }
+                lastItem=newQuestionsArrayList.size()-1;
+                lastQuestion = newQuestionsArrayList.get(lastItem);
+                if (lastQuestion.creationTimestamp.before(weekBefore)){
+                    finished=true;
+                    continue;
+                }
+                offset+=50;
+            }
+        }else {
+            newQuestionsArrayList=getAllQuestions(user,httpClient);
+        }
+
+        ArrayList<Message> questionsToSaveArrayList = new ArrayList<>();
+        for (Message question: newQuestionsArrayList){
+            if (!previousQuestionsArrayList.contains(question)){
+                questionsToSaveArrayList.add(question);
+            }else {
+                int index = previousQuestionsArrayList.indexOf(question);
+                Message previousQuestion = previousQuestionsArrayList.get(index);
+                if (previousQuestion.direction=='E'){
+                    if (previousQuestion.text==null || previousQuestion.text.isEmpty()){
+                        if (question.text!=null && !question.text.isEmpty()){
+                            questionsToSaveArrayList.add(question);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (Message previousQuestion: previousQuestionsArrayList){
+            if (previousQuestion.creationTimestamp!=null &&
+                    previousQuestion.creationTimestamp.after(weekBefore)){
+                if (previousQuestion.direction=='R' && !previousQuestion.deleted){
+                    if (!newQuestionsArrayList.contains(previousQuestion)){ //los borrados
+                        previousQuestion.deleted=true;
+                        questionsToSaveArrayList.add(previousQuestion);
+                    }
+                }
+            }
+        }
+
+        Collections.sort(questionsToSaveArrayList);
+
+        for (Message questionToSave: questionsToSaveArrayList){
+            String dateStr="";
+            if (questionToSave.creationTimestamp!=null){
+                dateStr=dateFormat.format(questionToSave.creationTimestamp);
+            }
+            questionToSave.text=questionToSave.text.replace('|',' ');
+            String questionRecord=questionToSave.id+"|"+questionToSave.direction+"|"+dateStr+"|"+
+                    questionToSave.productId+"|"+questionToSave.text+"|"+questionToSave.deleted
+                    +"|"+questionToSave.customerId;
+            Logger.writeOnFile(fileName,questionRecord);
+        }
+
+        return newQuestionsArrayList;
+    }
+
+
+    private static ArrayList<Message>  getQuestionsFromFile(String fileName) {
+
+        ArrayList<Message> previousQuestionsArrayList = new ArrayList<Message>();
+
+        ArrayList<String> questionsFromFileArrayList=new ArrayList<String>();
+        try (Stream<String> stream = Files.lines(Paths.get(fileName), StandardCharsets.UTF_8)) {
+            stream.forEach(s -> questionsFromFileArrayList.add(s));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        for (String questionFromFileStr : questionsFromFileArrayList){
+            if (questionFromFileStr!=null && !questionFromFileStr.isEmpty()){
+                Message question = new Message();
+                int pos1=questionFromFileStr.indexOf("|");
+                question.id=questionFromFileStr.substring(0,pos1);
+                pos1++;
+                int pos2=questionFromFileStr.indexOf("|",pos1);
+                question.direction=questionFromFileStr.substring(pos1,pos2).charAt(0);
+                pos1=pos2+1;
+                pos2=questionFromFileStr.indexOf("|",pos1);
+                String creationTimestampStr=questionFromFileStr.substring(pos1,pos2);
+                if (creationTimestampStr!=null && !creationTimestampStr.isEmpty()){
+                    question.creationTimestamp=getTimestamp(creationTimestampStr);
+                }
+                pos1=pos2+1;
+                pos2=questionFromFileStr.indexOf("|",pos1);
+                question.productId=questionFromFileStr.substring(pos1,pos2);
+                pos1=pos2+1;
+                pos2=questionFromFileStr.indexOf("|",pos1);
+                question.text=questionFromFileStr.substring(pos1,pos2);
+                pos1=pos2+1;
+                pos2=questionFromFileStr.indexOf("|",pos1);
+                String deletedStr = questionFromFileStr.substring(pos1,pos2);
+                question.deleted=Boolean.parseBoolean(deletedStr);
+                pos1=pos2+1;
+                String custIdStr=questionFromFileStr.substring(pos1);
+                question.customerId=Long.parseLong(custIdStr);
+
+                if (previousQuestionsArrayList.contains(question)){
+                    previousQuestionsArrayList.remove(question);
+                }
+                previousQuestionsArrayList.add(question);
+            }
+        }
+
+        Collections.sort(previousQuestionsArrayList);
+
+        return previousQuestionsArrayList;
+    }
+
+
+    private static ArrayList<Message> getQuestionsFromUser(String user, long custId, CloseableHttpClient httpClient) {
+        ArrayList<Message> previousQuestionsArrayList = new ArrayList<>();
+
+        if (allMyItems.size()==0) {
+            allMyItems = getAllMyItems(user, httpClient);
+        }
+
+        for (String productId: allMyItems) {
+            String questionsUrl = "https://api.mercadolibre.com/questions/search?item=" + productId + "&from=" + custId;
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient, user);
+            if (questionsObj == null) {
+                continue;
+            }
+            JSONArray questionsArray = questionsObj.getJSONArray("questions");
+            for (Object questionObject : questionsArray) {
+                JSONObject questionJSONObject = (JSONObject) questionObject;
+                addQuestionToArray(previousQuestionsArrayList, questionJSONObject);
             }
         }
         return previousQuestionsArrayList;
+    }
+
+
+    private static HashMap<Long,String> getAllReviews(String user, CloseableHttpClient httpClient) {
+        HashMap<Long,String> reviewsHashMap = new HashMap<Long,String>();
+
+        if (allMyItems.size()==0) {
+            allMyItems = getAllMyItems(user, httpClient);
+        }
+
+        for (String productId: allMyItems) {
+            String feedbacksUrl = "https://api.mercadolibre.com/reviews/item/" + productId;
+            JSONObject feedbacksObject = HttpUtils.getJsonObjectWithoutToken(feedbacksUrl,httpClient,false);
+            if (feedbacksObject == null) {
+                continue;
+            }
+            JSONArray reviewsArray = feedbacksObject.getJSONArray("reviews");
+            for (Object reviewObject : reviewsArray) {
+                JSONObject reviewJSONObject = (JSONObject) reviewObject;
+                long reviewerId=reviewJSONObject.getLong("reviewer_id");
+                int rate=reviewJSONObject.getInt("rate");
+                String title = reviewJSONObject.getString("title");
+                String content = reviewJSONObject.getString("content");
+                JSONObject reviewableObject= reviewJSONObject.getJSONObject("reviewable_object");
+                String itemId=reviewableObject.getString("id");
+                String reviewStr = itemId+"|"+rate+"* "+title.trim()+": "+content.trim();
+                if (!reviewsHashMap.containsKey(reviewerId)){
+                    reviewsHashMap.put(reviewerId,reviewStr);
+                }
+            }
+        }
+        return reviewsHashMap;
+    }
+
+
+
+    private static ArrayList<String> getAllMyItems(String user, CloseableHttpClient closeableHttpClient){
+        ArrayList<String> itemsArrayList = new ArrayList<String>();
+        boolean moreItems=true;
+        String productListURL =null;
+        JSONObject jsonResponse=null;
+        JSONArray jsonProductArray=null;
+        String scrollId=null;
+        while (moreItems){
+            productListURL = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(user) + "/items/search?search_type=scan";
+            if (scrollId!=null){
+                productListURL+="&scroll_id="+scrollId;
+            }
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, closeableHttpClient,user);
+            scrollId=(String) jsonResponse.get("scroll_id");
+            jsonProductArray = jsonResponse.getJSONArray("results");
+            if (jsonProductArray.length()<50){
+                moreItems=false;//end
+            }
+            for (Object productIdÒbj : jsonProductArray) {
+                String productId = (String) productIdÒbj;
+                itemsArrayList.add(productId);
+            }
+        }
+        return itemsArrayList;
+    }
+
+
+    private static Timestamp getTimestamp(String dateStr){
+        Timestamp result=null;
+        dateStr=dateStr.replace('T',' ');
+        try {
+            java.util.Date date = dateFormat.parse(dateStr);
+            result =new Timestamp(date.getTime());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private static void addQuestionToArray(ArrayList<Message> previousQuestionsArrayList, JSONObject questionJSONObject) {
+        Message question = new Message();
+        Message answer = new Message();
+        long id=questionJSONObject.getLong("id");
+        String formattedId=String.format("%016d", id);
+        question.id=formattedId+"P";
+        answer.id=formattedId+"R";
+
+        question.deleted=false;
+        answer.deleted=false;
+
+        String dateCreatedStr=questionJSONObject.getString("date_created");
+        question.creationTimestamp=getTimestamp(dateCreatedStr);
+
+        JSONObject from = questionJSONObject.getJSONObject("from");
+        question.customerId=from.getLong("id");
+        answer.customerId=question.customerId;
+        question.text= questionJSONObject.getString("text");
+        question.direction='R';
+        answer.direction='E';
+        if (questionJSONObject.has("answer") && !questionJSONObject.isNull("answer")) {
+            JSONObject answerJSONObject = questionJSONObject.getJSONObject("answer");
+            answer.text=answerJSONObject.getString("text");
+            dateCreatedStr=answerJSONObject.getString("date_created");
+            answer.creationTimestamp=getTimestamp(dateCreatedStr);
+        }else {
+            answer.text="";
+            answer.creationTimestamp=question.creationTimestamp;
+        }
+        question.productId= questionJSONObject.getString("item_id");
+        answer.productId=question.productId;
+        if  (previousQuestionsArrayList.contains(question)) {
+            previousQuestionsArrayList.remove(question);
+        }
+        previousQuestionsArrayList.add(question);
+        if (previousQuestionsArrayList.contains(answer)) {
+            previousQuestionsArrayList.remove(answer);
+        }
+        previousQuestionsArrayList.add(answer);
     }
 
 
@@ -366,6 +688,7 @@ public class MessagesAndSalesHelper {
         JSONObject orderShippingObj = jsonOrder.getJSONObject("shipping");
         JSONObject shippingObj = getShippingObjectIfNeeded(orderShippingObj,httpClient,user);
         order.delivered=isDelivered(orderShippingObj,shippingObj);
+        order.readyForSending=isReadyForSending(orderShippingObj,shippingObj);
 
         order.fulfilled=isFulfilled(jsonOrder);
         order.cancelled=isCancelled(jsonOrder);
@@ -377,11 +700,11 @@ public class MessagesAndSalesHelper {
 
         HashMap<String,String> stateHashMap = getStateHashMap();
 
-        order = processOrder(order, jsonOrder, shippingObj, stateHashMap, new HashMap<String,Integer>(), false, false, user, httpClient);
+        order = processOrder(order, jsonOrder, shippingObj, stateHashMap, new HashMap<String,Integer>(), true, user, httpClient);
         return order;
     }
 
-    private static Order processOrder(Order order,JSONObject jsonOrder,JSONObject shippingObj, HashMap<String,String> stateHashMap, HashMap<String,Integer> usersInOrders, boolean messagesOnly, boolean ordersOnly, String user, CloseableHttpClient httpClient){
+    private static Order processOrder(Order order,JSONObject jsonOrder,JSONObject shippingObj, HashMap<String,String> stateHashMap, HashMap<String,Integer> usersInOrders, boolean includeDetails, String user, CloseableHttpClient httpClient){
         order.sellerName =user;
         order.delivered=false;
         order.waitingForWithdrawal=false;
@@ -405,60 +728,73 @@ public class MessagesAndSalesHelper {
         order.receivedFeedbackRating="";
         order.receivedFeedbackComment="";
 
-        String buyerId=null;
-
         String dateCreatedStr=jsonOrder.getString("date_created");
-        dateCreatedStr=dateCreatedStr.replace('T',' ');
+        order.creationTimestamp=getTimestamp(dateCreatedStr);
 
         String dateUpdatedStr=jsonOrder.getString("last_updated");
-        dateUpdatedStr=dateUpdatedStr.replace('T',' ');
-
-        try {
-            java.util.Date dateCreated2 = dateFormat.parse(dateCreatedStr);
-            order.creationTimestamp =new Timestamp(dateCreated2.getTime());
-
-            java.util.Date dateUpdated2 = dateFormat.parse(dateUpdatedStr);
-            order.updateTimestamp =new Timestamp(dateUpdated2.getTime());
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
+        order.updateTimestamp=getTimestamp(dateUpdatedStr);
 
         order.paymentAmount=""+jsonOrder.getDouble("total_amount");
-
 
         order.paymentStatus = jsonOrder.getString("status");
 
         if (jsonOrder.has("buyer")) {
             JSONObject buyerObject = jsonOrder.getJSONObject("buyer");
-            order.userNickName =buyerObject.getString("nickname");
             order.buyerCustId=buyerObject.getLong("id");
-            if (usersInOrders.containsKey(order.userNickName)){
-                int orderCount = usersInOrders.get(order.userNickName);
-                orderCount++;
-                usersInOrders.replace(order.userNickName,orderCount);
-            }else {
-                usersInOrders.put(order.userNickName,1);
+            if (buyerObject.has("nickname")) {
+                order.userNickName = buyerObject.getString("nickname");
+                order.buyerFirstName=humanNameFormater(buyerObject.getString("first_name"));
+                order.buyerLastName=humanNameFormater(buyerObject.getString("last_name"));
             }
-            order.buyerFirstName=humanNameFormater(buyerObject.getString("first_name"));
-            order.buyerLastName=humanNameFormater(buyerObject.getString("last_name"));
             if (buyerObject.has("phone")) {
                 JSONObject phoneObj = buyerObject.getJSONObject("phone");
                 if (!phoneObj.isNull("number")) {
                     order.buyerPhone = phoneObj.getString("number");
                 }
             }
-            JSONObject billingInfoObj = buyerObject.getJSONObject("billing_info");
-            if (!billingInfoObj.isNull("doc_number")) {
-                order.buyerDocNumber = "" + billingInfoObj.getLong("doc_number");
+            if (buyerObject.has("billing_info")) {
+                JSONObject billingInfoObj = buyerObject.getJSONObject("billing_info");
+                if (!billingInfoObj.isNull("doc_number")) {
+                    order.buyerDocNumber = "" + billingInfoObj.getLong("doc_number");
+                }
             }
-            buyerId=""+buyerObject.getInt("id");
         }
+        if (includeDetails) {
+            String buyerUrl = "https://api.mercadolibre.com/users/" + order.buyerCustId;
+            JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient, false);
+
+            if (order.userNickName==null || order.userNickName.isEmpty()) {
+                order.userNickName = buyerObj.getString("nickname");
+            }
+
+            JSONObject addressObj = buyerObj.getJSONObject("address");
+
+            String stateId = null;
+            if (!addressObj.isNull("state")) {
+                stateId = addressObj.getString("state");
+                if (!stateHashMap.containsKey(stateId)) {
+                    String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
+                    JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient, false);
+                    String stateName = stateObj.getString("name");
+                    stateHashMap.put(stateId, stateName);
+                }
+                order.userState = stateHashMap.get(stateId);
+            }
+            if (!addressObj.isNull("city")) {
+                order.userCity = addressObj.getString("city");
+            }
+        }
+        if (usersInOrders.containsKey(order.userNickName)){
+            int orderCount = usersInOrders.get(order.userNickName);
+            orderCount++;
+            usersInOrders.replace(order.userNickName,orderCount);
+        }else {
+            usersInOrders.put(order.userNickName,1);
+        }
+
+
 
         order.finished=order.fulfilled;
-
-        if (jsonOrder.has("permalink")) {
-            order.publicationURL = jsonOrder.getString("permalink");
-        }
 
         //messages
         order.packId = order.id;
@@ -515,6 +851,9 @@ public class MessagesAndSalesHelper {
         JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient, false);
         order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,false);
         order.productPictureThumbnailURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,true);
+        if (publicationJsonObject.has("permalink")) {
+            order.publicationURL = publicationJsonObject.getString("permalink");
+        }
 
         JSONArray publicationAttributesJsonArray=null;
         if (publicationJsonObject!=null && publicationJsonObject.has("attributes") &&
@@ -576,7 +915,7 @@ public class MessagesAndSalesHelper {
         }
 
         order.shippingStatus=getStringValue(orderShippingObj,shippingObj,"status");
-        String shippingSubstatus = getStringValue(orderShippingObj,shippingObj,"substatus");
+        order.shippingSubStatus = getStringValue(orderShippingObj,shippingObj,"substatus");
 
         order.shippingTrackingNumber = getStringValue(orderShippingObj,shippingObj,"tracking_number");
         order.shippingCurrier = getStringValue(orderShippingObj,shippingObj,"tracking_method");
@@ -613,7 +952,7 @@ public class MessagesAndSalesHelper {
             order.shippingAddressLine3 = order.buyerAddressComments;
         }
 
-        if (shippingSubstatus!=null && shippingSubstatus.equals("waiting_for_withdrawal")) {
+        if (order.shippingSubStatus!=null && order.shippingSubStatus.equals("waiting_for_withdrawal")) {
             order.waitingForWithdrawal = true;
         }
 
@@ -636,7 +975,8 @@ public class MessagesAndSalesHelper {
                         } else {
                             if (order.shippingOptionNameDescription.contains("ormal a domicilio") ||//Normal a domicilio
                                     order.shippingOptionNameDescription.equals("Prioritario a domicilio") ||
-                                    order.shippingOptionNameDescription.contains("ndar a domicilio")) { //Estándar a domicilio
+                                    order.shippingOptionNameDescription.contains("ndar a domicilio") || //Estándar a domicilio
+                                    order.shippingOptionNameDescription.contains("Express a domicilio")) {
                                 order.shippingType = Order.CORREO_A_DOMICILIO;
                             } else {
                                 if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
@@ -649,60 +989,62 @@ public class MessagesAndSalesHelper {
             }
         }
 
-        String billingInfoUrl="https://api.mercadolibre.com/orders/"+order.id+"/billing_info?";
-        JSONObject billingInfoObject=HttpUtils.getJsonObjectUsingToken(billingInfoUrl,httpClient,user);
-        if (billingInfoObject!=null) {
-            JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
-            String billingDocType = "";
-            String billingDocNUmber = "";
-            String billingFirstName = "";
-            String billingLastName = "";
-            String billingStreetName = "";
-            String billingStreetNumber = "";
-            String billingZipCode = "";
-            String billingCity = "";
-            String billingState = "";
-            String billingComments = "";
-            if (billingInfoObject2 != null) {
-                billingDocType = billingInfoObject2.getString("doc_type");
-                billingDocNUmber = billingInfoObject2.getString("doc_number");
-                JSONArray additionalInfo = billingInfoObject2.getJSONArray("additional_info");
-                if (additionalInfo != null) {
-                    for (int i = 0; i < additionalInfo.length(); i++) {
-                        JSONObject infoObject = additionalInfo.getJSONObject(i);
-                        if (infoObject != null) {
-                            String type = infoObject.getString("type");
-                            String value = infoObject.getString("value");
-                            if (type != null && !type.isEmpty()) {
-                                if (value != null && !value.isEmpty()) {
+        if (includeDetails) {
+            String billingInfoUrl = "https://api.mercadolibre.com/orders/" + order.id + "/billing_info?";
+            JSONObject billingInfoObject = HttpUtils.getJsonObjectUsingToken(billingInfoUrl, httpClient, user);
+            if (billingInfoObject != null) {
+                JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
+                String billingDocType = "";
+                String billingDocNUmber = "";
+                String billingFirstName = "";
+                String billingLastName = "";
+                String billingStreetName = "";
+                String billingStreetNumber = "";
+                String billingZipCode = "";
+                String billingCity = "";
+                String billingState = "";
+                String billingComments = "";
+                if (billingInfoObject2 != null) {
+                    billingDocType = billingInfoObject2.getString("doc_type");
+                    billingDocNUmber = billingInfoObject2.getString("doc_number");
+                    JSONArray additionalInfo = billingInfoObject2.getJSONArray("additional_info");
+                    if (additionalInfo != null) {
+                        for (int i = 0; i < additionalInfo.length(); i++) {
+                            JSONObject infoObject = additionalInfo.getJSONObject(i);
+                            if (infoObject != null) {
+                                String type = infoObject.getString("type");
+                                String value = infoObject.getString("value");
+                                if (type != null && !type.isEmpty()) {
+                                    if (value != null && !value.isEmpty()) {
 
-                                    if (type.equals("FIRST_NAME")) {
-                                        billingFirstName = value;
-                                    } else if (type.equals("LAST_NAME")) {
-                                        billingLastName = value;
-                                    } else if (type.equals("STREET_NAME")) {
-                                        billingStreetName = value;
-                                    } else if (type.equals("STREET_NUMBER")) {
-                                        billingStreetNumber = value;
-                                    } else if (type.equals("ZIP_CODE")) {
-                                        billingZipCode = value;
-                                    } else if (type.equals("CITY_NAME")) {
-                                        billingCity = value;
-                                    } else if (type.equals("STATE_NAME")) {
-                                        billingState = value;
-                                    } else if (type.equals("COMMENT")) {
-                                        billingComments = value;
+                                        if (type.equals("FIRST_NAME")) {
+                                            billingFirstName = value;
+                                        } else if (type.equals("LAST_NAME")) {
+                                            billingLastName = value;
+                                        } else if (type.equals("STREET_NAME")) {
+                                            billingStreetName = value;
+                                        } else if (type.equals("STREET_NUMBER")) {
+                                            billingStreetNumber = value;
+                                        } else if (type.equals("ZIP_CODE")) {
+                                            billingZipCode = value;
+                                        } else if (type.equals("CITY_NAME")) {
+                                            billingCity = value;
+                                        } else if (type.equals("STATE_NAME")) {
+                                            billingState = value;
+                                        } else if (type.equals("COMMENT")) {
+                                            billingComments = value;
+                                        }
+
                                     }
-
                                 }
                             }
                         }
+                        order.billingDniCuit = billingDocType + " " + billingDocNUmber;
+                        order.billingName = humanNameFormater(billingFirstName + " " + billingLastName);
+                        order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
+                        order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
+                        order.billingAddressLine3 = billingComments;
                     }
-                    order.billingDniCuit = billingDocType + " " + billingDocNUmber;
-                    order.billingName = humanNameFormater(billingFirstName + " " + billingLastName);
-                    order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
-                    order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
-                    order.billingAddressLine3 = billingComments;
                 }
             }
         }
@@ -717,26 +1059,6 @@ public class MessagesAndSalesHelper {
             //todo RECLAMO abierto
         }
 
-        if (!messagesOnly) {
-            String buyerUrl = "https://api.mercadolibre.com/users/" + buyerId;
-            JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient, false);
-            JSONObject addressObj = buyerObj.getJSONObject("address");
-
-            String stateId = null;
-            if (!addressObj.isNull("state")) {
-                stateId = addressObj.getString("state");
-                if (!stateHashMap.containsKey(stateId)) {
-                    String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
-                    JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient, false);
-                    String stateName = stateObj.getString("name");
-                    stateHashMap.put(stateId, stateName);
-                }
-                order.userState = stateHashMap.get(stateId);
-            }
-            if (!addressObj.isNull("city")) {
-                order.userCity = addressObj.getString("city");
-            }
-        }
 
         JSONObject feedbackObj = jsonOrder.getJSONObject("feedback");
         if (!feedbackObj.isNull("sale")) {
@@ -771,7 +1093,7 @@ public class MessagesAndSalesHelper {
         }
 
         order.buyerEmail="N/A";
-        if (!ordersOnly) {
+        if (includeDetails) {
             order.messageArrayList=getAllMessagesOnOrder(order.packId,user,httpClient);
             if (order.messageArrayList.size()>0){  //todo devolver
                 for (int i=0; i<order.messageArrayList.size(); i++) {
@@ -783,22 +1105,45 @@ public class MessagesAndSalesHelper {
                     }
                 }
             }
+
+            //todas las preguntass en el caso del proceso global
+            order.previousQuestionsOnItemArrayList = new ArrayList<Message>();
+            order.previousQuestionsOtherItemsArrayList = new ArrayList<Message>();
             if (allQuestionsArrayList==null || allQuestionsArrayList.isEmpty()){
-                allQuestionsArrayList=getAllQuestions(user,httpClient);
+                updateQuestionsFile(user,httpClient);
+                String questionFileName=getQuestionFileName(user);
+                allQuestionsArrayList=getQuestionsFromFile(questionFileName);
             }
-            order.previousQuestionsOnItemArrayList=new ArrayList<Message>();
-            order.previousQuestionsOtherItemsArrayList=new ArrayList<Message>();
-            for (Message question: allQuestionsArrayList){
-                if (question.customerId==order.buyerCustId){
-                    if (question.productId.equals(order.productId)){
+            for (Message question : allQuestionsArrayList) {
+                if (question.customerId == order.buyerCustId) {
+                    if (question.productId.equals(order.productId)) {
                         order.previousQuestionsOnItemArrayList.add(question);
-                    }else {
+                    } else {
                         order.previousQuestionsOtherItemsArrayList.add(question);
                     }
                 }
             }
-
         }
+
+        if (reviewsHashMap.size()>0){
+            if (reviewsHashMap.containsKey(order.buyerCustId)) {
+                String reviewRecord = reviewsHashMap.get(order.buyerCustId);
+                int pos1 = reviewRecord.indexOf("|");
+                String itemId = reviewRecord.substring(0, pos1);
+                if (order.productId.equals(itemId)) {
+                    pos1++;
+                    int pos2 = reviewRecord.indexOf("*");
+                    String starStr = reviewRecord.substring(pos1, pos2);
+                    int stars=Integer.parseInt(starStr);
+                    pos2 += 2;
+                    String review = reviewRecord.substring(pos2);
+                    order.itemReviewStars =stars;
+                    order.itemReviewComment =review;
+                    boolean b = false;
+                }
+            }
+        }
+
         return order;
     }
 
@@ -932,13 +1277,26 @@ public class MessagesAndSalesHelper {
 
 
     public static void main(String args[]){
+
+
+        Calendar calendar = Calendar.getInstance();
+
+        String user = "SOMOS_MAS";
+        //String user = "ACACIAYLENGA";
+
+        String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
+                calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");
+
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-            ArrayList<Order> orderArrayList = requestOrdersAndMessages(false,false, false, "ACACIAYLENGA",httpClient);
+
+        //todo descomentar proxima linea
+        reviewsHashMap=getAllReviews(user,httpClient); //opcional para que busque reviews de items
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(true,false, user,httpClient);
         String headers=new Order().getPrintableCSVHeader();
-        Logger.log(headers);
+        Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){
             String record = order.getPrintableCSVValues();
-            Logger.log(record);
+            Logger.writeOnFile(fileName,record);
         }
     }
 

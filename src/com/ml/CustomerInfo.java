@@ -22,16 +22,20 @@ public class CustomerInfo {
     static final char ORDENADORES_FILA='F';
     static final char COCINA_ALMACENAMIENTO='T'; //portacopas
     static final char CESTOS_PAPELERO ='P';
+    static final char INSUMOS_OFICINA ='I';
+    static final char MUEBLES_Y_SILLAS ='M';
+    static final char CAJONES_DE_MADERA ='Y'; //galleta
+
 
 
     public static void main (String[] args) {
 
 
 
-        String nickname="HEJU9604843";
+        String nickname="CORDOBES9261";
         //String nickname="AMQUILMES2010";
         //String nickname="ANTONELLAGAZZANO";
-        char categoria=CORREDERAS_TELESCOPICAS;
+        char categoria=CAJONES_DE_MADERA;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -55,6 +59,16 @@ public class CustomerInfo {
         if (categoria==CESTOS_PAPELERO){
             categoryId="MLA105430";
         }
+        if (categoria==INSUMOS_OFICINA){
+            categoryId="MLA417280";
+        }
+        if (categoria==MUEBLES_Y_SILLAS){
+            categoryId="MLA5978";
+        }
+        if (categoria==CAJONES_DE_MADERA){
+            categoryId="MLA378056";
+        }
+
 
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();

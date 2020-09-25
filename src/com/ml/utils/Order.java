@@ -14,6 +14,7 @@ public class Order implements Comparable<Order> {
     public long   shippingId;
     public String shippingReceiverName;
     public String shippingStatus;
+    public String shippingSubStatus;
     public String shippingOptionNameDescription;
     public String shippingTrackingNumber;
     public String shippingCurrier;
@@ -27,6 +28,7 @@ public class Order implements Comparable<Order> {
     public char    orderStatus;
     public char    shippingType;
     public boolean delivered;
+    public boolean readyForSending;
     public boolean waitingForWithdrawal;
     public boolean cancelled;
     public boolean returned;
@@ -35,7 +37,7 @@ public class Order implements Comparable<Order> {
     public boolean finished;
     public boolean fulfilled;
     public boolean multiItem;
-    public boolean pending;
+    public boolean pending;  //abierta
 
     public String userNickName;
     public String userCity;
@@ -62,6 +64,8 @@ public class Order implements Comparable<Order> {
 
     public String receivedFeedbackRating;
     public String receivedFeedbackComment;
+    public int    itemReviewStars;
+    public String itemReviewComment;
 
     public String paymentMethod;
     public String paymentAmount;
