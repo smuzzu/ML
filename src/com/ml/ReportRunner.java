@@ -301,8 +301,12 @@ public class ReportRunner {
     private static ArrayList<String> purgeItemHashMap(HashMap<String, Item> itemHashMap, String DATABASE) {
         ArrayList<String> removeList = new ArrayList<String>();
         ArrayList<String> incompleteList = new ArrayList<String>();
+        int minimumSales=globalMinimumSales;
+        if (minimumSales>5){
+            minimumSales=5;
+        }
         for (Item item : itemHashMap.values()) {
-            if (item.totalSold > -1 && item.totalSold < globalMinimumSales) {
+            if (item.totalSold > -1 && item.totalSold < minimumSales) {
                 removeList.add(item.id);
                 continue;
             }
@@ -312,6 +316,7 @@ public class ReportRunner {
                 boolean sameDate = Counters.isSameDate(lastUpdate, getGlobalDate());
                 if (sameDate) {
                     removeList.add(item.id);
+                    continue;
                 }
             }
             if (item.totalSold == -1) {

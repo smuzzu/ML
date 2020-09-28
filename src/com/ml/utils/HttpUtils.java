@@ -293,7 +293,6 @@ public class HttpUtils {
                         Logger.log("Http "+statusCode+" en getHTMLStringFromPage intento #" + retries + " " + uRL+" whith proxy"+proxy);
                         //todo en el 403 hacemos algo?
                         int segundosQuePasaron = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
-                        boolean b=false;
                     }
                 }
             }

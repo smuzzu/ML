@@ -367,15 +367,15 @@ public class HTMLParseUtils {
         double stars = 0l;
         String msg = null;
 
-        String allStarsStr = StringUtils.substringBetween(htmlString, "star-container", "average-legend");
+        String allStarsStr = StringUtils.substringBetween(htmlString, "ui-pdp-review__ratings", "/span");
 
         if (allStarsStr == null) {
             msg = "Cannot find stars on " + url;
             Logger.log(msg);
             System.out.println(msg);
         }else{
-            stars = allStarsStr.split("star-icon-full").length - 1 * 1.0;
-            boolean halfStar = allStarsStr.indexOf("star-icon-half") > 0;
+            stars = allStarsStr.split("star-full").length - 1 * 1.0;
+            boolean halfStar = allStarsStr.indexOf("star-half") > 0;
             if (halfStar) {
                 stars += 0.5;
             }
@@ -388,18 +388,18 @@ public class HTMLParseUtils {
         int reviews = 0;
         String msg = null;
 
-        int pos1 = htmlString.indexOf("class=\"average-legend\"");
+        int pos1 = htmlString.indexOf("review__amount");
         if (pos1 == -1) {
             return 0;//no tiene reviews
         }
-        pos1 = htmlString.indexOf("<span>", pos1);
+        pos1 = htmlString.indexOf(">", pos1);
         if (pos1 == -1) {
             msg = "Cannot find reviews II on " + url;
             Logger.log(msg);
             System.out.println(msg);
         }
-        pos1 += 6;
-        int pos2 = htmlString.indexOf("<", pos1);
+        pos1++;
+        int pos2 = htmlString.indexOf("opiniones", pos1);
         if (pos2 == -1) {
             msg = "Cannot find reviews III on " + url;
             Logger.log(msg);
