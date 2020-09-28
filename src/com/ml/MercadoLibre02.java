@@ -374,7 +374,6 @@ public class MercadoLibre02 extends Thread {
                     }
 
                     for (String productUrl : productsURLArrayList) {
-                        Counters.incrementGlobalProductCount();
 
                         String productId = HTMLParseUtils.getProductIdFromURL(productUrl);
 

@@ -6,6 +6,7 @@ import java.util.Calendar;
 public class Counters {
 
     static int globalPageCount = 0;
+    static int globalRequestCount = 0;
     static int globalProductCount = 0;
     static int globalNewsCount = 0;
     static int globalRunnerCount;
@@ -18,12 +19,16 @@ public class Counters {
         globalPageCount++;
     }
 
+    synchronized public static void incrementGlobalRequestCount() {
+        globalRequestCount++;
+    }
+
     synchronized public static void incrementGlobalNewsCount() {
         globalNewsCount++;
     }
 
-    synchronized public static void incrementGlobalProductCount() {
-        globalProductCount++;
+    synchronized public static void setGlobalProductCount(int count) {
+        globalProductCount=count;
     }
 
     synchronized public static void incrementGlobalDisableCount() {
@@ -41,6 +46,11 @@ public class Counters {
     public static int getGlobalPageCount() {
         return globalPageCount;
     }
+
+    public static int getGlobalRequestCountCount() {
+        return globalRequestCount;
+    }
+
 
     public static int getGlobalNewsCount() {
         return globalNewsCount;

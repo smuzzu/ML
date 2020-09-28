@@ -44,119 +44,126 @@ public class ProductPageProcessor extends Thread {
 
 
     public void run() {
-        String runnerID = "R" + Counters.getGlobalRunnerCount();
+        String runnerID=null;
+        try {
+            runnerID = "R" + Counters.getGlobalRunnerCount();
 
-        String msg = runnerID + " procesando posible pausado "+ url;
-        if (DEBUG) {
+            String msg = runnerID + " procesando posible pausado " + url;
+            if (DEBUG) {
+                Logger.log(msg);
+            }
+
+            CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+
+            String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
+
+            if (!HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
+                // hacemos pausa por si es problema de red
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                Logger.log(runnerID + " hmlstring from possible paused page is null " + url);
+                try {
+                    httpClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                httpClient = null;
+                httpClient = HttpUtils.buildHttpClient();
+                htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
+            }
+
+            boolean disable = false;
+            int totalSold = 0;
+            String productId = HTMLParseUtils.getFormatedId(this.productId);
+            if (!HttpUtils.isOK(htmlString)) {
+                Logger.log(htmlString); // todo sacar
+                disable = true;
+            } else {
+                totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
+                if (totalSold <= 0) {
+                    disable = true;
+                }
+            }
+
+            if (disable) {
+                msg = "Deshabilitando producto " + url;
+                System.out.println(msg);
+                Logger.log(msg);
+                if (SAVE) {
+                    DatabaseHelper.disableProduct(productId, DATABASE);
+                }
+                return;
+            }
+
+            Date lastUpdate = DatabaseHelper.fetchLastUpdate(productId, DATABASE);
+            if (lastUpdate != null) {
+                boolean sameDate = Counters.isSameDate(lastUpdate, this.globalDate);
+                if (sameDate) {
+                    return; //este ya lo hicimos
+                }
+            }
+
+            int previousTotalSold = DatabaseHelper.fetchTotalSold(productId, DATABASE);
+            if (totalSold != previousTotalSold) { //actualizar o agregar
+                int newSold = totalSold - previousTotalSold;
+
+                boolean officialStore = HTMLParseUtils.getOfficialStore(htmlString);
+
+                String seller = HTMLParseUtils.getSeller(htmlString, officialStore, url);
+
+                String lastQuestion = HTMLParseUtils.getLastQuestion(htmlString);
+
+                String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId, DATABASE);
+                ArrayList<String> newQuestionsList = HttpUtils.getNewQuestionsFromPreviousLastQuestion(url, productId, httpClient, runnerID, DEBUG, previousLastQuestion);
+                int newQuestions = newQuestionsList.size();
+
+                String title = HTMLParseUtils.getTitle(htmlString, url);
+
+                int reviews = HTMLParseUtils.getReviews(htmlString, url);
+
+                double stars = 0l;
+                if (reviews > 0) {
+                    stars = HTMLParseUtils.getStars(htmlString, url);
+                }
+
+                double price = HTMLParseUtils.getPrice(htmlString, url);
+
+                int shipping = HTMLParseUtils.getShipping(htmlString);
+
+                int discount = HTMLParseUtils.getDiscount(htmlString, url);
+
+                boolean premium = HTMLParseUtils.getPremium(htmlString);
+
+                Counters.incrementGlobalNewsCount();
+
+                if (previousTotalSold > 0) { //actualizar
+                    msg = runnerID + " new sale. productID: " + productId + " quantity: " + newSold;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                    if (SAVE && !localRun) {
+                        DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, page, ranking, shipping, discount, premium);
+                    }
+                } else {//nuevo registro. agregar
+                    msg = runnerID + " new product " + newSold + " " + url;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                    if (SAVE && !localRun) {
+                        DatabaseHelper.insertProduct(DATABASE, globalDate, productId, seller, sellerId, totalSold, lastQuestion, url, officialStore);
+                    }
+                }
+
+            }
+
+        }catch (Exception e){
+            String msg = "Exception in ProductPageProcessor id="+this.productId+" url="+this.url;
             Logger.log(msg);
-        }
-
-        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-
-        String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
-
-        if (!HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
-            // hacemos pausa por si es problema de red
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Logger.log(e);
-            }
-            Logger.log(runnerID + " hmlstring from possible paused page is null " + url);
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            httpClient = null;
-            httpClient = HttpUtils.buildHttpClient();
-            htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
-        }
-
-        boolean disable=false;
-        int totalSold=0;
-        String productId = HTMLParseUtils.getFormatedId(this.productId);
-        if (!HttpUtils.isOK(htmlString)) {
-            Logger.log(htmlString); // todo sacar
-            disable=true;
-        }else {
-            totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
-            if (totalSold <=0) {
-                disable=true;
-            }
-        }
-
-        if (disable){
-            msg="Deshabilitando producto "+url;
-            Counters.incrementGlobalDisableCount();
+            Logger.log(e);
             System.out.println(msg);
-            Logger.log(msg);
-            if (SAVE) {
-                DatabaseHelper.disableProduct(productId, DATABASE);
-            }
-            return;
+            e.printStackTrace();
         }
-
-        Date lastUpdate = DatabaseHelper.fetchLastUpdate(productId,DATABASE);
-        if (lastUpdate != null){
-            boolean sameDate = Counters.isSameDate(lastUpdate, this.globalDate);
-            if (sameDate){
-                return; //este ya lo hicimos
-            }
-        }
-
-        int previousTotalSold = DatabaseHelper.fetchTotalSold(productId, DATABASE);
-        if (totalSold != previousTotalSold) { //actualizar o agregar
-            int newSold = totalSold - previousTotalSold;
-
-            boolean officialStore=HTMLParseUtils.getOfficialStore(htmlString);
-
-            String seller=HTMLParseUtils.getSeller(htmlString,officialStore,url);
-
-            String lastQuestion=HTMLParseUtils.getLastQuestion(htmlString);
-
-            String previousLastQuestion = DatabaseHelper.fetchLastQuestion(productId,DATABASE);
-            ArrayList<String> newQuestionsList= HttpUtils.getNewQuestionsFromPreviousLastQuestion(url,productId,httpClient,runnerID,DEBUG,previousLastQuestion);
-            int newQuestions = newQuestionsList.size();
-
-            String title=HTMLParseUtils.getTitle(htmlString,url);
-
-            int reviews=HTMLParseUtils.getReviews(htmlString,url);
-
-            double stars=0l;
-            if (reviews>0) {
-                stars=HTMLParseUtils.getStars(htmlString, url);
-            }
-
-            double price=HTMLParseUtils.getPrice(htmlString,url);
-
-            int shipping = HTMLParseUtils.getShipping(htmlString);
-
-            int discount = HTMLParseUtils.getDiscount(htmlString,url);
-
-            boolean premium = HTMLParseUtils.getPremium(htmlString);
-
-            Counters.incrementGlobalNewsCount();
-
-            if (previousTotalSold>0) { //actualizar
-                msg = runnerID+" new sale. productID: " + productId + " quantity: " + newSold;
-                System.out.println(msg);
-                Logger.log(msg);
-                if (SAVE && !localRun) {
-                    DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, page, ranking, shipping, discount, premium);
-                }
-            }else {//nuevo registro. agregar
-                msg = runnerID+" new product " + newSold + " " + url;
-                System.out.println(msg);
-                Logger.log(msg);
-                if (SAVE && !localRun) {
-                    DatabaseHelper.insertProduct(DATABASE,globalDate,productId, seller, sellerId, totalSold, lastQuestion, url, officialStore);
-                }
-            }
-
-        }
-
-
     }
 
     public static void processPossiblyPausedProducts(String database, Date globalDate, ArrayList<String> globalProcesedProductList, boolean SAVE, boolean DEBUG) {

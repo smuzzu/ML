@@ -36,7 +36,6 @@ public class ReportRunner {
     static int globalMinimumSales = 1;
     static boolean globalFollowingDay = false;
     static boolean globalPreviousDay = false;
-    static int requestCount = 0;
     static Date globalDate = null;
 
     protected static int[] buildIntervals(String url1, int maxItemsInRange, CloseableHttpClient client) {
@@ -246,7 +245,7 @@ public class ReportRunner {
         return result;
     }
 
-    private static void completeWebItems(CloseableHttpClient client, HashMap<String, Item> itemHashMap, ArrayList<String> incompleteList) {
+    private static void completeAndDisableItems(CloseableHttpClient client, HashMap<String, Item> itemHashMap, ArrayList<String> incompleteList, String database) {
         boolean processFinished = false;
         int i = -1;
         while (!processFinished) {
@@ -267,9 +266,6 @@ public class ReportRunner {
                 for (int j = 0; j < jsonArray.length(); j++) {
                     JSONObject itemObject2 = jsonArray.getJSONObject(j);
                     int code = itemObject2.getInt("code");
-                    if (code != 200) {
-                        continue; //nunca paso
-                    }
                     JSONObject productObj = itemObject2.getJSONObject("body");
                     String id = productObj.getString("id");
                     Item item = itemHashMap.get(id);
@@ -277,7 +273,23 @@ public class ReportRunner {
                         Logger.log("Item is nul.  Why? "+id);
                         continue;
                     }
-                    boolean completed = completeItem(productObj, item);
+                    if (code==404) { //no esta mas
+                        String msg = "Deshabilitando item que no existe mas "+id;
+                        System.out.println(msg);
+                        Logger.log(msg);
+                        if (SAVE) {
+                            String formattedId=HTMLParseUtils.getFormatedId(id);
+                            DatabaseHelper.disableProduct(formattedId, database);
+                        }
+                        itemHashMap.remove(id);
+                        continue;
+                    }
+                    if (code != 200) {
+                        Logger.log("XXXXXXXXX HTTP "+code+" en completeAndDisableItems con item="+id+" no se procesara");
+                        itemHashMap.remove(id);
+                        continue;
+                    }
+                    boolean completed = completeItem(productObj, item, database);
                     if (!completed) {
                         itemHashMap.remove(id);
                     }
@@ -356,7 +368,6 @@ public class ReportRunner {
             uRL += "_DisplayType_G";
 
             String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, client, DEBUG, false);
-            requestCount++;
             if (!HttpUtils.isOK(htmlStringFromPage)) { //suponemos que se terminó
                 // pero tambien hacemos pausa por si es problema de red
                 try {
@@ -424,7 +435,6 @@ public class ReportRunner {
             }
 
             for (String productUrl : productsURLArrayList) {
-                Counters.incrementGlobalProductCount();
 
                 int initPoint = resultListHMTLData.indexOf(productUrl);
                 int nextPoint = resultListHMTLData.length();//just for the last item #48 o #50 depending on the page layout
@@ -488,9 +498,23 @@ public class ReportRunner {
         }
     }
 
-    private static boolean completeItem(JSONObject productObj, Item item) {
+    private static boolean completeItem(JSONObject productObj, Item item, String database) {
 
-        if (!productObj.has("sold_quantity")) {
+        if (!productObj.has("sold_quantity")) { //todo si esta under review hace rato lo volamos
+            if (productObj.has("status") && !productObj.isNull("status")){
+                String status = productObj.getString("status");
+                if (status.equals("under_review") || status.equals("inactive") || status.equals("closed")){
+                    String msg = "Deshabilitando item "+item.id+" "+status;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                    String formattedId=HTMLParseUtils.getFormatedId(item.id);
+                    DatabaseHelper.disableProduct(formattedId, database);
+                    return false;
+                }
+            }
+            String msg = "OJO AL PIOJO No pudo completar el item "+item.id;
+            System.out.println(msg);
+            Logger.log(msg);
             return false;//under review y otros casos raros
         }
 
@@ -589,7 +613,7 @@ public class ReportRunner {
         if (!ONLY_RELEVANT) {
             for (String apiBaseUrl : apiBaseUrls) {
                 Logger.log("XXXXXXXXXX Procesando nueava api url " + apiBaseUrl);
-                processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT);
+                processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE);
             }
         }
 
@@ -600,20 +624,22 @@ public class ReportRunner {
                 int since = interval[j - 1] + 1;
                 int upto = interval[j];
                 Logger.log("XXXXXXXXXX Procesando intervalo " + since + "-" + upto + " " + url);
-                processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT);
+                processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE);
             }
         }
 
-        if (!ONLY_RELEVANT) {
-            Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
-            addPossiblePaused(itemHashMap, DATABASE);
-        }
+
+        Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
+        addPossiblePaused(itemHashMap, DATABASE);
+
+        int totalItemsToProcess=itemHashMap.size();
+        Counters.setGlobalProductCount(totalItemsToProcess);
 
         //removemos lo que no nos interesa o ya fue procesado
         Logger.log("XXXXXXXXXX Purgando items 1. itemHashMap=" + itemHashMap.size());
         ArrayList<String> incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
         Logger.log("XXXXXXXXXX Completando items 1.  itemHashMap=" + itemHashMap.size());
-        completeWebItems(client, itemHashMap, incompleteList);
+        completeAndDisableItems(client, itemHashMap, incompleteList,DATABASE);
         Logger.log("XXXXXXXXXX Purgando items 2. itemHashMap=" + itemHashMap.size());
         incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
         if (incompleteList.size() > 0) {
@@ -667,7 +693,7 @@ public class ReportRunner {
         }
     }
 
-    protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT) {
+    protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT, String database) {
         if (since >= 0) {
             apiBaseUrl += "&price=" + since + "-" + upto;
         }
@@ -699,7 +725,6 @@ public class ReportRunner {
                 Logger.log(msg);
                 jsonObject = HttpUtils.getJsonObjectUsingToken(apiSearchUrl, client, usuario);
             }
-            requestCount++;
             if (jsonObject == null) {
                 String msg = "No se pudo recuperar el item " + apiSearchUrl;
                 Logger.log(msg);
@@ -728,7 +753,7 @@ public class ReportRunner {
                 }
 
 
-                boolean completed = completeItem(productObj, item);
+                boolean completed = completeItem(productObj, item, database);
                 if (!completed) {
                     itemHashMap.remove(id);
                 }

@@ -281,6 +281,7 @@ public class HttpUtils {
                 Logger.log("Error en getHTMLStringFromPage intento #" + retries + " " + uRL+ " con proxy "+proxy);
                 Logger.log(e);
             }
+            Counters.incrementGlobalRequestCount();
 
             if (response != null) {
                 StatusLine statusline = response.getStatusLine();
@@ -484,6 +485,7 @@ public class HttpUtils {
                 Logger.log("Error downloading binary file intento #" + retries + " " + fileUrl);
                 Logger.log(e);
             }
+            Counters.incrementGlobalRequestCount();
 
             if (response != null) {
                 StatusLine statusline = response.getStatusLine();

@@ -181,7 +181,9 @@ public class MercadoLibre01b {
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
+                + Counters.getGlobalRequestCountCount() + " requests\r\n "
                 + Counters.getGlobalProductCount() + " productos procesados\r\n "
+                + Counters.getGlobalDisableCount() + " productos deshabilitados\r\n "
                 + Counters.getGlobalNewsCount() + " productos con novedades";
         System.out.println(msg);
         Logger.log(msg);

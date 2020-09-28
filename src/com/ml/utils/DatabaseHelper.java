@@ -63,6 +63,8 @@ public class DatabaseHelper {
     private static boolean updateTokenOnCloudFailureNotified =false;
     private static boolean cloudConnectionCreationFailureNotified=false;
 
+    private static Date twoHundredSeventyDaysBefore=null;
+
     public static synchronized Connection getSelectConnection(String database){
 
         boolean resetConnection=globalSelectConnection==null;
@@ -689,6 +691,7 @@ public class DatabaseHelper {
     }
 
     public static synchronized void disableProduct(String productId,String database){
+        Counters.incrementGlobalDisableCount();
         int registrosModificados=0;
         try {
             if (globalDisableProduct==null){
@@ -1307,12 +1310,14 @@ public class DatabaseHelper {
         ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
 
         String productId=null;
+        Date since = getTwoHundredSeventyDaysBefore();
         Connection selectConnection = DatabaseHelper.getSelectConnection(database);
         try{
             PreparedStatement globalSelectPossiblyPaused = null;
-            //option 1
-            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate<? and deshabilitado=false order by lastupdate");
-            globalSelectPossiblyPaused.setDate(1,date);
+            //option 1  //TODO, PONER UN RANGO DE FECHAS A POSIBLE PAUSADOS PARA EVITAR REGISTROS MUY VIEJOS?
+            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate>? lastupdate<? and deshabilitado=false order by lastupdate");
+            globalSelectPossiblyPaused.setDate(1,since);
+            globalSelectPossiblyPaused.setDate(2,date);
 
             String msg="Buscando pausados en databasse"+" - "+ globalSelectPossiblyPaused.toString();
             System.out.println(msg);
@@ -1336,6 +1341,20 @@ public class DatabaseHelper {
         }
         return possiblyPausedProductList;
     }
+
+    private static synchronized Date getTwoHundredSeventyDaysBefore(){
+        if (twoHundredSeventyDaysBefore==null) {
+            Date result = null;
+            long oneDayInMiliseconds = 86400000L;
+            long twoHundredSeventyDaysInMiliseconds = oneDayInMiliseconds * 270;
+            Calendar cal = Calendar.getInstance();
+            long milliseconds = cal.getTimeInMillis();
+            twoHundredSeventyDaysBefore = new Date(milliseconds - twoHundredSeventyDaysInMiliseconds);
+        }
+        return twoHundredSeventyDaysBefore;
+    }
+
+
 
     public static void main(String[] args) {
         Product product = getProductFromCloud("MLA-831749248");
