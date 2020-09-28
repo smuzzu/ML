@@ -515,7 +515,15 @@ public class MessagesAndSalesHelper {
                 question.deleted=Boolean.parseBoolean(deletedStr);
                 pos1=pos2+1;
                 String custIdStr=questionFromFileStr.substring(pos1);
-                question.customerId=Long.parseLong(custIdStr);
+                try {
+                    question.customerId = Long.parseLong(custIdStr);
+                }catch (Exception e){
+                    String errorMsg="Exception parsing "+custIdStr+" for question id="+question.id;
+                    Logger.log(errorMsg);
+                    Logger.log(e);
+                    System.out.println(errorMsg);
+                    e.printStackTrace();
+                }
 
                 if (previousQuestionsArrayList.contains(question)){
                     previousQuestionsArrayList.remove(question);

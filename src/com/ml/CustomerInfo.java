@@ -25,17 +25,17 @@ public class CustomerInfo {
     static final char INSUMOS_OFICINA ='I';
     static final char MUEBLES_Y_SILLAS ='M';
     static final char CAJONES_DE_MADERA ='Y'; //galleta
+    static final char ESCRITORIOS='E';
 
 
 
     public static void main (String[] args) {
 
+        //para buscar un item y su categoria
+        //https://api.mercadolibre.com/items/MLA678401085
 
-
-        String nickname="CORDOBES9261";
-        //String nickname="AMQUILMES2010";
-        //String nickname="ANTONELLAGAZZANO";
-        char categoria=CAJONES_DE_MADERA;
+        String nickname="LOMA8295898";
+        char categoria=ESCRITORIOS;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -68,7 +68,9 @@ public class CustomerInfo {
         if (categoria==CAJONES_DE_MADERA){
             categoryId="MLA378056";
         }
-
+        if (categoria==ESCRITORIOS){
+            categoryId="MLA30991";
+        }
 
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
