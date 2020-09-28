@@ -26,7 +26,7 @@ public class ReportRunner {
     static final int RESULTS_LIMIT = 10000;
 
     static int MAX_THREADS = 50;//14
-    static final boolean SAVE = true;
+    static final boolean SAVE = false;
     static final boolean DEBUG = false;
     static final boolean IGNORE_VISITS = false;
 
@@ -143,14 +143,6 @@ public class ReportRunner {
             }
         }
         boolean b=false;
-    }
-
-    private static void completeSellerName(HashMap<String, Item> itemHashMap, String DATABASE) {
-        for (Item item : itemHashMap.values()) {
-            if (item.sellerName == null || item.sellerName.isEmpty()) {
-                item.sellerName = DatabaseHelper.fetchSellerName(HTMLParseUtils.getFormatedId(item.id), DATABASE);
-            }
-        }
     }
 
     protected static boolean addPossiblePaused(HashMap<String, Item> itemHashMap, String DATABASE) {
@@ -512,8 +504,10 @@ public class ReportRunner {
                     String msg = "Deshabilitando item "+item.id+" "+status;
                     System.out.println(msg);
                     Logger.log(msg);
-                    String formattedId=HTMLParseUtils.getFormatedId(item.id);
-                    DatabaseHelper.disableProduct(formattedId, database);
+                    if (SAVE) {
+                        String formattedId=HTMLParseUtils.getFormatedId(item.id);
+                        DatabaseHelper.disableProduct(formattedId, database);
+                    }
                     return false;
                 }
             }
@@ -653,9 +647,6 @@ public class ReportRunner {
 
         Logger.log("XXXXXXXXXX Purgando items 3. itemHashMap=" + itemHashMap.size());
         purgeItemHashMap2(itemHashMap, DATABASE);
-
-        Logger.log("XXXXXXXXXX Completando items 2. itemHashMap=" + itemHashMap.size());
-        completeSellerName(itemHashMap, DATABASE);
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
         ArrayList<Thread> removeList = new ArrayList<Thread>();

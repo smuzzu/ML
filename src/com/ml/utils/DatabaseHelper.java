@@ -28,7 +28,6 @@ public class DatabaseHelper {
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
-    private static PreparedStatement globalSelectSellerName = null;
     private static PreparedStatement globalSelectLastQuestion = null;
     private static PreparedStatement globalSelectAllDaily = null;
     private static PreparedStatement globalSelectValidProductsOnDates = null;
@@ -1126,33 +1125,6 @@ public class DatabaseHelper {
         return totalSold;
     }
 
-    public static synchronized String fetchSellerName(String productId, String database) {
-        String sellerName="";
-        Connection connection = DatabaseHelper.getSelectConnection(database);
-        try{
-            if (globalSelectSellerName ==null) {
-                globalSelectSellerName = connection.prepareStatement("SELECT proveedor FROM public.productos WHERE id=?;");
-            }
-
-            globalSelectSellerName.setString(1,productId);
-
-            ResultSet rs = globalSelectSellerName.executeQuery();
-            if (rs==null){
-                Logger.log("Couldn't get seller name "+productId);
-                return sellerName;
-            }
-
-            if (rs.next()){
-                sellerName=rs.getString(1);
-            }
-        }catch(SQLException e){
-            e.printStackTrace();
-            Logger.log("Couldn't get total sold ii"+productId);
-        }
-        return sellerName;
-    }
-
-
     public static synchronized String fetchLastQuestion(String productId, String database) {
         String lastQuestion=null;
         Connection connection=DatabaseHelper.getSelectConnection(database);
@@ -1315,7 +1287,7 @@ public class DatabaseHelper {
         try{
             PreparedStatement globalSelectPossiblyPaused = null;
             //option 1  //TODO, PONER UN RANGO DE FECHAS A POSIBLE PAUSADOS PARA EVITAR REGISTROS MUY VIEJOS?
-            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate>? lastupdate<? and deshabilitado=false order by lastupdate");
+            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate>? and lastupdate<? and deshabilitado=false order by lastupdate");
             globalSelectPossiblyPaused.setDate(1,since);
             globalSelectPossiblyPaused.setDate(2,date);
 
