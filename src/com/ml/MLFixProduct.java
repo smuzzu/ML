@@ -20,6 +20,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import org.apache.http.auth.AuthScope;
@@ -29,6 +31,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 
+import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
@@ -122,48 +125,54 @@ public class MLFixProduct {
 
     public static void main(String[] args) {
 
-        System.setProperty("webdriver.chrome.driver", "C:\\Users\\Muzzu\\IdeaProjects\\selenium\\chromedriver_win32_2.4\\chromedriver.exe");
-        System.setProperty("webdriver.gecko.driver", "C:\\Users\\Muzzu\\IdeaProjects\\selenium\\geckodriver-v0.20.0-win64\\geckodriver.exe");
 
         globalClient = buildHttpClient();
 
-        WebDriver webDriver = getWebDriver();
 
         getSelectConnection();
         getUpdateConnection();
-        PreparedStatement updatePrepredStatement=null;
+        //PreparedStatement updatePrepredStatement=null;
+
 
         try {
             PreparedStatement selectPreparedStatement = globalSelectConnection.prepareStatement("select id, url from productos where proveedor is null or trim(proveedor) = ''");
-            updatePrepredStatement = globalUpadteConnection.prepareStatement("update productos set proveedor = ? where id = ?");
+            //updatePrepredStatement = globalUpadteConnection.prepareStatement("update productos set proveedor = ? where id = ?");
             ResultSet selectResultSet = selectPreparedStatement.executeQuery();
+            int count=0;
             while (selectResultSet.next()){
-                String id = selectResultSet.getString(1);
-                if  (id!=null && !id.isEmpty()) {
-                    String url = selectResultSet.getString(2);
-                    if (url != null && !url.isEmpty()) {
-                        String seller = getSeller(webDriver, url);
-                        if (seller != null && !seller.isEmpty()) {
-                            seller=formatSeller(seller);
-                            updatePrepredStatement.setString(1,seller);
-                            updatePrepredStatement.setString(2,id);
-                            int updatedRows = updatePrepredStatement.executeUpdate();
-                            if (updatedRows!=1){
-                                log("no pudo actualizar 1 retistro "+updatedRows);
-                            }else {
-                                getUpdateConnection().commit();
-                                log("se actualizó el producto: "+id+" con seller="+seller);
-                            }
-                        } else {
-                            log("seller is null " + url);
-                        }
-                    } else {
-                        log("null url !!");
+                count++;
+                if (count==30){
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
                     }
-                }else {
-                    log("null id");
+                    globalClient=HttpUtils.buildHttpClient();
+                    count=0;
                 }
 
+                String id = selectResultSet.getString(1);
+                String unformatedId = "MLA"+id.substring(4);
+                String productUrl = "https://api.mercadolibre.com/items/"+unformatedId;
+                JSONObject productObj = HttpUtils.getJsonObjectWithoutToken(productUrl,globalClient,false);
+                int sellerID=-1;
+                String nickName=null;
+                if (productObj!=null && productObj.has("seller_id") && !productObj.isNull("seller_id")){
+                    sellerID=productObj.getInt("seller_id");
+                    String sellerUrl = "https://api.mercadolibre.com/users/"+sellerID;
+                    JSONObject sellerObj = HttpUtils.getJsonObjectWithoutToken(sellerUrl,globalClient,false);
+                    if (sellerObj!=null && sellerObj.has("nickname") && !sellerObj.isNull("nickname")){
+                        nickName=sellerObj.getString("nickname");
+                    }
+                }
+                if (sellerID>0 && nickName!=null && !nickName.trim().isEmpty()){
+                    String query="update productos set proveedor='"+nickName+"', idproveedor="+sellerID+" where id='"+id+
+                            "'; update movimientos set proveedor='"+nickName+"' where idproducto='"+id+"';";
+                    System.out.println(query);
+                    Logger.writeOnFile("c:\\centro\\sqls.txt",query);
+                }else {
+                    boolean diables=false;
+                }
 
             }
 
@@ -173,43 +182,6 @@ public class MLFixProduct {
         }
 
 
-        try{
-            PreparedStatement selectPreparedStatement2 = globalSelectConnection.prepareStatement("select id, proveedor from productos");
-            ResultSet selectResultSet = selectPreparedStatement2.executeQuery();
-            while (selectResultSet.next()){
-                String id = selectResultSet.getString(1);
-                if  (id!=null && !id.isEmpty()) {
-                    String savedSeller = selectResultSet.getString(2);
-                    if (savedSeller != null && !savedSeller.isEmpty()) {
-                        String seller = formatSeller(savedSeller);
-                        if (seller != null && !seller.isEmpty()) {
-                            seller=formatSeller(seller);
-                            if (!savedSeller.equals(seller)) {
-                                updatePrepredStatement.setString(1, seller);
-                                updatePrepredStatement.setString(2, id);
-                                int updatedRows = updatePrepredStatement.executeUpdate();
-                                if (updatedRows != 1) {
-                                    log("no pudo actualizar 1 retistro " + updatedRows);
-                                } else {
-                                    getUpdateConnection().commit();
-                                    log("se actualizó el producto: " + id + " con viejo seller="+savedSeller+ "y nuevoseller=" + seller);
-                                }
-                            }
-                        } else {
-                            log("seller is null " + savedSeller);
-                        }
-                    } else {
-                        log("null url !!");
-                    }
-                }else {
-                    log("null id");
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
 
     }
 
