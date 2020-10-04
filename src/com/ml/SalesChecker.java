@@ -101,11 +101,12 @@ public class SalesChecker {
 
             if (!pendingOrder.mailSent) {
 
-                System.out.println("VENDISTE !!!!!!!!! " + pendingOrder.productTitle);
+                System.out.println("VENDISTE !!!!!!!!! " + pendingOrder.productTitle+ " \nMail"+ pendingOrder.buyerEmail);
+                Logger.log("email del comprador: "+ pendingOrder.buyerEmail);
                 boolean hasLabel = false;
                 String phone = "";
                 String shipping = "Envio indeterminado / consultar";
-                if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
+                if (pendingOrder.shippingType == Order.CORREO) {
                     shipping = "Correo";
                     hasLabel = true;
                 } else {
@@ -304,7 +305,7 @@ public class SalesChecker {
                                         }
                                     }
 
-                                    if (pendingOrder.shippingType == Order.CORREO_A_DOMICILIO || pendingOrder.shippingType == Order.CORREO_RETIRA) {
+                                    if (pendingOrder.shippingType == Order.CORREO) {
                                         String shippingCurrier = "Mercadoenvíos";
                                         if (pendingOrder.shippingCurrier!=null && !pendingOrder.shippingCurrier.isEmpty()){
                                             shippingCurrier+="/"+pendingOrder.shippingCurrier;
@@ -328,6 +329,9 @@ public class SalesChecker {
                             if (pendingOrder.chatSent) {
                                 String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
                                 GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
+
+                                Order updatedOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
+                                Logger.log("email del comprador 2: "+ updatedOrder.buyerEmail);
                             }
                             statusChanged = true;
                         }

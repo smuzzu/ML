@@ -47,8 +47,7 @@ public class SalesCheckerDailyReport {
 // step 1
         String html = "<h1>Correo</h1><table border=1>";
         for (Order pendingOrder: completePendingOrders) {  //viene de la base info limitada
-            if ((pendingOrder.shippingType==Order.CORREO_A_DOMICILIO
-                    || pendingOrder.shippingType==Order.CORREO_RETIRA) && pendingOrder.readyForSending){
+            if (pendingOrder.shippingType==Order.CORREO && pendingOrder.readyForSending){
                 html+="<tr><td width=500px>"+pendingOrder.productTitle+"<br/>";
                 if (pendingOrder.productVariationText!=null && !pendingOrder.productVariationText.isEmpty()
                     && !pendingOrder.productVariationText.equals("N/A")) {

@@ -971,25 +971,18 @@ public class MessagesAndSalesHelper {
         }else {
             if (full) {
                 order.shippingType = Order.FULL;
-            }else {
+            } else {
                 //acordar o mercadoenvios
-                if (order.shippingStatus==null || order.shippingStatus.equals("to_be_agreed")) {
+                if (order.shippingStatus == null || order.shippingStatus.equals("to_be_agreed")) {
                     order.shippingType = Order.ACORDAR;
                     order.shippingOptionNameDescription = "Acordar";
                 } else { //mercadoenvios
-                    if (order.shippingOptionNameDescription!=null){
-                        if (order.shippingOptionNameDescription.contains("pido a domicilio")) {//Rapido a domicilio
+                    if (order.shippingLogisticType != null) {
+                        if (order.shippingLogisticType.equals("self_service")) {//Rapido a domicilio
                             order.shippingType = Order.FLEX;
                         } else {
-                            if (order.shippingOptionNameDescription.contains("ormal a domicilio") ||//Normal a domicilio
-                                    order.shippingOptionNameDescription.equals("Prioritario a domicilio") ||
-                                    order.shippingOptionNameDescription.contains("ndar a domicilio") || //Estándar a domicilio
-                                    order.shippingOptionNameDescription.contains("Express a domicilio")) {
-                                order.shippingType = Order.CORREO_A_DOMICILIO;
-                            } else {
-                                if (order.shippingOptionNameDescription.startsWith("Retiro en")) { //Retiro en Correo Argentino
-                                    order.shippingType = Order.CORREO_RETIRA;
-                                }
+                            if (order.shippingLogisticType.contains("drop_off")) {//Correo a domicilio o retira en sucursal
+                                order.shippingType = Order.CORREO;
                             }
                         }
                     }

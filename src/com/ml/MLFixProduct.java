@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -56,7 +57,7 @@ public class MLFixProduct {
     static boolean SILENT = true;
     static boolean FIREFOX = false;
     static boolean CHROME = true;
-    static String DATABASE = "ML1";
+    static String DATABASE = "ML6";
 
     //static String SEE_SELLER_DETAILS_LABEL = "Ver más datos de este vendedor";
     static String SEE_SELLER_DETAILS_LABEL = "Ver mais dados deste vendedor";
@@ -128,11 +129,12 @@ public class MLFixProduct {
 
         globalClient = buildHttpClient();
 
+        globalSelectConnection=DatabaseHelper.getSelectConnection(DATABASE);
 
-        getSelectConnection();
+/*
         getUpdateConnection();
         //PreparedStatement updatePrepredStatement=null;
-
+*/
 
         try {
             PreparedStatement selectPreparedStatement = globalSelectConnection.prepareStatement("select id, url from productos where proveedor is null or trim(proveedor) = ''");

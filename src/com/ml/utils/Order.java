@@ -100,8 +100,9 @@ public class Order implements Comparable<Order> {
     //shippingType
     public static final char ACORDAR='A';
     public static final char PERSONALIZADO='P';
-    public static final char CORREO_A_DOMICILIO='D';
-    public static final char CORREO_RETIRA='R';
+//    public static final char CORREO_A_DOMICILIO='D';
+//    public static final char CORREO_RETIRA='R';
+    public static final char CORREO='C';
     public static final char FLEX='F';
     public static final char FULL='U';
     public static final char UNKNOWN='?';

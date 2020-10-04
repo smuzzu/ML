@@ -82,7 +82,7 @@ public class SearchItems {
         System.out.println(msg);
         Logger.log(msg);
         int newItems=0;
-        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(searchTerms,"ML1");
+        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(searchTerms,"ML6");
         for (String id: idsML1){
             if (!idArrayList.contains(id)){
                 idArrayList.add(id);
@@ -100,7 +100,7 @@ public class SearchItems {
         System.out.println(msg);
         Logger.log(msg);
         newItems=0;
-        ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms,"ML2");
+        ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms,"ML6");
         for (String id: idsML2){
             if (!idArrayList.contains(id)){
                 idArrayList.add(id);
