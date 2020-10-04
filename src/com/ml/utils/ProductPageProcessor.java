@@ -15,7 +15,7 @@ import java.util.HashMap;
 public class ProductPageProcessor extends Thread {
 
     private String url;
-    private int sellerId;
+    private long sellerId;
     private String productId;
     private int page;
     private int ranking;
@@ -29,7 +29,7 @@ public class ProductPageProcessor extends Thread {
     static int TIMEOUT_MIN=10;
 
 
-    public ProductPageProcessor(String url, String productId, int sellerId, int page, int ranking, boolean save, boolean debug, String DATABASE, Date globalDate, boolean localRun){
+    public ProductPageProcessor(String url, String productId, long sellerId, int page, int ranking, boolean save, boolean debug, String DATABASE, Date globalDate, boolean localRun){
         this.url=url;
         this.productId=productId;
         this.sellerId=sellerId;
@@ -92,6 +92,7 @@ public class ProductPageProcessor extends Thread {
                 msg = "Deshabilitando producto " + url;
                 System.out.println(msg);
                 Logger.log(msg);
+                Counters.incrementGlobalDisableCount();
                 if (SAVE) {
                     DatabaseHelper.disableProduct(productId, DATABASE);
                 }
@@ -112,6 +113,8 @@ public class ProductPageProcessor extends Thread {
 
                 boolean officialStore = HTMLParseUtils.getOfficialStore(htmlString);
 
+                long theSellerId = HTMLParseUtils.getSellerId(htmlString, url);
+                
                 String seller = HTMLParseUtils.getSeller(htmlString, officialStore, url);
 
                 String lastQuestion = HTMLParseUtils.getLastQuestion(htmlString);
@@ -144,14 +147,14 @@ public class ProductPageProcessor extends Thread {
                     System.out.println(msg);
                     Logger.log(msg);
                     if (SAVE && !localRun) {
-                        DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, page, ranking, shipping, discount, premium);
+                        DatabaseHelper.updateProductAddActivity(DATABASE, false, globalDate, productId, seller, theSellerId, officialStore, totalSold, newSold, title, url, reviews, stars, price, newQuestions, lastQuestion, page, ranking, shipping, discount, premium);
                     }
                 } else {//nuevo registro. agregar
                     msg = runnerID + " new product " + newSold + " " + url;
                     System.out.println(msg);
                     Logger.log(msg);
                     if (SAVE && !localRun) {
-                        DatabaseHelper.insertProduct(DATABASE, globalDate, productId, seller, sellerId, totalSold, lastQuestion, url, officialStore);
+                        DatabaseHelper.insertProduct(DATABASE, globalDate, productId, seller, theSellerId, totalSold, lastQuestion, url, officialStore);
                     }
                 }
 

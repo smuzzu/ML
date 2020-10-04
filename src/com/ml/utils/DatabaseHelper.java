@@ -388,12 +388,12 @@ public class DatabaseHelper {
 
 /***************************************************************************************************/
 
-    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate, String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int ranking, int shipping, int discount, boolean premium) {
+    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate, String productId, String seller, long sellerId, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int ranking, int shipping, int discount, boolean premium) {
         Connection connection = getAddActivityConnection(database);
         try{
             if (globalUpdateProduct ==null) {
 
-                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, deshabilitado=false WHERE id = ?;");
+                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, idproveedor=?, deshabilitado=false WHERE id = ?;");
             }
 
             globalUpdateProduct.setInt(1,totalSold);
@@ -402,10 +402,11 @@ public class DatabaseHelper {
             globalUpdateProduct.setString(4,lastQuestion);
             globalUpdateProduct.setString(5,seller);
             globalUpdateProduct.setBoolean(6,officialStore);
-            globalUpdateProduct.setString(7,productId);
+            globalUpdateProduct.setLong(7,sellerId);
+            globalUpdateProduct.setString(8,productId);
 
-            int insertedRecords = globalUpdateProduct.executeUpdate();
-            if (insertedRecords!=1){
+            int updatedRecords = globalUpdateProduct.executeUpdate();
+            if (updatedRecords!=1){
                 Logger.log("Couldn't update product "+productId);
             }
 
@@ -422,7 +423,7 @@ public class DatabaseHelper {
             }
 
             if (globalInsertActivity ==null){
-                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium, ranking) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);");
+                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium, ranking, idproveedor) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?);");
             }
 
             globalInsertActivity.setDate(1,globalDate);
@@ -444,8 +445,10 @@ public class DatabaseHelper {
             globalInsertActivity.setBoolean(16,premium);
             globalInsertActivity.setInt(17,ranking);
 
-            insertedRecords = globalInsertActivity.executeUpdate();
-            if (insertedRecords!=1){
+            globalInsertActivity.setLong(18,sellerId);
+
+            updatedRecords = globalInsertActivity.executeUpdate();
+            if (updatedRecords!=1){
                 Logger.log("Couln't insert a record in activity table "+productId);
             }
 
@@ -472,7 +475,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, int sellerId, int totalSold, String latestquestion, String url, boolean officialStore) {
+    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, long sellerId, int totalSold, String latestquestion, String url, boolean officialStore) {
 
         try{
             if (globalInsertProduct ==null) {
@@ -488,7 +491,7 @@ public class DatabaseHelper {
             globalInsertProduct.setInt(6,totalSold);
             globalInsertProduct.setString(7,url);
             globalInsertProduct.setBoolean(8,officialStore);
-            globalInsertProduct.setInt(9,sellerId);
+            globalInsertProduct.setLong(9,sellerId);
 
             int registrosInsertados = globalInsertProduct.executeUpdate();
 
@@ -690,7 +693,6 @@ public class DatabaseHelper {
     }
 
     public static synchronized void disableProduct(String productId,String database){
-        Counters.incrementGlobalDisableCount();
         int registrosModificados=0;
         try {
             if (globalDisableProduct==null){

@@ -466,7 +466,7 @@ public class MercadoLibre02 extends Thread {
                                             Logger.log(msg);
 
                                             if (SAVE) {
-                                                DatabaseHelper.updateProductAddActivity(DATABASE,OVERRIDE_TODAYS_RUN,getGlobalDate(),productId, seller, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, 0, shipping, discount, premium);
+                                                DatabaseHelper.updateProductAddActivity(DATABASE,OVERRIDE_TODAYS_RUN,getGlobalDate(),productId, seller, -1, officialStore, totalSold, newSold, title, productUrl, reviews, stars, price, newQuestions, lastQuestion, page, 0, shipping, discount, premium);
                                             }
                                         } else {//no vendió esta semana
                                             addProcesedProductToList(productId);

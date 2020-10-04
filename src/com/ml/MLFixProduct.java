@@ -57,7 +57,7 @@ public class MLFixProduct {
     static boolean SILENT = true;
     static boolean FIREFOX = false;
     static boolean CHROME = true;
-    static String DATABASE = "ML6";
+    static String DATABASE = "ML1";
 
     //static String SEE_SELLER_DETAILS_LABEL = "Ver más datos de este vendedor";
     static String SEE_SELLER_DETAILS_LABEL = "Ver mais dados deste vendedor";
@@ -143,7 +143,7 @@ public class MLFixProduct {
             int count=0;
             while (selectResultSet.next()){
                 count++;
-                if (count==30){
+                if (count==20){
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
@@ -165,9 +165,14 @@ public class MLFixProduct {
                     JSONObject sellerObj = HttpUtils.getJsonObjectWithoutToken(sellerUrl,globalClient,false);
                     if (sellerObj!=null && sellerObj.has("nickname") && !sellerObj.isNull("nickname")){
                         nickName=sellerObj.getString("nickname");
+                    }else {
+                        boolean b=false;
                     }
                 }
                 if (sellerID>0 && nickName!=null && !nickName.trim().isEmpty()){
+                    if (nickName.contains("'")){
+                        nickName=nickName.replaceAll("'","''");
+                    }
                     String query="update productos set proveedor='"+nickName+"', idproveedor="+sellerID+" where id='"+id+
                             "'; update movimientos set proveedor='"+nickName+"' where idproducto='"+id+"';";
                     System.out.println(query);

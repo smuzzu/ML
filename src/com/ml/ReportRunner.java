@@ -26,7 +26,7 @@ public class ReportRunner {
     static final int RESULTS_LIMIT = 10000;
 
     static int MAX_THREADS = 50;//14
-    static final boolean SAVE = false;
+    static final boolean SAVE = true;
     static final boolean DEBUG = false;
     static final boolean IGNORE_VISITS = false;
 
@@ -269,6 +269,7 @@ public class ReportRunner {
                         String msg = "Deshabilitando item que no existe mas "+id;
                         System.out.println(msg);
                         Logger.log(msg);
+                        Counters.incrementGlobalDisableCount();
                         if (SAVE) {
                             String formattedId=HTMLParseUtils.getFormatedId(id);
                             DatabaseHelper.disableProduct(formattedId, database);
@@ -504,6 +505,7 @@ public class ReportRunner {
                     String msg = "Deshabilitando item "+item.id+" "+status;
                     System.out.println(msg);
                     Logger.log(msg);
+                    Counters.incrementGlobalDisableCount();
                     if (SAVE) {
                         String formattedId=HTMLParseUtils.getFormatedId(item.id);
                         DatabaseHelper.disableProduct(formattedId, database);

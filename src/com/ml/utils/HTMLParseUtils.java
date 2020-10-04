@@ -2,6 +2,7 @@ package com.ml.utils;
 
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -89,7 +90,7 @@ public class HTMLParseUtils {
                 }
             }
         }
-        if (seller == null) {
+        if (seller == null || seller.trim().isEmpty()) {
             String msg = "No se pudo encontrar al vendedor " + productUrl;
             System.out.println(msg);
             Logger.log(msg);
@@ -98,6 +99,36 @@ public class HTMLParseUtils {
         }
         return seller;
 
+    }
+
+
+    public static long getSellerId(String htmlStringFromProductPage, String productUrl) {
+        int sellerPos1 = 0;
+        int sellerPos2 = 0;
+        long sellerId=-1;
+        String sellerIdStr = null;
+        sellerPos1 = htmlStringFromProductPage.indexOf("seller_id");
+        if (sellerPos1 > 0) {
+            sellerPos1 = htmlStringFromProductPage.indexOf(":", sellerPos1)+1;
+            sellerPos2 = htmlStringFromProductPage.indexOf(",", sellerPos1);
+            sellerIdStr = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+        }
+        if (sellerIdStr == null || sellerIdStr.trim().isEmpty()) {
+            String msg = "No se pudo encontrar el ID del vendedor 1 " + productUrl;
+            System.out.println(msg);
+            Logger.log(msg);
+        } else {
+            try {
+                sellerId = Long.parseLong(sellerIdStr);
+            } catch (NumberFormatException e) {
+                sellerId = -1;
+                String msg = "No se pudo encontrar el ID del vendedor 2 " + productUrl;
+                System.out.println(msg);
+                Logger.log(msg);
+                Logger.log(e);
+            }
+        }
+        return sellerId;
     }
 
 
@@ -399,7 +430,7 @@ public class HTMLParseUtils {
             System.out.println(msg);
         }
         pos1++;
-        int pos2 = htmlString.indexOf("opiniones", pos1);
+        int pos2 = htmlString.indexOf("opini", pos1);
         if (pos2 == -1) {
             msg = "Cannot find reviews III on " + url;
             Logger.log(msg);
@@ -620,4 +651,18 @@ public class HTMLParseUtils {
         }
         return stars;
     }
+
+
+    public static void main(String args[]){
+        String url = "https://articulo.mercadolibre.com.ar/MLA-712700935-perchero-extraible-400mm-niquelado-hafele-80761774-_JM";
+        CloseableHttpClient client = HttpUtils.buildHttpClient();
+        String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
+        boolean officialStore=getOfficialStore(productoPage);
+        long sellerId=getSellerId(productoPage,"pepito");
+
+        boolean b=false;
+
+
+    }
+
 }

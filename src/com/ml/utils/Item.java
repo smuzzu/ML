@@ -15,7 +15,7 @@ public class Item {
         public int page;
         public int totalSold;
         public String sellerName;
-        public int sellerId;
+        public long sellerId;
 
         public Item () {
             this.advertised=false;
@@ -23,7 +23,7 @@ public class Item {
             this.totalSold=-1;
             this.price=-1.0;
             this.discount=-1;
-            this.sellerId=-1;
+            this.sellerId=-1L;
         }
 
         public boolean equals(Object obj) {
