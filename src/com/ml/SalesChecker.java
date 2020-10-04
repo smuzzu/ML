@@ -263,9 +263,11 @@ public class SalesChecker {
                         Product product = DatabaseHelper.getProductFromCloud(pendingOrder.productId);
                         if (product == null || !product.disabled) {
                             String firstMsgToBuyer = null;
+                            String firstMsgToBuyer2=null;
                             if (product != null && product.customMessage != null && !product.customMessage.isEmpty()) {
                                 firstMsgToBuyer = product.customMessage;
                             }else{
+                                firstMsgToBuyer2="Hola ";
                                 String productTitle = buildProductTitle(product, pendingOrder);
                                 int dayPeriod = getDayPeriod();
                                 if (dayPeriod == MORNING) {
@@ -284,6 +286,7 @@ public class SalesChecker {
                                     }
                                 }
                                 firstMsgToBuyer += processBuyerName(pendingOrder) + ". ";
+                                firstMsgToBuyer2 += processBuyerName2(pendingOrder) + ". ";
 
                                 if (product == null || product.customMessage == null || product.customMessage.trim().isEmpty()) {
 
@@ -313,21 +316,26 @@ public class SalesChecker {
                                         String when = getWhen('C');
                                         firstMsgToBuyer += when + " te estaremos despachando por " + shippingCurrier
                                                 + productTitle;
+                                        String when2 = getWhen2('C');
+                                        firstMsgToBuyer2 += when2 + " despacharemos tu compra por Mercadoenvios.";
                                     }
 
                                     if (pendingOrder.shippingType == Order.FLEX) {
                                         String when = getWhen('F');
                                         firstMsgToBuyer += when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
                                                 + productTitle;
+                                        String when2 = getWhen2('F');//el horario lo trae la funcion
+                                        firstMsgToBuyer2 += when2 + " llegará tu compra a tu domicilio.";
                                     }
                                 }
 
                                 firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
-
+                                firstMsgToBuyer2 += " Gracias!";
                             }
                             pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
                             if (pendingOrder.chatSent) {
                                 String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
+                                String text = firstMsgToBuyer+"<br/><br/>Version corta:<br/>"+firstMsgToBuyer2;
                                 GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
 
                                 Order updatedOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
@@ -634,6 +642,48 @@ public class SalesChecker {
 
     }
 
+    private static String getWhen2(char correoOrFlex){
+        String result="";
+
+        if (hollydays == null) {
+            hollydays = DatabaseHelper.fetchHolidaysFromCloud();
+        }
+
+        Date nextDeliveryDate = getDate(TODAY, null);
+        boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
+        boolean isWeekend = isWeekend(nextDeliveryDate);
+        if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday) {
+            if (correoOrFlex=='C') {//correo
+                result = "Esta tarde";
+            }else{//flex
+                result = "Hoy de 15:00 a 20:00";
+            }
+        } else {
+            nextDeliveryDate = getDate(TOMORROW, null);
+            isWeekend = isWeekend(nextDeliveryDate);
+            isHoliday = isHoliday(nextDeliveryDate, hollydays);
+            if (!isHoliday && !isWeekend) {
+                if (correoOrFlex=='C') {//correo
+                    result = "Mañana por la tarde";
+                }else {//flex
+                    result = "Mañana de 15:00 a 20:00";
+                }
+            } else {
+                while (isHoliday || isWeekend) {
+                    nextDeliveryDate = getDate(TOMORROW, nextDeliveryDate);
+                    isHoliday = isHoliday(nextDeliveryDate, hollydays);
+                    isWeekend = isWeekend(nextDeliveryDate);
+                }
+                if (correoOrFlex=='C') {//correo
+                    result = "El " + getDayOfWeek(nextDeliveryDate) + " por la tarde";
+                }else {//flex
+                    result = "El " + getDayOfWeek(nextDeliveryDate) + " de 15:00 a 20:00";
+                }
+            }
+        }
+        return result;
+
+    }
 
     private static String getDayOfWeek(Date date){
         String result=null;
@@ -702,5 +752,19 @@ public class SalesChecker {
 
         return result;
     }
+
+    private static String processBuyerName2(Order order){
+        String result=order.buyerFirstName.trim();
+        if (result.contains(" ")){ //+ de in nombre
+            int pos = result.indexOf(" ");
+            result = result.substring(0, pos);
+        }
+        result=result.trim();
+        if (result.length()>9){
+            result=result.substring(0,9);
+        }
+        return result;
+    }
+
 
 }

@@ -18,7 +18,7 @@ public class CustomerInfo {
     static final char ALFOMBRAS='A';
     static final char CESTOS_COCINA ='C';
     static final char CORREDERAS_TELESCOPICAS='K';
-    static final char ORGANIZADDOR_ROPA='O';
+    static final char ORGANIZADDOR_ROPA='O'; //perchero elevador
     static final char ORDENADORES_FILA='F';
     static final char COCINA_ALMACENAMIENTO='T'; //portacopas
     static final char CESTOS_PAPELERO ='P';
@@ -26,6 +26,7 @@ public class CustomerInfo {
     static final char MUEBLES_Y_SILLAS ='M';
     static final char CAJONES_DE_MADERA ='Y'; //galleta
     static final char ESCRITORIOS='E';
+    static final char VAJILLA='V'; //cubiertero
 
 
 
@@ -34,8 +35,8 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="LOMA8295898";
-        char categoria=ESCRITORIOS;
+        String nickname="DVAIMBERG";
+        char categoria=ORGANIZADDOR_ROPA;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -48,7 +49,7 @@ public class CustomerInfo {
             categoryId="MLA432104";
         }
         if (categoria==ORGANIZADDOR_ROPA){
-            categoryId="MLA414192";
+            categoryId="MLA431869";
         }
         if (categoria==ORDENADORES_FILA){
             categoryId="MLA412739";
@@ -70,6 +71,9 @@ public class CustomerInfo {
         }
         if (categoria==ESCRITORIOS){
             categoryId="MLA30991";
+        }
+        if (categoria==VAJILLA){
+            categoryId="MLA436289";
         }
 
 
