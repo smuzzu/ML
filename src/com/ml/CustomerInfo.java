@@ -15,18 +15,19 @@ public class CustomerInfo {
 
     static int RESULTS_WITHOUT_TOKEN=1000;
     static final int RESULTS_LIMIT = 10000;
-    static final char ALFOMBRAS='A';
-    static final char CESTOS_COCINA ='C';
-    static final char CORREDERAS_TELESCOPICAS='K';
-    static final char ORGANIZADDOR_ROPA='O'; //perchero elevador
-    static final char ORDENADORES_FILA='F';
-    static final char COCINA_ALMACENAMIENTO='T'; //portacopas
-    static final char CESTOS_PAPELERO ='P';
-    static final char INSUMOS_OFICINA ='I';
-    static final char MUEBLES_Y_SILLAS ='M';
-    static final char CAJONES_DE_MADERA ='Y'; //galleta
-    static final char ESCRITORIOS='E';
-    static final char VAJILLA='V'; //cubiertero
+    static final char ALFOMBRAS='0';
+    static final char CESTOS_COCINA ='1';
+    static final char CORREDERAS_TELESCOPICAS='2';
+    static final char ORGANIZADDOR_ROPA='3'; //perchero elevador
+    static final char ORDENADORES_FILA='4';
+    static final char COCINA_ALMACENAMIENTO='5'; //portacopas
+    static final char CESTOS_PAPELERO ='6';
+    static final char INSUMOS_OFICINA ='7';
+    static final char MUEBLES_Y_SILLAS ='8';
+    static final char CAJONES_DE_MADERA ='9'; //galleta
+    static final char ESCRITORIOS='A';
+    static final char VAJILLA='B'; //cubiertero
+    static final char PICAPORTES='C'; //cubiertero
 
 
 
@@ -35,7 +36,7 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="DVAIMBERG";
+        String nickname="MUMI1971";
         char categoria=ORGANIZADDOR_ROPA;
 
         String categoryId=null;
@@ -75,7 +76,9 @@ public class CustomerInfo {
         if (categoria==VAJILLA){
             categoryId="MLA436289";
         }
-
+        if (categoria==PICAPORTES) {
+            categoryId="MLA357155";
+        }
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 

@@ -336,7 +336,7 @@ public class SalesChecker {
                             if (pendingOrder.chatSent) {
                                 String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
                                 String text = firstMsgToBuyer+"<br/><br/>Version corta:<br/>"+firstMsgToBuyer2;
-                                GoogleMailSenderUtil.sendMail(mailTitle, firstMsgToBuyer, null, null); //todo sacar
+                                GoogleMailSenderUtil.sendMail(mailTitle, text, null, null); //todo sacar
 
                                 Order updatedOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
                                 Logger.log("email del comprador 2: "+ updatedOrder.buyerEmail);
