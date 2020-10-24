@@ -27,7 +27,10 @@ public class CustomerInfo {
     static final char CAJONES_DE_MADERA ='9'; //galleta
     static final char ESCRITORIOS='A';
     static final char VAJILLA='B'; //cubiertero
-    static final char PICAPORTES='C'; //cubiertero
+    static final char PICAPORTES='C';
+    static final char PERCHEROS='D';
+    static final char IPHONE='I';
+    static final char RUEDAS_SILLA='J';
 
 
 
@@ -36,8 +39,8 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="MUMI1971";
-        char categoria=ORGANIZADDOR_ROPA;
+        String nickname="MARTINMENRATH";
+        char categoria=ALFOMBRAS;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -79,6 +82,16 @@ public class CustomerInfo {
         if (categoria==PICAPORTES) {
             categoryId="MLA357155";
         }
+        if (categoria==PERCHEROS) {
+            categoryId="MLA31325";
+        }
+        if (categoria==IPHONE) {
+            categoryId="MLA1055";
+        }
+        if (categoria==RUEDAS_SILLA) {
+            categoryId="MLA432821";
+        }
+
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 
