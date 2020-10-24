@@ -254,37 +254,39 @@ public class ReportRunner {
                 itemsIds = itemsIds.substring(0, itemsIds.length() - 1);
                 String itemsUrl = "https://api.mercadolibre.com/items?ids=" + itemsIds;
                 JSONObject jsonObject = HttpUtils.getJsonObjectWithoutToken(itemsUrl, client, true);
-                JSONArray jsonArray = jsonObject.getJSONArray("elArray");
-                for (int j = 0; j < jsonArray.length(); j++) {
-                    JSONObject itemObject2 = jsonArray.getJSONObject(j);
-                    int code = itemObject2.getInt("code");
-                    JSONObject productObj = itemObject2.getJSONObject("body");
-                    String id = productObj.getString("id");
-                    Item item = itemHashMap.get(id);
-                    if (item==null){
-                        Logger.log("Item is nul.  Why? "+id);
-                        continue;
-                    }
-                    if (code==404) { //no esta mas
-                        String msg = "Deshabilitando item que no existe mas "+id;
-                        System.out.println(msg);
-                        Logger.log(msg);
-                        Counters.incrementGlobalDisableCount();
-                        if (SAVE) {
-                            String formattedId=HTMLParseUtils.getFormatedId(id);
-                            DatabaseHelper.disableProduct(formattedId, database);
+                if (jsonObject!=null) {
+                    JSONArray jsonArray = jsonObject.getJSONArray("elArray");
+                    for (int j = 0; j < jsonArray.length(); j++) {
+                        JSONObject itemObject2 = jsonArray.getJSONObject(j);
+                        int code = itemObject2.getInt("code");
+                        JSONObject productObj = itemObject2.getJSONObject("body");
+                        String id = productObj.getString("id");
+                        Item item = itemHashMap.get(id);
+                        if (item == null) {
+                            Logger.log("Item is nul.  Why? " + id);
+                            continue;
                         }
-                        itemHashMap.remove(id);
-                        continue;
-                    }
-                    if (code != 200) {
-                        Logger.log("XXXXXXXXX HTTP "+code+" en completeAndDisableItems con item="+id+" no se procesara");
-                        itemHashMap.remove(id);
-                        continue;
-                    }
-                    boolean completed = completeItem(productObj, item, database);
-                    if (!completed) {
-                        itemHashMap.remove(id);
+                        if (code == 404) { //no esta mas
+                            String msg = "Deshabilitando item que no existe mas " + id;
+                            System.out.println(msg);
+                            Logger.log(msg);
+                            Counters.incrementGlobalDisableCount();
+                            if (SAVE) {
+                                String formattedId = HTMLParseUtils.getFormatedId(id);
+                                DatabaseHelper.disableProduct(formattedId, database);
+                            }
+                            itemHashMap.remove(id);
+                            continue;
+                        }
+                        if (code != 200) {
+                            Logger.log("XXXXXXXXX HTTP " + code + " en completeAndDisableItems con item=" + id + " no se procesara");
+                            itemHashMap.remove(id);
+                            continue;
+                        }
+                        boolean completed = completeItem(productObj, item, database);
+                        if (!completed) {
+                            itemHashMap.remove(id);
+                        }
                     }
                 }
             }
