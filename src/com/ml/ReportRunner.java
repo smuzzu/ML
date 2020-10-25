@@ -503,7 +503,13 @@ public class ReportRunner {
         if (!productObj.has("sold_quantity")) { //todo si esta under review hace rato lo volamos
             if (productObj.has("status") && !productObj.isNull("status")){
                 String status = productObj.getString("status");
-                if (status.equals("under_review") || status.equals("inactive") || status.equals("closed")){
+                if (status.equals("under_review")){
+                    String msg = "No se procesara item "+item.id+" "+status;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                    return false;
+                }
+                if (status.equals("inactive") || status.equals("closed")){
                     String msg = "Deshabilitando item "+item.id+" "+status;
                     System.out.println(msg);
                     Logger.log(msg);
