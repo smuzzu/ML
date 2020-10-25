@@ -1316,7 +1316,7 @@ public class DatabaseHelper {
         return possiblyPausedProductList;
     }
 
-    private static synchronized Date getTwoHundredSeventyDaysBefore(){
+    public static synchronized Date getTwoHundredSeventyDaysBefore(){
         if (twoHundredSeventyDaysBefore==null) {
             Date result = null;
             long oneDayInMiliseconds = 86400000L;
