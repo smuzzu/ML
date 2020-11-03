@@ -1,5 +1,6 @@
 package com.ml;
 
+import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
 import org.apache.commons.lang3.StringUtils;
@@ -12,8 +13,9 @@ import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -40,11 +42,11 @@ public class MLSellerStatistics extends Thread {
     static Connection globalSelectConnection = null;
     static Connection globalUpadteConnection = null;
     static PreparedStatement selectPreparedStatement2 = null;
-    static BufferedWriter globalLogger = null;
+    static PreparedStatement custIdPreparedStatement=null;
     static DateFormat globalDateformat=null;
     static Timestamp globalDate;
 
-    static ResultSet globalSelectResultSet = null;
+    static ResultSet globalSelectSellerResultSet = null;
     static String PROFILE_BASE_URL ="https://www.mercadolibre.com.ar/perfil/";
     static String PROFILE_BASE_URL2 ="https://perfil.mercadolibre.com.ar/";
     static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/_CustId_";
@@ -57,9 +59,9 @@ public class MLSellerStatistics extends Thread {
 
     static int MAX_THREADS = 40; //TODO CAMBIAR 40
     static boolean SAVE = true; //TODO CAMBIAR
-    static String DATABASE = "ML1";
+    static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2020/08/01";
+    static String FECHA="2020/11/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -142,8 +144,8 @@ public class MLSellerStatistics extends Thread {
 
         String seller=null;
         try {
-            if (globalSelectResultSet.next()){
-                seller= globalSelectResultSet.getString(1);
+            if (globalSelectSellerResultSet.next()){
+                seller= globalSelectSellerResultSet.getString(1);
             }
         } catch (SQLException e) {
             Logger.log("No se pudo recuperar al vendedor");
@@ -156,7 +158,27 @@ public class MLSellerStatistics extends Thread {
         return seller;
     }
 
-    private static synchronized void insertSeller(String seller, boolean oficialStore, boolean noReputation, boolean hiddenReputation,
+    private static synchronized long fetchSellerId(String seller){
+
+        long id=0;
+        try {
+            custIdPreparedStatement.setString(1,seller);
+            ResultSet resultSet = custIdPreparedStatement.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get id for seller "+seller);
+            }
+            if (resultSet.next()){
+                id=resultSet.getLong(1);
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return id;
+    }
+
+
+    private static synchronized void insertSeller(String seller, long custId, boolean oficialStore, boolean noReputation, boolean hiddenReputation,
                                                   boolean noActivePublications, String lider, int years, boolean kindSeller,
                                                   boolean onTime, String location, double averageSalesPerDay, double estimatedSalePriceAverage,
                                                   int reputation, int totalProducts, int positiveOpinions, int neutralOpinions,
@@ -181,48 +203,49 @@ public class MLSellerStatistics extends Thread {
         if (!found) {//el registro no existe, entonces hay que insertar la info
             try {
                 PreparedStatement preparedStatement = globalUpadteConnection.prepareStatement("insert into empresas("+
-                    "fecha,proveedor,tiendaoficial,sinreputacion,reputacionoculta,sinpublicacionesactivas,lider,anios,"+
+                    "fecha,proveedor,idproveedor,tiendaoficial,sinreputacion,reputacionoculta,sinpublicacionesactivas,lider,anios,"+
                     "atiendebien,entregaatiempo,ubicacion,promedioventadiario,precioestimadoventapromedio,reputacion,"+
                     "totalproductos,opinionesbuenas,opinionesregulares,opinionesmalas,opinionestotales,"+
                     "porcentajepositivas,porcentajedemoras,porcentajeproblemas,problemadefectuoso,problemadiferente,"+
                     "problematarde,problemanorecibioproducto,problemaNoEntregado,problemaNoResponde,problemaSinStock," +
-                    "problemaotro,visitasmensuales,url) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    "problemaotro,visitasmensuales,url) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
                 preparedStatement.setTimestamp(1,globalDate);
                 preparedStatement.setString(2, seller);
-                preparedStatement.setBoolean(3, oficialStore);
-                preparedStatement.setBoolean(4, noReputation);
-                preparedStatement.setBoolean(5, hiddenReputation);
-                preparedStatement.setBoolean(6, noActivePublications);
-                preparedStatement.setString(7, lider);
-                preparedStatement.setInt(8, years);
-                preparedStatement.setBoolean(9, kindSeller);
-                preparedStatement.setBoolean(10, onTime);
-                preparedStatement.setString(11, location);
-                preparedStatement.setDouble(12, averageSalesPerDay);
-                preparedStatement.setDouble(13, estimatedSalePriceAverage);
-                preparedStatement.setInt(14, reputation);
-                preparedStatement.setInt(15, totalProducts);
+                preparedStatement.setLong(3, custId);
+                preparedStatement.setBoolean(4, oficialStore);
+                preparedStatement.setBoolean(5, noReputation);
+                preparedStatement.setBoolean(6, hiddenReputation);
+                preparedStatement.setBoolean(7, noActivePublications);
+                preparedStatement.setString(8, lider);
+                preparedStatement.setInt(9, years);
+                preparedStatement.setBoolean(10, kindSeller);
+                preparedStatement.setBoolean(11, onTime);
+                preparedStatement.setString(12, location);
+                preparedStatement.setDouble(13, averageSalesPerDay);
+                preparedStatement.setDouble(14, estimatedSalePriceAverage);
+                preparedStatement.setInt(15, reputation);
+                preparedStatement.setInt(16, totalProducts);
 
-                preparedStatement.setInt(16, positiveOpinions);
-                preparedStatement.setInt(17, neutralOpinions);
-                preparedStatement.setInt(18, negativeOpinions);
-                preparedStatement.setInt(19, totalOpinions);
+                preparedStatement.setInt(17, positiveOpinions);
+                preparedStatement.setInt(18, neutralOpinions);
+                preparedStatement.setInt(19, negativeOpinions);
+                preparedStatement.setInt(20, totalOpinions);
 
-                preparedStatement.setDouble(20, positiveAverage);
-                preparedStatement.setDouble(21, delayAverage);
-                preparedStatement.setDouble(22, problemsAverage);
-                preparedStatement.setDouble(23, problemsDefective);
-                preparedStatement.setDouble(24, problemsDifferent);
-                preparedStatement.setDouble(25, problemsLate);
-                preparedStatement.setDouble(26, problemsNotReceived);
-                preparedStatement.setDouble(27, problemsNotDelivered);
-                preparedStatement.setDouble(28, problemsNoAnswersOnTime);
-                preparedStatement.setDouble(29, problemsOutOfStock);
-                preparedStatement.setDouble(30, problemsOther);
-                preparedStatement.setInt(31,visitsLastMonth);
+                preparedStatement.setDouble(21, positiveAverage);
+                preparedStatement.setDouble(22, delayAverage);
+                preparedStatement.setDouble(23, problemsAverage);
+                preparedStatement.setDouble(24, problemsDefective);
+                preparedStatement.setDouble(25, problemsDifferent);
+                preparedStatement.setDouble(26, problemsLate);
+                preparedStatement.setDouble(27, problemsNotReceived);
+                preparedStatement.setDouble(28, problemsNotDelivered);
+                preparedStatement.setDouble(29, problemsNoAnswersOnTime);
+                preparedStatement.setDouble(30, problemsOutOfStock);
+                preparedStatement.setDouble(31, problemsOther);
+                preparedStatement.setInt(32,visitsLastMonth);
 
-                preparedStatement.setString(32,url);
+                preparedStatement.setString(33,url);
 
                 registrosInsertados = preparedStatement.executeUpdate();
                 incrementGlobalInsertCount();
@@ -265,10 +288,23 @@ public class MLSellerStatistics extends Thread {
     public void run() {
 
         String runnerID="R"+getGlobalRunnerCount();
-        String seller=fetchSeller(runnerID);
+
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
-        while (seller!=null){
+        boolean finished=false;
+        while (!finished){
+
+            String seller=fetchSeller(runnerID);
+            if (seller==null){
+                finished=true;
+                continue;
+            }
+
+            String custId=null;
+            long sellerId=fetchSellerId(seller);
+            if (sellerId!=0){
+                custId=""+sellerId;
+            }
 
             boolean oficialStore=false;
             boolean noReputation=false;
@@ -311,7 +347,6 @@ public class MLSellerStatistics extends Thread {
             double problemsOther=0;
             String sellerUrl=null;
             String productsUrl=null;
-            String custId=null;
 
             sellerUrl= PROFILE_BASE_URL +formatSeller(seller);
 
@@ -366,7 +401,14 @@ public class MLSellerStatistics extends Thread {
                 ////////////////////////////////////////////
 
 
-                sellerUrl= fetchNewSellerURL(seller,httpClient);
+                if (sellerId!=0) {
+                    sellerUrl = fetchNewSellerURL(sellerId, httpClient);
+                    if (sellerUrl==null){
+                        Logger.log("XXXXXXXXXXXXXXXXXX  ------------- sellerUrl=null "+seller);
+                    }
+                }else {
+                    sellerUrl=fetchNewSellerURL(seller,httpClient);
+                }
 
                 if (sellerUrl==null){
                     //rebuild httpClient
@@ -385,8 +427,6 @@ public class MLSellerStatistics extends Thread {
                     msg="al final el vendedor no aparecio nunca 1 si no es tienda oficial hay que verificar: "+seller;
                     System.out.println(msg);
                     Logger.log(msg);
-
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
@@ -436,9 +476,6 @@ public class MLSellerStatistics extends Thread {
                     httpClient = HttpUtils.buildHttpClient();
                     ////////////////////////////////////////////
 
-
-
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
             }
@@ -470,20 +507,17 @@ public class MLSellerStatistics extends Thread {
                 int experiencePos1=htmlStringWithoutUserComments.indexOf("experience\">");
                 if (experiencePos1==-1){
                     Logger.log("errorr !!! buscando experience "+sellerUrl);
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
                 int experiencePos2=htmlStringWithoutUserComments.indexOf("vendiendo en Mercado Libre",experiencePos1);
                 if (experiencePos2==-1){
                     Logger.log("errorr !!! buscando experiencePos2");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 experiencePos2--;
                 if (experiencePos1>experiencePos2){
                     Logger.log("errorr !!! buscando experience III");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
@@ -500,7 +534,6 @@ public class MLSellerStatistics extends Thread {
                     }
                     if (experiencePos3>experiencePos4){
                         Logger.log("errorr !!! buscando experience IV");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     experienceStr=htmlStringWithoutUserComments.substring(experiencePos3,experiencePos4);
@@ -518,49 +551,41 @@ public class MLSellerStatistics extends Thread {
                 int salesPos1 = htmlStringWithoutUserComments.indexOf("subtitle-sales");
                 if (salesPos1 == -1) {
                     Logger.log("errorr !!! buscando salesPos I");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 salesPos1 += 28;
                 int salesPos2 = htmlStringWithoutUserComments.indexOf("</p>", salesPos1);
                 if (salesPos2 == -1) {
                     Logger.log("errorr !!! buscando salesPos II");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 if (salesPos1 > salesPos2) {
                     Logger.log("errorr !!! buscando salesPos III");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 String salesOnPeriodStr = htmlStringWithoutUserComments.substring(salesPos1, salesPos2);
                 if (salesOnPeriodStr == null) {
                     Logger.log("errorr !!! buscando salesPos IV");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 salesOnPeriodStr = salesOnPeriodStr.trim();
                 if (salesOnPeriodStr.isEmpty()) {
                     Logger.log("errorr !!! buscando salesPos V");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 int salesPos3 = salesOnPeriodStr.indexOf("</span>");
                 if (salesPos1 == -1) {
                     Logger.log("errorr !!! buscando salesPos VI");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 String salesAmount = salesOnPeriodStr.substring(0, salesPos3);
                 if (salesAmount == null) {
                     Logger.log("errorr !!! buscando salesPos VII");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 salesAmount = salesAmount.trim();
                 if (salesAmount.isEmpty()) {
                     Logger.log("errorr !!! buscando salesPos VIII");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 salesAmount = salesAmount.replace(".", "");
@@ -574,7 +599,6 @@ public class MLSellerStatistics extends Thread {
                 int salesPos4 = salesOnPeriodStr.indexOf("ltimo");
                 if (salesPos4 == -1) {
                     Logger.log("errorr !!! buscando salesPos IX");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
@@ -601,18 +625,15 @@ public class MLSellerStatistics extends Thread {
                     }
                     if (salesPos5 == -1) {
                         Logger.log("errorr !!! buscando salesPos X");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     if (salesPos4 >= salesPos5) {
                         Logger.log("errorr !!! buscando salesPos XI");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     String periodsStr = salesOnPeriodStr.substring(salesPos4, salesPos5);
                     if (periodsStr == null || periodsStr.isEmpty()) {
                         Logger.log("errorr !!! buscando salesPos XII");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     try {
@@ -638,25 +659,21 @@ public class MLSellerStatistics extends Thread {
                 int thermometherPos1=htmlStringWithoutUserComments.indexOf("thermometer");
                 if (thermometherPos1 == -1) {
                     Logger.log("errorr !!! buscando thermometherPos1");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 int thermometherPos2=htmlStringWithoutUserComments.indexOf("</div", thermometherPos1);
                 if (thermometherPos2 == -1) {
                     Logger.log("errorr !!! buscando thermometherPos2");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 if (thermometherPos1 >= thermometherPos2) {
                     Logger.log("errorr !!! buscando thermomether positions");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
                 String thermometherStr=htmlStringWithoutUserComments.substring(thermometherPos1,thermometherPos2);
                 if (thermometherStr == null || thermometherStr.isEmpty()) {
                     Logger.log("errorr !!! buscando thermometherStr");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
@@ -707,7 +724,6 @@ public class MLSellerStatistics extends Thread {
                 }
                 if (colorStr==null){
                     Logger.log("errorr !!! buscando Color");
-                    seller=fetchSeller(runnerID);
                     continue;
 
                 }
@@ -756,19 +772,16 @@ public class MLSellerStatistics extends Thread {
             int locationPos1=htmlStringWithoutUserComments.indexOf("location-subtitle");
             if (locationPos1==-1){
                 Logger.log("Este vendedor no tiene ubicacion! "+seller);
-                seller=fetchSeller(runnerID);
                 continue;
             }
             locationPos1+=19;
             int locationPos2=htmlStringWithoutUserComments.indexOf("<",locationPos1);
             if (locationPos2==-1){
                 Logger.log("errorr !!!");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             if (locationPos1>locationPos2){
                 Logger.log("errorr !!!");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             location=htmlStringWithoutUserComments.substring(locationPos1,locationPos2);
@@ -781,7 +794,6 @@ public class MLSellerStatistics extends Thread {
                     Double theProblemsAverage=getPercentage(htmlStringWithoutUserComments,"Tuvo problemas en sus ventas");
                     if (theProblemsAverage==null){
                         Logger.log("errorr !!! buscando problemas");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     problemsAverage=theProblemsAverage;
@@ -792,7 +804,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsDefective=getPercentage(htmlStringWithoutUserComments,"El producto era defectuoso");
                         if (theProblemsDefective==null){
                             Logger.log("errorr !!! buscando theProblemsDefective");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsDefective=theProblemsDefective;
@@ -802,7 +813,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsDefective=getPercentage(htmlStringWithoutUserComments,"El producto es defectuoso");
                         if (theProblemsDefective==null){
                             Logger.log("errorr !!! buscando theProblemsDefective II");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsDefective+=theProblemsDefective;
@@ -813,7 +823,6 @@ public class MLSellerStatistics extends Thread {
                         Double thePproblemsNotReceived=getPercentage(htmlStringWithoutUserComments,"El comprador no recibió el producto");
                         if (thePproblemsNotReceived==null){
                             Logger.log("errorr !!! buscando thePproblemsNotReceived");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsNotReceived=thePproblemsNotReceived;
@@ -824,7 +833,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsDifferent=getPercentage(htmlStringWithoutUserComments,"El comprador recibió un producto diferente al acordado");
                         if (theProblemsDifferent==null){
                             Logger.log("errorr !!! buscando theProblemsDifferent");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsDifferent=theProblemsDifferent;
@@ -834,7 +842,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsDifferent=getPercentage(htmlStringWithoutUserComments,"El producto es distinto");
                         if (theProblemsDifferent==null){
                             Logger.log("errorr !!! buscando theProblemsDifferent");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsDifferent+=theProblemsDifferent;
@@ -846,7 +853,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsLate=getPercentage(htmlStringWithoutUserComments,"El producto llegó tarde");
                         if (theProblemsLate==null){
                             Logger.log("errorr !!! buscando theProblemsLate");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsLate=theProblemsLate;
@@ -857,7 +863,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsLate=getPercentage(htmlStringWithoutUserComments,"Entregado fuera de tiempo");
                         if (theProblemsLate==null){
                             Logger.log("errorr !!! buscando theProblemsLate 2");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsLate+=theProblemsLate;
@@ -869,7 +874,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsOther=getPercentage(htmlStringWithoutUserComments,"Otro tipo de reclamos");
                         if (theProblemsOther==null){
                             Logger.log("errorr !!! geting theProblemsOther");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsOther=theProblemsOther;
@@ -881,7 +885,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsNotDelivered=getPercentage(htmlStringWithoutUserComments,"El producto no fue entregado");
                         if (theProblemsNotDelivered==null){
                             Logger.log("errorr !!! geting theProblemsNotDelivered");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsNotDelivered=theProblemsNotDelivered;
@@ -892,7 +895,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsNoAnswersOnTime=getPercentage(htmlStringWithoutUserComments,"No respondes a tiempo al comprador");
                         if (theProblemsNoAnswersOnTime==null){
                             Logger.log("errorr !!! geting theProblemsNoAnswersOnTime");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsNoAnswersOnTime=theProblemsNoAnswersOnTime;
@@ -902,7 +904,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsNoAnswersOnTime=getPercentage(htmlStringWithoutUserComments,"Demora en responder al comprador");
                         if (theProblemsNoAnswersOnTime==null){
                             Logger.log("errorr !!! geting theProblemsNoAnswersOnTime");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsNoAnswersOnTime+=theProblemsNoAnswersOnTime;
@@ -914,7 +915,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsOutOfStock=getPercentage(htmlStringWithoutUserComments,"Te quedaste sin stock");
                         if (theProblemsOutOfStock==null){
                             Logger.log("errorr !!! geting theProblemsOutOfStock");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsOutOfStock=theProblemsOutOfStock;
@@ -924,7 +924,6 @@ public class MLSellerStatistics extends Thread {
                         Double theProblemsOutOfStock=getPercentage(htmlStringWithoutUserComments,"El producto está fuera de stock");
                         if (theProblemsOutOfStock==null){
                             Logger.log("errorr !!! geting theProblemsOutOfStock");
-                            seller=fetchSeller(runnerID);
                             continue;
                         }
                         problemsOutOfStock+=theProblemsOutOfStock;
@@ -948,7 +947,6 @@ public class MLSellerStatistics extends Thread {
                     Double theDelayAverage=getPercentage(htmlStringWithoutUserComments,"demora");
                     if (theDelayAverage==null){
                         Logger.log("errorr !!! geting delay average");
-                        seller=fetchSeller(runnerID);
                         continue;
                     }
                     delayAverage=theDelayAverage;
@@ -959,31 +957,26 @@ public class MLSellerStatistics extends Thread {
             int buyersFeedbackPos1=htmlString.indexOf("buyers-feedback-bar");
             if (buyersFeedbackPos1 == -1) {
                 Logger.log("errorr !!! buyersFeedbackPos1 "+sellerUrl);
-                seller=fetchSeller(runnerID);
                 continue;
             }
             int buyersFeedbackPos2=htmlString.indexOf("</div",buyersFeedbackPos1);
             if (buyersFeedbackPos2 == -1) {
                 Logger.log("errorr !!! buyersFeedbackPos2");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             if (buyersFeedbackPos1>=buyersFeedbackPos2){
                 Logger.log("errorr !!! buyersFeedback Position");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             String buyersFeedbackStr=htmlString.substring(buyersFeedbackPos1,buyersFeedbackPos2);
             if (buyersFeedbackStr == null || buyersFeedbackStr.isEmpty()) {
                 Logger.log("errorr !!! buscando buyersFeedbackStr");
-                seller=fetchSeller(runnerID);
                 continue;
             }
 
             int positiveFeedbackPos1=buyersFeedbackStr.indexOf("Buena");
             if (positiveFeedbackPos1 == -1) {
                 Logger.log("errorr !!! goodFeedbackPos1");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             for (int i=positiveFeedbackPos1; i<buyersFeedbackStr.length(); i++){
@@ -994,7 +987,6 @@ public class MLSellerStatistics extends Thread {
             }
             if (positiveFeedbackPos1 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! goodFeedbackPos1 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             int positiveFeedbackPos2=positiveFeedbackPos1+1;
@@ -1006,24 +998,20 @@ public class MLSellerStatistics extends Thread {
             }
             if (positiveFeedbackPos2 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! goodFeedbackPos2 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             if (positiveFeedbackPos1>=positiveFeedbackPos2){
                 Logger.log("errorr !!! goodFeedbackPos1 and goodFeedbackPos2");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             String positiveFeedbackStr=buyersFeedbackStr.substring(positiveFeedbackPos1,positiveFeedbackPos2);
             if (positiveFeedbackStr==null){
                 Logger.log("errorr !!! goodFeedbackStr is null");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             positiveFeedbackStr=positiveFeedbackStr.trim();
             if (positiveFeedbackStr.isEmpty()){
                 Logger.log("errorr !!! goodFeedbackStr is empty");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             positiveOpinions=Integer.parseInt(positiveFeedbackStr);
@@ -1032,7 +1020,6 @@ public class MLSellerStatistics extends Thread {
             int neutralFeedbackPos1=buyersFeedbackStr.indexOf("Regular");
             if (neutralFeedbackPos1 == -1) {
                 Logger.log("errorr !!! neutralFeedbackPos1");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             for (int i=neutralFeedbackPos1; i<buyersFeedbackStr.length(); i++){
@@ -1043,7 +1030,6 @@ public class MLSellerStatistics extends Thread {
             }
             if (neutralFeedbackPos1 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! regularFeedbackPos1 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             int neutralFeedbackPos2=neutralFeedbackPos1+1;
@@ -1055,24 +1041,20 @@ public class MLSellerStatistics extends Thread {
             }
             if (neutralFeedbackPos2 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! regularFeedbackPos2 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             if (neutralFeedbackPos1>=neutralFeedbackPos2){
                 Logger.log("errorr !!! regularFeedbackPos1 and regularFeedbackPos2");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             String neutralFeedbackStr=buyersFeedbackStr.substring(neutralFeedbackPos1,neutralFeedbackPos2);
             if (neutralFeedbackStr==null){
                 Logger.log("errorr !!! regularFeedbackStr is null");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             neutralFeedbackStr=neutralFeedbackStr.trim();
             if (neutralFeedbackStr.isEmpty()){
                 Logger.log("errorr !!! regularFeedbackStr is empty");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             neutralOpinions=Integer.parseInt(neutralFeedbackStr);
@@ -1081,7 +1063,6 @@ public class MLSellerStatistics extends Thread {
             int negativeFeedbackPos1=buyersFeedbackStr.indexOf("Mala");
             if (negativeFeedbackPos1 == -1) {
                 Logger.log("errorr !!! negativeFeedbackPos1");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             for (int i=negativeFeedbackPos1; i<buyersFeedbackStr.length(); i++){
@@ -1092,7 +1073,6 @@ public class MLSellerStatistics extends Thread {
             }
             if (negativeFeedbackPos1 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! negativeFeedbackPos1 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             int negativeFeedbackPos2=negativeFeedbackPos1+1;
@@ -1104,24 +1084,20 @@ public class MLSellerStatistics extends Thread {
             }
             if (negativeFeedbackPos2 == buyersFeedbackStr.length()) {
                 Logger.log("errorr !!! negativeFeedbackPos2 = buyersFeedbackStr.length()");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             if (negativeFeedbackPos1>=negativeFeedbackPos2){
                 Logger.log("errorr !!! negativeFeedbackPos1 and negativeFeedbackPos2");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             String negativeFeedbackStr=buyersFeedbackStr.substring(negativeFeedbackPos1,negativeFeedbackPos2);
             if (negativeFeedbackStr==null){
                 Logger.log("errorr !!! negativeFeedbackStr is null");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             negativeFeedbackStr=negativeFeedbackStr.trim();
             if (negativeFeedbackStr.isEmpty()){
                 Logger.log("errorr !!! negativeFeedbackStr is empty");
-                seller=fetchSeller(runnerID);
                 continue;
             }
             negativeOpinions=Integer.parseInt(negativeFeedbackStr);
@@ -1132,15 +1108,17 @@ public class MLSellerStatistics extends Thread {
                 positiveAverage = 100.0 * positiveOpinions / totalOpinions;
             }
 
-            String userId=null;
-            int userIdPos1=htmlString.indexOf("user_id");
-            if (userIdPos1>0){
-                userIdPos1+=9;
-                int userIdPos2=htmlString.indexOf(",",userIdPos1);
-                if (userIdPos2>0){
-                    userId=htmlString.substring(userIdPos1,userIdPos2);
-                    if (userId!=null && userId.length()>0){
-                        custId=userId;
+            if (custId==null) {
+                String userId = null;
+                int userIdPos1 = htmlString.indexOf("user_id");
+                if (userIdPos1 > 0) {
+                    userIdPos1 += 9;
+                    int userIdPos2 = htmlString.indexOf(",", userIdPos1);
+                    if (userIdPos2 > 0) {
+                        userId = htmlString.substring(userIdPos1, userIdPos2);
+                        if (userId != null && userId.length() > 0) {
+                            custId = userId;
+                        }
                     }
                 }
             }
@@ -1182,6 +1160,9 @@ public class MLSellerStatistics extends Thread {
             }
 
             productsUrl = PRODUCT_LIST_BASE_URL + custId;
+            if (oficialStore){
+                productsUrl=OFFICIAL_STORE_BASE_URL+formatSeller(seller);
+            }
 
             htmlString = HttpUtils.getHTMLStringFromPage(productsUrl, httpClient, DEBUG, true);
 
@@ -1203,7 +1184,7 @@ public class MLSellerStatistics extends Thread {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-    httpClient = null;
+                httpClient = null;
                 httpClient = HttpUtils.buildHttpClient();
                 ////////////////////////////////////////////
 
@@ -1246,21 +1227,18 @@ public class MLSellerStatistics extends Thread {
                 int totalProductsPos1 = htmlString.indexOf("quantity-results");
                 if (totalProductsPos1 < 0) {
                     Logger.log("errorr en totalProductsPos1 !!!");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 totalProductsPos1 += 18;
                 int totalProductsPos2 = htmlString.indexOf("resultado", totalProductsPos1);
                 if (totalProductsPos2 < 0) {
                     Logger.log("errorr en totalProductsPos2 !!!");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 totalProductsPos2--;
                 String totalProductsStr = htmlString.substring(totalProductsPos1, totalProductsPos2);
                 if (totalProductsStr == null) {
                     Logger.log("errorr en totalProductsStr !!!");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
                 totalProductsStr=totalProductsStr.replace(".", "");
@@ -1278,7 +1256,6 @@ public class MLSellerStatistics extends Thread {
                 String[] allHrefsOnPage = StringUtils.substringsBetween(htmlString, "<a href", "</a>");
                 if (allHrefsOnPage == null) { //todo check
                     Logger.log("errorr en allHrefsOnPage !!!");
-                    seller=fetchSeller(runnerID);
                     continue;
                 }
 
@@ -1347,8 +1324,9 @@ public class MLSellerStatistics extends Thread {
                             price += Double.parseDouble(priceDecimalsStr) / 100;
                         }
                     } catch (NumberFormatException e) {
-                        Logger.log(" I couldn't get the price on " + productUrl);
+                        Logger.log(" I couldn't get the price on product.  Ignoring " + productUrl);
                         Logger.log(e);
+                        continue;
                     }
 
 /*
@@ -1434,7 +1412,7 @@ public class MLSellerStatistics extends Thread {
             }
 
             if (SAVE) {
-                insertSeller(seller, oficialStore, noReputation, hiddenReputation,
+                insertSeller(seller, sellerId, oficialStore, noReputation, hiddenReputation,
                         noActivePublications, lider, years, kindSeller,
                         onTime, location, averageSalesPerDay, estimatedSalePriceAverage,
                         reputation, totalProducts, positiveOpinions, neutralOpinions, negativeOpinions,
@@ -1443,7 +1421,6 @@ public class MLSellerStatistics extends Thread {
                         problemsNotReceived, problemsNotDelivered, problemsNoAnswersOnTime, problemsOutOfStock,
                         problemsOther, visitsLastMonth, sellerUrl);
             }
-            seller=fetchSeller(runnerID);
         }
     }
 
@@ -1518,119 +1495,60 @@ public class MLSellerStatistics extends Thread {
     }
 
 
-    private String fetchNewSellerURL(String seller, CloseableHttpClient client) {
+    private String fetchNewSellerURL(long sellerId, CloseableHttpClient client) {
 
-
-        ArrayList<String>urls = getSellerProductsURLs(seller);
-        String theUrl=null;
-
-        if (urls==null || urls.size()==0){
-            Logger.log("No pudo recuperar ninguna URL para el vendedor "+seller);
-            return null; // todo ver que hacemos aca
-        }
-
-        String page=null;
-
-        for (String url:urls) {
-            page=HttpUtils.getHTMLStringFromPage(url,client,DEBUG, true);
-            if (HttpUtils.isOK(page)){
-                break;
-            }else {
-                //rebuild httpClient
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    Logger.log(e);
-                }
-                try {
-                    client.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                client = null;
-                client = HttpUtils.buildHttpClient();
-                ////////////////////////////////////////////
+        String permalink=null;
+        String url="https://api.mercadolibre.com/users/"+sellerId;
+        JSONObject sellerObject = HttpUtils.getJsonObjectWithoutToken(url,client,false);
+        if (sellerObject!=null){
+            if (sellerObject.has("permalink") && !sellerObject.isNull("permalink")){
+                permalink = sellerObject.getString("permalink");
             }
-
         }
-        if (!HttpUtils.isOK(page)){
-            Logger.log("no funcionó ninguna url "+seller);
-            int statusCode=getStatusCode(PROFILE_BASE_URL +formatSeller(seller),client);
-            if (statusCode!=403) {//temporarlmente deshabilitado - lo bancamos un tiempo
-                if (statusCode==404) {
-                    if (SAVE){
-                        Logger.log("desabilitando los productos de "+seller);
-                        disableSellerProducts(seller);
-                    }
-                }else {
-                    if (DEBUG) {
-                        Logger.log("new status code is " + statusCode + " no sabemos que pasa con " + seller);
-                    }else {
-                        if (statusCode!=403){
-                            Logger.log("new status code is " + statusCode + " no sabemos que pasa con " + seller);
+        return permalink;
+    }
+
+
+    private String fetchNewSellerURL(String seller, CloseableHttpClient client) {
+        String sellerUrl=null;
+        long selerId=0;
+        ArrayList<String>ids=getSellerProductsIDs(seller);
+        String itemsIds="";
+        for (String id: ids) {
+            itemsIds += id + ",";
+        }
+        if (itemsIds.contains(",")) {
+            itemsIds = itemsIds.substring(0, itemsIds.length() - 1);
+            String itemsUrl = "https://api.mercadolibre.com/items?ids=" + itemsIds;
+            JSONObject jsonObject = HttpUtils.getJsonObjectWithoutToken(itemsUrl, client, true);
+            if (jsonObject!=null) {
+                JSONArray jsonArray = jsonObject.getJSONArray("elArray");
+                for (int j = 0; j < jsonArray.length(); j++) {
+                    JSONObject itemObject2 = jsonArray.getJSONObject(j);
+                    int code = itemObject2.getInt("code");
+                    if (code==200) {
+                        JSONObject productObj = itemObject2.getJSONObject("body");
+                        if (productObj != null && productObj.has("seller_id") && !productObj.isNull("seller_id")) {
+                            selerId = productObj.getLong("seller_id");
+                            break;
                         }
                     }
                 }
             }
-            return null;
         }
-
-        boolean hiddenReputation=false;
-        if (page.indexOf(SEE_SELLER_DETAILS_LABEL)==-1){
-            hiddenReputation=true;
+        if (selerId!=0){
+            sellerUrl=fetchNewSellerURL(selerId,client);
         }
-
-        int pos1=0;
-        int pos2=0;
-
-        pos1=page.indexOf("dimension120");
-        if (pos1<1) {
-            Logger.log("Usuario dado de baja " + seller);
-            return null;
-        }
-        pos1+=14;
-        pos2=page.indexOf("dimension",pos1);
-        if (pos1<1) {
-            Logger.log("error buscando dimension120 seller URL " + seller + " pos2: " + pos2);
-            return null;
-        }
-
-        String dimension120=page.substring(pos1,pos2);
-        if (dimension120==null || dimension120.length()<0) {
-            Logger.log("error buscando dimension120 "  + seller + " dimension120 " + dimension120);
-            return null;
-        }
-
-        pos1=dimension120.indexOf("\"");
-        if (pos1<1) {
-            Logger.log("error buscando seller URL " + seller + " pos1: " + pos1);
-            return null;
-        }
-        pos1++;
-        pos2=dimension120.indexOf("\"",pos1);
-        if (pos2<1) {
-            Logger.log("error buscando seller URL " + seller + " pos2: " + pos2);
-            return null;
-        }
-
-
-        String seller2=dimension120.substring(pos1,pos2);
-
-        if (hiddenReputation){
-            Logger.log("new status code is 405 CAPANGA ESCONDE SU REPUTACION "+seller+" -> "+seller2 );
-        }
-
-        String sellerURL=this.PROFILE_BASE_URL+formatSeller(seller2);
-        return sellerURL;
+        return sellerUrl;
     }
 
-    private static synchronized ArrayList<String> getSellerProductsURLs(String seller) {
-        String uRL=null;
-        ArrayList<String> uRLs=new ArrayList<String>();
+    private static synchronized ArrayList<String> getSellerProductsIDs(String seller) {
+        String id=null;
+        ArrayList<String> idList=new ArrayList<String>();
         if (selectPreparedStatement2==null){
             Connection connection = getSelectConnection();
             try {
-                selectPreparedStatement2=connection.prepareStatement("select url from productos where deshabilitado=false and proveedor = ? order by lastupdate desc");
+                selectPreparedStatement2=connection.prepareStatement("select id from productos where deshabilitado=false and proveedor = ? order by lastupdate desc, id desc limit 20");
             } catch (SQLException e) {
                 Logger.log(e);
                 e.printStackTrace();
@@ -1643,20 +1561,18 @@ public class MLSellerStatistics extends Thread {
                 Logger.log("Couldn't get URL for seller "+seller);
             }
             while (resultSet.next()){
-                uRL=resultSet.getString(1);
-                if (!uRLs.contains(uRL)){
-                    uRLs.add(uRL);
+                id=resultSet.getString(1);
+                String formatedId=HTMLParseUtils.getUnformattedId(id);
+                if (!idList.contains(formatedId)){
+                    idList.add(formatedId);
                 }
-
             }
-
         } catch (SQLException e) {
             Logger.log(e);
             e.printStackTrace();
         }
-        return uRLs;
+        return idList;
     }
-
 
 
     private static synchronized boolean isUrlChanged(HttpContext context,String url) {
@@ -1762,7 +1678,11 @@ public class MLSellerStatistics extends Thread {
                     "(select proveedor from movimientos where proveedor >='"+START_FROM+"' and fecha >'"+oldDateStr+"' group by proveedor) " +
                     "group by proveedor order by proveedor asc";
             selectPreparedStatement = globalSelectConnection.prepareStatement(query);
-            globalSelectResultSet = selectPreparedStatement.executeQuery();
+            globalSelectSellerResultSet = selectPreparedStatement.executeQuery();
+
+            String query2="select idproveedor from productos where proveedor = ? and idproveedor >0 group by idproveedor";
+            custIdPreparedStatement = globalSelectConnection.prepareStatement(query2);
+
         } catch (SQLException e) {
             Logger.log ("SQLException tratando de recuperar vendedores");
             Logger.log(e);
