@@ -29,8 +29,11 @@ public class CustomerInfo {
     static final char VAJILLA='B'; //cubiertero
     static final char PICAPORTES='C';
     static final char PERCHEROS='D';
-    static final char IPHONE='I';
-    static final char RUEDAS_SILLA='J';
+    static final char RUEDAS_SILLA='E';
+    static final char MESAS_DE_LUZ='F';
+    static final char ORGANIZADORES_DE_ESCOBAS='G';
+    static final char MANIJAS_Y_PICAPORTES='H';
+    static final char SILLONES_GERENCIALES='I'; //de oficina
 
 
 
@@ -39,8 +42,8 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="MARTINMENRATH";
-        char categoria=ALFOMBRAS;
+        String nickname="RAULLUISANTONIO";
+        char categoria=SILLONES_GERENCIALES;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -85,13 +88,21 @@ public class CustomerInfo {
         if (categoria==PERCHEROS) {
             categoryId="MLA31325";
         }
-        if (categoria==IPHONE) {
-            categoryId="MLA1055";
-        }
         if (categoria==RUEDAS_SILLA) {
             categoryId="MLA432821";
         }
-
+        if (categoria==MESAS_DE_LUZ) {
+            categoryId="MLA370415";
+        }
+        if (categoria==ORGANIZADORES_DE_ESCOBAS) {
+            categoryId="MLA414040";
+        }
+        if (categoria==MANIJAS_Y_PICAPORTES) {
+            categoryId="MLA357155";
+        }
+        if (categoria==SILLONES_GERENCIALES) {
+            categoryId="MLA6847";
+        }
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 
