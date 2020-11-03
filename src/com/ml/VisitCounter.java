@@ -98,13 +98,15 @@ public class VisitCounter extends Thread {
             }
             httpClient = null;
             httpClient = HttpUtils.buildHttpClient();
+
+            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true); // just 1 retry
+            if (!HttpUtils.isOK(htmlString)) {
+                httpClient=HttpUtils.buildHttpClient();
+                return;
+            }
+
         }
 
-        htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true); // just 1 retry
-        if (!HttpUtils.isOK(htmlString)) {
-            httpClient=null;
-            return;
-        }
 
         boolean processItems=true;
         int pos1=0;
@@ -308,7 +310,9 @@ public class VisitCounter extends Thread {
             }
             currentTime = System.currentTimeMillis();
             if (currentTime > timeoutTime) {
-                System.out.println("Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas");
+                String msg = "Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas";
+                System.out.println(msg);
+                Logger.log(msg);
                 System.exit(0);
             }
         }
