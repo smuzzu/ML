@@ -14,7 +14,9 @@ public class HTMLParseUtils {
     public static String PROFILE_BASE_URL2 = "http://perfil.mercadolibre.com.ar/";
     public static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/";
     public static String QUESTIONS_BASE_URL = "https://articulo.mercadolibre.com.ar/noindex/questions/";
+    public static String MERCADOLIBRE_BASE_URL = "mercadolibre.com.ar";
     public static String ARTICLE_PREFIX = "MLA";
+    public static String CATALOG_ITEM_URL_INDICATOR = "/p/"+HTMLParseUtils.ARTICLE_PREFIX;
 
     static String SHIPPING1_LABEL = "Envío a todo el país";
     static String SHIPPING2_LABEL = "Llega el";
@@ -291,22 +293,50 @@ public class HTMLParseUtils {
     }
 
 
-    public static String getProductIdFromHtmldata(String htmlData) {
+    public static String getProductIdFromHtmldata(String htmlData, String url) {
         String productId = null;
-        int pos1 = htmlData.indexOf("itemId");
-        if (pos1>0){
-            pos1=htmlData.indexOf("value=\"",pos1);
-            if (pos1>0){
-                pos1+=7;
-                int pos2=htmlData.indexOf("\"",pos1);
-                if (pos2>0) {
-                    productId = htmlData.substring(pos1, pos2);
+        if (htmlData.indexOf("itemId")>0) {
+            int pos1 = htmlData.indexOf("itemId");
+            if (pos1 > 0) {
+                pos1 = htmlData.indexOf("value=\"", pos1);
+                if (pos1 > 0) {
+                    pos1 += 7;
+                    int pos2 = htmlData.indexOf("\"", pos1);
+                    if (pos2 > 0) {
+                        productId = htmlData.substring(pos1, pos2);
+                    }
                 }
             }
-        }
-        if (productId==null){
-            String msg="no se pudo recuperar item id \n"+htmlData.substring(0,200)+"...";
-            Logger.log(msg);
+        }else {
+            if (htmlData.indexOf(HTMLParseUtils.ARTICLE_PREFIX+"-")>0){
+                int pos1=htmlData.indexOf(HTMLParseUtils.ARTICLE_PREFIX+"-");
+                int pos2 = htmlData.indexOf("-", pos1+4);
+                String formattedId=htmlData.substring(pos1,pos2);
+                productId=getUnformattedId(formattedId);
+            }else { //todo aca no se puede hacer nada
+                if (url.indexOf(CATALOG_ITEM_URL_INDICATOR)==-1){//no es item de catalogo, entonces que pasa?
+                    String msg="No se pudo recuperar el ID en la URL "+url+" \n\0 "+htmlData;
+                    System.out.println(msg);
+                    Logger.log(msg);
+                }
+/*
+                int pos1 = htmlData.indexOf(HTMLParseUtils.ARTICLE_PREFIX);
+                int pos2 = htmlData.length();
+                int pos21 = htmlData.indexOf("?", pos1);
+                int pos22 = htmlData.indexOf("/s", pos1);
+                int pos23 = htmlData.indexOf("-", pos1 + 4);
+                if (pos21 > 0 && pos21 < pos2) {
+                    pos2 = pos21;
+                }
+                if (pos22 > 0 && pos22 < pos2) {
+                    pos2 = pos22;
+                }
+                if (pos23 > 0 && pos23 < pos2) {
+                    pos2 = pos23;
+                }
+                productId = htmlData.substring(pos1, pos2);
+                */
+            }
         }
         return productId;
     }
@@ -551,6 +581,12 @@ public class HTMLParseUtils {
             }
         }
         int pricePos2 = productHTMLdata.indexOf("<", pricePos1);
+        if (pricePos1<0 || pricePos2<0 || pricePos1>pricePos2){
+            String errorMsg="No se pudo sacar el precio en "+productHTMLdata;
+            Logger.log(errorMsg);
+            return 0;
+        }
+
         String priceStr = productHTMLdata.substring(pricePos1, pricePos2);
         if (priceStr != null) {
             //sacamos los puntos de miles para que no confunda con decimales
