@@ -739,7 +739,7 @@ public class ReportRunner {
         while (offset < totalResults || totalResults == -1) {
             if (offset < RESULTS_WITHOUT_TOKEN) {
                 jsonObject = HttpUtils.getJsonObjectWithoutToken(apiSearchUrl, client, false);
-                if (totalResults == -1) {
+                if (totalResults == -1 && jsonObject != null) {
                     JSONObject pagingObject = jsonObject.getJSONObject("paging");
                     totalResults = pagingObject.getInt("total");
                     if (totalResults > RESULTS_LIMIT) {
