@@ -91,6 +91,8 @@ public class SalesChecker {
             //if (onlineOrder.orderStatus==Order.VENDIDO) ?? hace falta
             boolean statusChanged = false;
 
+            Date orderCreationDate = new java.sql.Date(pendingOrder.creationTimestamp.getTime());
+
             //viene de internet, mucha info
 
             //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
@@ -219,7 +221,7 @@ public class SalesChecker {
                     mailBody += pendingOrder.shippingOptionNameDescription + "<br/>";
                 }
                 if (pendingOrder.shippingType == Order.FLEX) {
-                    mailBody += "Entrega: "+getWhen('F') + "<br/>";
+                    mailBody += "Entrega: "+getWhen('F',orderCreationDate) + "<br/>";
 
                 }
 
@@ -313,18 +315,18 @@ public class SalesChecker {
                                         if (pendingOrder.shippingCurrier!=null && !pendingOrder.shippingCurrier.isEmpty()){
                                             shippingCurrier+="/"+pendingOrder.shippingCurrier;
                                         }
-                                        String when = getWhen('C');
+                                        String when = getWhen('C',orderCreationDate);
                                         firstMsgToBuyer += when + " te estaremos despachando por " + shippingCurrier
                                                 + productTitle;
-                                        String when2 = getWhen2('C');
+                                        String when2 = getWhen2('C',orderCreationDate);
                                         firstMsgToBuyer2 += when2 + " despacharemos tu compra por Mercadoenvios.";
                                     }
 
                                     if (pendingOrder.shippingType == Order.FLEX) {
-                                        String when = getWhen('F');
+                                        String when = getWhen('F',orderCreationDate);
                                         firstMsgToBuyer += when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
                                                 + productTitle;
-                                        String when2 = getWhen2('F');//el horario lo trae la funcion
+                                        String when2 = getWhen2('F',orderCreationDate);//el horario lo trae la funcion
                                         firstMsgToBuyer2 += when2 + " llegará tu compra a tu domicilio.";
                                     }
                                 }
@@ -611,14 +613,14 @@ public class SalesChecker {
         return result;
     }
 
-    private static String getWhen(char correoOrFlex){
+    private static String getWhen(char correoOrFlex, Date orderCreationDate){
         String result="";
 
         if (hollydays == null) {
             hollydays = DatabaseHelper.fetchHolidaysFromCloud();
         }
 
-        Date nextDeliveryDate = getDate(TODAY, null);
+        Date nextDeliveryDate = orderCreationDate;
         boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
         boolean isWeekend = isWeekend(nextDeliveryDate);
         if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday) {
@@ -642,14 +644,14 @@ public class SalesChecker {
 
     }
 
-    private static String getWhen2(char correoOrFlex){
+    private static String getWhen2(char correoOrFlex,Date orderCreationDate){
         String result="";
 
         if (hollydays == null) {
             hollydays = DatabaseHelper.fetchHolidaysFromCloud();
         }
 
-        Date nextDeliveryDate = getDate(TODAY, null);
+        Date nextDeliveryDate = orderCreationDate;
         boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
         boolean isWeekend = isWeekend(nextDeliveryDate);
         if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday) {
