@@ -13,7 +13,7 @@ public class Mercadolibre06b {
     static final String DATABASE = "ML6";
     static final Boolean ONLY_RELEVANT = true;
     static final int MINIMUM_SALES = 10;
-    static final boolean FOLLOWING_DAY = false;
+    static final boolean FOLLOWING_DAY = true;
     static final boolean PREVIOUS_DAY = false;
 
     static String[] webBaseUrls = new String[]
