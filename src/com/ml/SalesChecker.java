@@ -104,7 +104,6 @@ public class SalesChecker {
             if (!pendingOrder.mailSent) {
 
                 System.out.println("VENDISTE !!!!!!!!! " + pendingOrder.productTitle+ " \nMail"+ pendingOrder.buyerEmail);
-                Logger.log("email del comprador: "+ pendingOrder.buyerEmail);
                 boolean hasLabel = false;
                 String phone = "";
                 String shipping = "Envio indeterminado / consultar";
@@ -203,6 +202,8 @@ public class SalesChecker {
                     mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, PRESTAR ESPECIAL ATENCION LOS ITEMS NOMBRADOS EN LA SEGUNDA PAGINA DE LA ETIQUETA</b><br/>";
                 }
                 mailBody += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName;
+                mailBody += "<br/>dni: " + pendingOrder.buyerDocNumber + " tel: " + pendingOrder.buyerPhone;
+                mailBody += "<br/>email: " + pendingOrder.buyerEmail;
 
                 if (buyerSays != null && !buyerSays.isEmpty()) {
                     mailBody += "<br/><br/><b>Mensaje del cliente:</b><br/>" + buyerSays;
@@ -334,14 +335,11 @@ public class SalesChecker {
                                 firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
                                 firstMsgToBuyer2 += " Gracias!";
                             }
-                            pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId);
+                            pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId, pendingOrder.shippingType);
                             if (pendingOrder.chatSent) {
                                 String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
                                 String text = firstMsgToBuyer+"<br/><br/>Version corta:<br/>"+firstMsgToBuyer2;
                                 GoogleMailSenderUtil.sendMail(mailTitle, text, null, null); //todo sacar
-
-                                Order updatedOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
-                                Logger.log("email del comprador 2: "+ updatedOrder.buyerEmail);
                             }
                             statusChanged = true;
                         }
