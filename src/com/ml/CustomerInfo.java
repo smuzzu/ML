@@ -18,7 +18,7 @@ public class CustomerInfo {
     static final char ALFOMBRAS='0';
     static final char CESTOS_COCINA ='1';
     static final char CORREDERAS_TELESCOPICAS='2';
-    static final char ORGANIZADDOR_ROPA='3'; //perchero elevador
+    static final char ORGANIZADDOR_ROPA='3'; //perchero elevador y pantalonero
     static final char ORDENADORES_FILA='4';
     static final char COCINA_ALMACENAMIENTO='5'; //portacopas
     static final char CESTOS_PAPELERO ='6';
@@ -34,8 +34,11 @@ public class CustomerInfo {
     static final char ORGANIZADORES_DE_ESCOBAS='G';
     static final char MANIJAS_Y_PICAPORTES='H';
     static final char SILLONES_GERENCIALES='I'; //de oficina
-
-
+    static final char ORGANIZADOR_ESCRITORIO='J'; //mampara anti covid
+    static final char ORGANIZADOR_ESCRITORIO2='K'; //mampara anti covid
+    static final char ORGANIZADOR_ESCRITORIO3='L'; //mampara anti covid
+    static final char HERRAMIENTAS_OTROS='M';   //minifix
+    static final char BISAGRAS='N';
 
     public static void main (String[] args) {
 
@@ -103,6 +106,16 @@ public class CustomerInfo {
         if (categoria==SILLONES_GERENCIALES) {
             categoryId="MLA6847";
         }
+        if (categoria==ORGANIZADOR_ESCRITORIO) {
+            categoryId="MLA430962";
+        }
+        if (categoria==HERRAMIENTAS_OTROS) {
+            categoryId="MLA430962";
+        }
+        if (categoria==BISAGRAS) {
+            categoryId="MLA432055";
+        }
+
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 
