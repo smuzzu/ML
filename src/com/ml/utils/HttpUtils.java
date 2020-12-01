@@ -259,7 +259,18 @@ public class HttpUtils {
 
     public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy) {
 
-        HttpGet httpGet = new HttpGet(uRL);
+        HttpGet httpGet = null;
+
+        try {
+            httpGet = new HttpGet(uRL);
+        } catch (Exception e){
+            String msg = "Error en getHTMLStringFromPage parseando url "+uRL;
+            System.out.println(msg);
+            Logger.log(msg);
+            e.printStackTrace();
+            Logger.log(e);
+            return "nullORempty|";
+        }
 
         CloseableHttpResponse response = null;
         HttpContext context = new BasicHttpContext();

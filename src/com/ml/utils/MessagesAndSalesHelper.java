@@ -777,16 +777,14 @@ public class MessagesAndSalesHelper {
 
             JSONObject addressObj = buyerObj.getJSONObject("address");
 
-            String stateId = null;
+            String state = null;
             if (!addressObj.isNull("state")) {
-                stateId = addressObj.getString("state");
-                if (!stateHashMap.containsKey(stateId)) {
-                    String stateUrl = "https://api.mercadolibre.com/classified_locations/states/" + stateId;
-                    JSONObject stateObj = HttpUtils.getJsonObjectWithoutToken(stateUrl, httpClient, false);
-                    String stateName = stateObj.getString("name");
-                    stateHashMap.put(stateId, stateName);
+                state = addressObj.getString("state");//aca puede venir el id o la descripcion del estado
+                if (stateHashMap.containsKey(state)) {
+                    order.userState = stateHashMap.get(state);
+                }else {
+                    order.userState = state;
                 }
-                order.userState = stateHashMap.get(stateId);
             }
             if (!addressObj.isNull("city")) {
                 order.userCity = addressObj.getString("city");
