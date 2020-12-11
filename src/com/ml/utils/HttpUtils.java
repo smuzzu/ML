@@ -153,11 +153,22 @@ public class HttpUtils {
         return jsonResponse;
     }
 
-    public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId) {
+    public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
         String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?access_token="+token;
+
+
+        //todo nota importante:  se supone que el nuevo formato aplica para coreo y cross docking
+        if (shippingType==Order.CORREO) {
+            url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?access_token=" + token;
+            if (text.length()>=350){ //todo restringir a shippingType = correo
+                Logger.log("Mensaje superior a 350 caracteres");
+                Logger.log(text);
+                text=text.substring(0,349); //todo descomentar
+            }
+        }
 
         HttpPost httpPost = new HttpPost(url);
         httpPost.setHeader("Accept", "application/json");
@@ -166,6 +177,12 @@ public class HttpUtils {
         String json = "{\"from\" : { \"user_id\": \""+myUserId
                 +"\",\"email\" : \"abcdfg@nospam.com\"},\"to\": { \"user_id\" : \""+customerId+"\"}, \"text\": \""+
                 text+"\"}";
+
+
+        if (shippingType==Order.CORREO) {
+            json = "{\"option_id\": \"OTHER\",\"text\": \"" + text + "\"}";
+        }
+
 
         StringEntity entity = new StringEntity(json,"UTF-8");
         httpPost.setEntity(entity);
@@ -185,8 +202,10 @@ public class HttpUtils {
             StatusLine statusline = response.getStatusLine();
             if (statusline != null) {
                 int statusCode = statusline.getStatusCode();
-                if (statusCode == 201) {
+                if (statusCode == 200 || statusCode == 201) { //este cambio dejarlo
                     ok=true;
+                }else {
+                    Logger.log("Error posteando mensaje post venta. status code =  "+statusCode);
                 }
             }
         }
@@ -650,7 +669,7 @@ public class HttpUtils {
         long packId=2000000993640247l;
         long buyerCustId=21818340l;
         String user="SOMOS_MAS";
-        postMessage(text,httpClient,packId,user,buyerCustId);
+        postMessage(text,httpClient,packId,user,buyerCustId,Order.CORREO);
 
     }
 
