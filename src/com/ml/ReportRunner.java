@@ -486,6 +486,11 @@ public class ReportRunner {
                             JSONObject buyBoxWinnerObject = catalogProductJsonObject.getJSONObject("buy_box_winner");
                             if (buyBoxWinnerObject != null && buyBoxWinnerObject.has("item_id") && !buyBoxWinnerObject.isNull("item_id")) {
                                 productId = buyBoxWinnerObject.getString("item_id");
+
+                                //TODO SACAR MENSAJE
+                                String msg = "Se esta procesando un item ganador de catalogo " + productId;
+                                System.out.println(msg);
+                                Logger.log(msg);
                             }
                         }else{
                             String buyingOptionsUrl = productUrl + "/s";
@@ -507,17 +512,55 @@ public class ReportRunner {
                                                 int pos2=splittedData.indexOf("\"",pos1);
                                                 if (pos2>0 && pos2>pos1){
                                                     productId = splittedData.substring(pos1,pos2);
-                                                    String msg = "El siguiente producto " + productUrl + " tiene como opcion de compra " + productId;
-                                                    Logger.log(msg);
+                                                    String itemUrl = "https://api.mercadolibre.com/items/"+productId;
+                                                    JSONObject itemObject = HttpUtils.getJsonObjectWithoutToken(itemUrl,client,false);
+
+                                                    if (itemHashMap.containsKey(productId)) {
+                                                        item = itemHashMap.get(productId);
+                                                    } else {
+                                                        item = new Item();
+                                                        item.id = productId;
+                                                        itemHashMap.put(productId, item);
+                                                    }
+
+                                                    item.page = page;
+                                                    if (itemObject.has("permalink") && !itemObject.isNull("permalink")) {
+                                                        item.permalink = itemObject.getString("permalink");
+                                                    }else {
+                                                        item.permalink=productUrl;
+                                                    }
+
+                                                    if (itemObject.has("title") && !itemObject.isNull("title")) {
+                                                        item.title = itemObject.getString("title");
+                                                    } else {
+                                                        item.title=HTMLParseUtils.getTitle2(productHTMLdata);
+                                                        if (item.title != null) {
+                                                            item.title = item.title.trim();
+                                                        }
+                                                    }
+
+                                                    item.shipping = 101;//todo ver
+
+                                                    item.premium = false;//todo ver
+
+                                                    if (itemObject.has("price") && !itemObject.isNull("price")) {
+                                                        item.price = itemObject.getDouble("price");
+                                                    }else {
+                                                        Logger.log("AAB I couldn't get the price on " + productUrl);
+                                                    }
+
+                                                    //TODO SACAR
+                                                    String msg = "Se acaba de procesar un item de catalogo " + itemUrl;
                                                     System.out.println(msg);
-                                                    //TODO AGREGAR TODOS ESTOS ITEMS AL itemHashMap
+                                                    Logger.log(msg);
+
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-
+                            continue; //ya procesamos las opciones del item de catalogo, no continuar
                         }
                     }
                     if (productId==null) {//no se pudo
