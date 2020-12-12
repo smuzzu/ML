@@ -20,6 +20,9 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 
+import static com.ml.utils.HTMLParseUtils.CATALOG_ITEM_URL_INDICATOR;
+import static com.ml.utils.HTMLParseUtils.CATALOG_PRODUCT_BASE_URL;
+
 public class ReportRunner {
 
     static final int RESULTS_WITHOUT_TOKEN = 1000;
@@ -421,13 +424,18 @@ public class ReportRunner {
                             productsURLArrayList.add(href);
                         }
                     }else {
-                        if (href.indexOf(HTMLParseUtils.CATALOG_ITEM_URL_INDICATOR)>0){
+                        if (href.indexOf(CATALOG_ITEM_URL_INDICATOR)>0){
                             int pos1=href.indexOf("http");
                             int pos2=href.indexOf("?",pos1);
                             if (pos2<0){
-                                int pos3=href.indexOf(HTMLParseUtils.CATALOG_ITEM_URL_INDICATOR);
+                                int pos3=href.indexOf(CATALOG_ITEM_URL_INDICATOR);
                                 pos2=href.indexOf("/s",pos3);
+                                int pos4=href.indexOf("#",pos1);
+                                if (pos4<pos2 || pos2<0){
+                                    pos2=pos4;
+                                }
                             }
+
                             if (pos1<0 || pos2<0 || pos1>pos2){
                                 String msg="no se pudo reconocer la url pos1="+pos1+" pos2="+pos2+" "+href;
                                 System.out.println(msg);
@@ -435,6 +443,7 @@ public class ReportRunner {
                                 continue;
                             }
                             href = href.substring(pos1, pos2);
+
                             if (!productsURLArrayList.contains(href)) {
                                 productsURLArrayList.add(href);
                             }
@@ -467,11 +476,55 @@ public class ReportRunner {
                 Item item = null;
                 String productId = HTMLParseUtils.getProductIdFromHtmldata(productHTMLdata,productUrl);
                 if (productId==null){
-                    //todo seguramente es un item de catalogo /p/MLA9999999
-                    // todo aca se podria ver las opciones de compra y hacer nuevos requests
-                    String msg="No se pudo recuperar item ID \n"+productUrl+" en pagina \n"+uRL;
-                    Logger.log(msg);
-                    continue;
+                    int pos1=productUrl.indexOf(CATALOG_ITEM_URL_INDICATOR); //es un item de catalogo /p/MLA9999999
+                    if (pos1>0) {
+                        pos1+=3;
+                        String catalogProductId=productUrl.substring(pos1);
+                        String catalogProductUrl=CATALOG_PRODUCT_BASE_URL+catalogProductId;
+                        JSONObject catalogProductJsonObject = HttpUtils.getJsonObjectWithoutToken(catalogProductUrl,client,false);
+                        if (catalogProductJsonObject!=null && catalogProductJsonObject.has("buy_box_winner") && !catalogProductJsonObject.isNull("buy_box_winner")) {
+                            JSONObject buyBoxWinnerObject = catalogProductJsonObject.getJSONObject("buy_box_winner");
+                            if (buyBoxWinnerObject != null && buyBoxWinnerObject.has("item_id") && !buyBoxWinnerObject.isNull("item_id")) {
+                                productId = buyBoxWinnerObject.getString("item_id");
+                            }
+                        }else{
+                            String buyingOptionsUrl = productUrl + "/s";
+                            String HTMLpage = HttpUtils.getHTMLStringFromPage(buyingOptionsUrl, client, DEBUG, false);
+                            if (HttpUtils.isOK(HTMLpage)){
+                            }else {
+                                String msg = "No se pudo recuperar item ID 2 \n" + productUrl + " en pagina \n" + uRL;
+                                Logger.log(msg);
+                            }
+                            pos1=HTMLpage.indexOf("item_id");
+                            if (pos1>0){
+                                String[] splittedHtml=HTMLpage.split("item_id");
+                                for (String splittedData:splittedHtml){
+                                    if (splittedData!=null) {
+                                        splittedData = splittedData.substring(0, 30);
+                                        if (splittedData.contains("value")) {
+                                            pos1=splittedData.indexOf("MLA");
+                                            if (pos1>0){
+                                                int pos2=splittedData.indexOf("\"",pos1);
+                                                if (pos2>0 && pos2>pos1){
+                                                    productId = splittedData.substring(pos1,pos2);
+                                                    String msg = "El siguiente producto " + productUrl + " tiene como opcion de compra " + productId;
+                                                    Logger.log(msg);
+                                                    System.out.println(msg);
+                                                    //TODO AGREGAR TODOS ESTOS ITEMS AL itemHashMap
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                    if (productId==null) {//no se pudo
+                        String msg = "No se pudo recuperar item ID \n" + productUrl + " en pagina \n" + uRL;
+                        Logger.log(msg);
+                        continue;
+                    }
                 }
                 if (productId.length() > 14) {
                     String msg = "XXXXXXXXXXX El item id no es normal: " + productId;

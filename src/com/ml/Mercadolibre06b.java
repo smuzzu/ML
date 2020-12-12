@@ -377,6 +377,14 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=97562082",   //INSUOFFICE
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=121000172",  //AMV-TIENDA+ONLINE
 
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=213476162",  //CERSARYDESIGN
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=129993069",  //JOY+TIENDA
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=58693232",   //MANU_CHAMBAIDEAS
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=10301558",   //OFITOPMUEBLES
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=187186141",  //HIVICKY.
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=165804006",  //URWA9971249
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=24088738",  //MAURO+MUSUMECI
+
             //hafele + frank
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=141782424",  //ALLSURHERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=136191303",  //ATILIOOSCARFARAONE
@@ -408,7 +416,8 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=323780517",  //HOME.MARKET
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=22579885",   //KEUKEN HERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=577706727",  //REALHERRAJES
-
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=121020308",  //QUIEROHERRAJES
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=3154882",    //STOVI
 
             //hafele + frank otros
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=92758705",   //AUTO_UNO_CASEROS
@@ -677,7 +686,16 @@ public class Mercadolibre06b {
             {0, 2147483647}, //INSUOFFICE
             {0, 2147483647}, //AMV-TIENDA+ONLINE
 
-            //hafele + frank
+            //MUEBLUDECES
+            {0, 2147483647}, //CERSARYDESIGN
+            {0, 2147483647}, //JOY+TIENDA
+            {0, 2147483647}, //MANU_CHAMBAIDEAS
+            {0, 2147483647}, //OFITOPMUEBLES
+            {0, 2147483647}, //HIVICKY.
+            {0, 2147483647}, //URWA9971249
+            {0, 2147483647}, //MAURO+MUSUMECI
+
+    //hafele + frank
             {0, 2147483647}, //ALLSURHERRAJES
             {0, 2147483647}, //ATILIOOSCARFARAONE
             {0, 2147483647}, //BOLZANRG
@@ -708,6 +726,8 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HOME.MARKET
             {0, 2147483647}, //KEUKEN HERRAJES
             {0, 2147483647}, //REALHERRAJES
+            {0, 2147483647}, //QUIEROHERRAJES
+            {0, 2147483647}, //STOVI
 
             //hafele + frank otros
             {0, 2147483647}, //AUTO_UNO_CASEROS
@@ -797,6 +817,11 @@ public class Mercadolibre06b {
 
 
     };
+
+
+    //hafeleros
+    //(141782424,136191303,246210362,115353457,214222788,169746075,278683358,262462365,306649995,238647032,342744334,183914122,206071515,237269243,89507437,156064186,115573070,231944987,444226698,323271487,265586075,168573716,87052493,7477051,75471238,355221540,141299067,323780517,22579885,57770672,121020308,3154882,92758705,498988242,173565332,298571225,191506758,307237566,321446616,45962628,208943707,177776871,357639575,163421387,172619074,209025171)
+
 
     public static void main(String[] args) {
 
