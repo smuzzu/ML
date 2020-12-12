@@ -55,7 +55,7 @@ public class HTMLParseUtils {
                 sellerPos2 = htmlStringFromProductPage.indexOf("<", sellerPos1);
                 seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
             }else {
-                sellerPos1=htmlStringFromProductPage.indexOf("ui-pdp-seller__header__title");
+                sellerPos1=htmlStringFromProductPage.lastIndexOf("ui-pdp-seller__header__title");
                 sellerPos1=htmlStringFromProductPage.indexOf(">",sellerPos1)+1;
                 sellerPos2=htmlStringFromProductPage.indexOf("<",sellerPos1);
                 seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
@@ -691,11 +691,12 @@ public class HTMLParseUtils {
 
 
     public static void main(String args[]){
-        String url = "https://articulo.mercadolibre.com.ar/MLA-712700935-perchero-extraible-400mm-niquelado-hafele-80761774-_JM";
+        String url = "https://articulo.mercadolibre.com.ar/MLA-722903608-botiquin-bano-shcneider-eco-34x46x14-wengue-bm134-_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
         boolean officialStore=getOfficialStore(productoPage);
         long sellerId=getSellerId(productoPage,"pepito");
+        String seller = getSeller(productoPage,officialStore,"lalala");
 
         boolean b=false;
 
