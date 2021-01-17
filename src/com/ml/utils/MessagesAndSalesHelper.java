@@ -771,23 +771,26 @@ public class MessagesAndSalesHelper {
             String buyerUrl = "https://api.mercadolibre.com/users/" + order.buyerCustId;
             JSONObject buyerObj = HttpUtils.getJsonObjectWithoutToken(buyerUrl, httpClient, false);
 
-            if (order.userNickName==null || order.userNickName.isEmpty()) {
-                order.userNickName = buyerObj.getString("nickname");
-            }
+            if (buyerObj!=null && !buyerObj.isEmpty()) {
 
-            JSONObject addressObj = buyerObj.getJSONObject("address");
-
-            String state = null;
-            if (!addressObj.isNull("state")) {
-                state = addressObj.getString("state");//aca puede venir el id o la descripcion del estado
-                if (stateHashMap.containsKey(state)) {
-                    order.userState = stateHashMap.get(state);
-                }else {
-                    order.userState = state;
+                if (order.userNickName==null || order.userNickName.isEmpty()) {
+                    order.userNickName = buyerObj.getString("nickname");
                 }
-            }
-            if (!addressObj.isNull("city")) {
-                order.userCity = addressObj.getString("city");
+
+                JSONObject addressObj = buyerObj.getJSONObject("address");
+
+                String state = null;
+                if (!addressObj.isNull("state")) {
+                    state = addressObj.getString("state");//aca puede venir el id o la descripcion del estado
+                    if (stateHashMap.containsKey(state)) {
+                        order.userState = stateHashMap.get(state);
+                    } else {
+                        order.userState = state;
+                    }
+                }
+                if (!addressObj.isNull("city")) {
+                    order.userCity = addressObj.getString("city");
+                }
             }
         }
         if (usersInOrders.containsKey(order.userNickName)){
