@@ -510,50 +510,55 @@ public class ReportRunner {
                                             pos1=splittedData.indexOf("MLA");
                                             if (pos1>0){
                                                 int pos2=splittedData.indexOf("\"",pos1);
-                                                if (pos2>0 && pos2>pos1){
-                                                    productId = splittedData.substring(pos1,pos2);
-                                                    String itemUrl = "https://api.mercadolibre.com/items/"+productId;
-                                                    JSONObject itemObject = HttpUtils.getJsonObjectWithoutToken(itemUrl,client,false);
-
-                                                    if (itemHashMap.containsKey(productId)) {
-                                                        item = itemHashMap.get(productId);
-                                                    } else {
-                                                        item = new Item();
-                                                        item.id = productId;
-                                                        itemHashMap.put(productId, item);
-                                                    }
-
-                                                    item.page = page;
-                                                    if (itemObject.has("permalink") && !itemObject.isNull("permalink")) {
-                                                        item.permalink = itemObject.getString("permalink");
-                                                    }else {
-                                                        item.permalink=productUrl;
-                                                    }
-
-                                                    if (itemObject.has("title") && !itemObject.isNull("title")) {
-                                                        item.title = itemObject.getString("title");
-                                                    } else {
-                                                        item.title=HTMLParseUtils.getTitle2(productHTMLdata);
-                                                        if (item.title != null) {
-                                                            item.title = item.title.trim();
+                                                if (pos2>0 && pos2>pos1) {
+                                                    productId = splittedData.substring(pos1, pos2);
+                                                    String itemUrl = "https://api.mercadolibre.com/items/" + productId;
+                                                    JSONObject itemObject = HttpUtils.getJsonObjectWithoutToken(itemUrl, client, false);
+                                                    if (itemObject != null) {
+                                                        if (itemHashMap.containsKey(productId)) {
+                                                            item = itemHashMap.get(productId);
+                                                        } else {
+                                                            item = new Item();
+                                                            item.id = productId;
+                                                            itemHashMap.put(productId, item);
                                                         }
-                                                    }
 
-                                                    item.shipping = 101;//todo ver
+                                                        item.page = page;
+                                                        if (itemObject.has("permalink") && !itemObject.isNull("permalink")) {
+                                                            item.permalink = itemObject.getString("permalink");
+                                                        } else {
+                                                            item.permalink = productUrl;
+                                                        }
 
-                                                    item.premium = false;//todo ver
+                                                        if (itemObject.has("title") && !itemObject.isNull("title")) {
+                                                            item.title = itemObject.getString("title");
+                                                        } else {
+                                                            item.title = HTMLParseUtils.getTitle2(productHTMLdata);
+                                                            if (item.title != null) {
+                                                                item.title = item.title.trim();
+                                                            }
+                                                        }
 
-                                                    if (itemObject.has("price") && !itemObject.isNull("price")) {
-                                                        item.price = itemObject.getDouble("price");
+                                                        item.shipping = 101;//todo ver
+
+                                                        item.premium = false;//todo ver
+
+                                                        if (itemObject.has("price") && !itemObject.isNull("price")) {
+                                                            item.price = itemObject.getDouble("price");
+                                                        } else {
+                                                            Logger.log("AAB I couldn't get the price on " + productUrl);
+                                                        }
+
+                                                        //TODO SACAR
+                                                        String msg = "Se acaba de procesar un item de catalogo " + itemUrl;
+                                                        System.out.println(msg);
+                                                        Logger.log(msg);
                                                     }else {
-                                                        Logger.log("AAB I couldn't get the price on " + productUrl);
+                                                        String msg = "No se pudo obtemer informacion de  " + itemUrl;
+                                                        System.out.println(msg);
+                                                        Logger.log(msg);
+
                                                     }
-
-                                                    //TODO SACAR
-                                                    String msg = "Se acaba de procesar un item de catalogo " + itemUrl;
-                                                    System.out.println(msg);
-                                                    Logger.log(msg);
-
                                                 }
                                             }
                                         }
