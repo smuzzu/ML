@@ -39,14 +39,17 @@ public class CustomerInfo {
     static final char ORGANIZADOR_ESCRITORIO3='L'; //mampara anti covid
     static final char HERRAMIENTAS_OTROS='M';   //minifix
     static final char BISAGRAS='N';
+    static final char EQUIPAMIENTO_OFICINA_OTROS='Ñ'; //porta CPU
+    static final char MESAS_RATONAS='O'; //ratonas y mesasa
+    static final char BURLETES='P';
 
     public static void main (String[] args) {
 
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="RAULLUISANTONIO";
-        char categoria=SILLONES_GERENCIALES;
+        String nickname="LEONARDOCHABUR";
+        char categoria=ORGANIZADDOR_ROPA;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -114,6 +117,15 @@ public class CustomerInfo {
         }
         if (categoria==BISAGRAS) {
             categoryId="MLA432055";
+        }
+        if (categoria==EQUIPAMIENTO_OFICINA_OTROS) {
+            categoryId="MLA2105";
+        }
+        if (categoria==MESAS_RATONAS) {
+            categoryId="MLA436384";
+        }
+        if (categoria==BURLETES) {
+            categoryId="MLA416677";
         }
 
 
@@ -269,6 +281,7 @@ public class CustomerInfo {
             if (count>50) {
                 System.out.print(".");
                 count=0;
+                client=HttpUtils.buildHttpClient();
             }
             String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+productId+"&from="+custId;
             JSONObject questionsObj = HttpUtils.getJsonObjectWithoutToken(questionsUrl, client, false);
