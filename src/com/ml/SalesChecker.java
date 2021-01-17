@@ -116,7 +116,7 @@ public class SalesChecker {
                         hasLabel = true;
                     } else {
                         if (pendingOrder.shippingType == Order.ACORDAR) {
-                            shipping = "Acorar";
+                            shipping = "Acordar";
                             phone = "Teléfono: " + pendingOrder.buyerPhone;
                         } else {
                             if (pendingOrder.shippingType == Order.PERSONALIZADO) {
