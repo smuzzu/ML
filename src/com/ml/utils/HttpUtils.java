@@ -212,8 +212,7 @@ public class HttpUtils {
         return ok;
     }
 
-
-    public static JSONObject getJsonObjectUsingToken(String uRL, CloseableHttpClient httpClient, String usuario) {
+   public static JSONObject getJsonObjectUsingToken(String uRL, CloseableHttpClient httpClient, String usuario, boolean giveMeArray) {
 
         JSONObject jsonResponse=null;
         String token= TokenUtils.getToken(usuario);
@@ -244,7 +243,12 @@ public class HttpUtils {
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
             if (jsonStringFromRequest.startsWith("[")){
-                jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
+                //jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
+                if (giveMeArray) {
+                    jsonStringFromRequest = "{\"elArray\":"+jsonStringFromRequest+"}";
+                }else {
+                    jsonStringFromRequest = jsonStringFromRequest.substring(1, jsonStringFromRequest.length() - 1);
+                }
             }
             try {
                 jsonResponse = new JSONObject(jsonStringFromRequest);

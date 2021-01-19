@@ -853,7 +853,7 @@ public class ReportRunner {
                 }
                 String msg = "No se pudo recorrer el intervalo por completo sin token " + apiSearchUrl;
                 Logger.log(msg);
-                jsonObject = HttpUtils.getJsonObjectUsingToken(apiSearchUrl, client, usuario);
+                jsonObject = HttpUtils.getJsonObjectUsingToken(apiSearchUrl, client, usuario,false);
             }
             if (jsonObject == null) {
                 String msg = "No se pudo recuperar el item " + apiSearchUrl;

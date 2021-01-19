@@ -69,7 +69,7 @@ public class MessagesAndSalesHelper {
                 if (shippingId>0) {
                     if (!orderShippingObj.has("status") || orderShippingObj.isNull("status")) {
                         String shippingUrl = "https://api.mercadolibre.com/shipments/" + shippingId + "?";
-                        shippingObj = HttpUtils.getJsonObjectUsingToken(shippingUrl, httpClient, user);
+                        shippingObj = HttpUtils.getJsonObjectUsingToken(shippingUrl, httpClient, user, false);
                     }
                 }
             }
@@ -208,7 +208,7 @@ public class MessagesAndSalesHelper {
 
             String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset="+ordersOffset;
 
-            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user);
+            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
             if (ordersOffset==0){
                 JSONObject pagingObj = jsonOrders.getJSONObject("paging");
                 totalOrders=pagingObj.getInt("total");
@@ -259,7 +259,7 @@ public class MessagesAndSalesHelper {
             for (int ordersOffset = 0; ordersOffset <= totalOrders; ordersOffset += 50) {
                 String ordersUrl = "https://api.mercadolibre.com/orders/search/archived?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset=" + ordersOffset;
 
-                JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user);
+                JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
                 if (ordersOffset == 0) {
                     JSONObject pagingObj = jsonOrders.getJSONObject("paging");
                     totalOrders = pagingObj.getInt("total");
@@ -334,7 +334,7 @@ public class MessagesAndSalesHelper {
         while (!finished) {
             String publicationsUrl = "https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(user)
                     +"/items/search?offset=" + offset;
-            JSONObject publicationsObj = HttpUtils.getJsonObjectUsingToken(publicationsUrl,httpClient,user);
+            JSONObject publicationsObj = HttpUtils.getJsonObjectUsingToken(publicationsUrl,httpClient,user,false);
             if (publicationsObj==null){
                 finished=true;
                 continue;
@@ -356,7 +356,7 @@ public class MessagesAndSalesHelper {
             finished=false;
             while (!finished) {
                 String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+itemId+"&offset="+ offset;
-                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
+                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user,false);
                 if (questionsObj==null){
                     finished=true;
                     continue;
@@ -405,7 +405,7 @@ public class MessagesAndSalesHelper {
             int offset=0;
             while (!finished) {
                 String questionsUrl = "https://api.mercadolibre.com/my/received_questions/search?sort_fields=date_created&sort_types=DESC&offset="+ offset;
-                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user);
+                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user,false);
                 if (questionsObj==null){
                     finished=true;
                     continue;
@@ -547,7 +547,7 @@ public class MessagesAndSalesHelper {
 
         for (String productId: allMyItems) {
             String questionsUrl = "https://api.mercadolibre.com/questions/search?item=" + productId + "&from=" + custId;
-            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient, user);
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient, user,false);
             if (questionsObj == null) {
                 continue;
             }
@@ -606,7 +606,7 @@ public class MessagesAndSalesHelper {
             if (scrollId!=null){
                 productListURL+="&scroll_id="+scrollId;
             }
-            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, closeableHttpClient,user);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, closeableHttpClient,user, false);
             scrollId=(String) jsonResponse.get("scroll_id");
             jsonProductArray = jsonResponse.getJSONArray("results");
             if (jsonProductArray.length()<50){
@@ -679,7 +679,7 @@ public class MessagesAndSalesHelper {
         String orderUrlListForOneURL="https://api.mercadolibre.com/orders/search?seller="
                 +TokenUtils.getIdCliente(user) +"&q="+orderId;
 
-        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(orderUrlListForOneURL, httpClient, user);
+        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(orderUrlListForOneURL, httpClient, user, false);
         JSONArray jsonOrdersArray = jsonOrders.getJSONArray("results");
 
         if (jsonOrdersArray.length()!=1){
@@ -913,7 +913,7 @@ public class MessagesAndSalesHelper {
         if (shippingObj == null) {
             if (order.shippingId != 0) {
                 String shippingUrl = "https://api.mercadolibre.com/shipments/" + order.shippingId + "?";
-                shippingObj = HttpUtils.getJsonObjectUsingToken(shippingUrl, httpClient, user);
+                shippingObj = HttpUtils.getJsonObjectUsingToken(shippingUrl, httpClient, user, false);
             }
         }
 
@@ -993,7 +993,7 @@ public class MessagesAndSalesHelper {
 
         if (includeDetails) {
             String billingInfoUrl = "https://api.mercadolibre.com/orders/" + order.id + "/billing_info?";
-            JSONObject billingInfoObject = HttpUtils.getJsonObjectUsingToken(billingInfoUrl, httpClient, user);
+            JSONObject billingInfoObject = HttpUtils.getJsonObjectUsingToken(billingInfoUrl, httpClient, user, false);
             if (billingInfoObject != null) {
                 JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
                 String billingDocType = "";
@@ -1248,7 +1248,7 @@ public class MessagesAndSalesHelper {
             String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user)
                     + "?offset=" + messagesOffset+"&mark_as_read=false";
             long startTime2 = System.currentTimeMillis();
-            JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user);
+            JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
             long elapsedTime2 = System.currentTimeMillis() - startTime2;
             if (elapsedTime2 >= tooMuchTime) {
                 httpClient = HttpUtils.buildHttpClient();

@@ -57,11 +57,11 @@ public class MLSellerStatistics extends Thread {
     static int globalInsertCount=0;
     static int globalDisableCount=0;
 
-    static int MAX_THREADS = 40; //TODO CAMBIAR 40
+    static int MAX_THREADS = 30; //TODO CAMBIAR 30
     static boolean SAVE = true; //TODO CAMBIAR
     static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2020/11/01";
+    static String FECHA="2020/12/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;

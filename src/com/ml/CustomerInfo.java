@@ -48,8 +48,8 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="LEONARDOCHABUR";
-        char categoria=ORGANIZADDOR_ROPA;
+        String nickname="SM1280";
+        char categoria=RUEDAS_SILLA  ;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -363,7 +363,7 @@ public class CustomerInfo {
             if (scrollId!=null){
                 productListURL+="&scroll_id="+scrollId;
             }
-            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,acaciaylenga);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,acaciaylenga,false);
             scrollId=(String) jsonResponse.get("scroll_id");
             jsonProductArray = jsonResponse.getJSONArray("results");
             if (jsonProductArray.length()<50){
@@ -384,7 +384,7 @@ public class CustomerInfo {
             if (scrollId!=null){
                 productListURL+="&scroll_id="+scrollId;
             }
-            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,somos);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,somos,false);
             scrollId=(String) jsonResponse.get("scroll_id");
             jsonProductArray = jsonResponse.getJSONArray("results");
             if (jsonProductArray.length()<50){
@@ -408,7 +408,7 @@ public class CustomerInfo {
             if (offset < RESULTS_WITHOUT_TOKEN) {
                 itemsObj = HttpUtils.getJsonObjectWithoutToken(itemsUrl,httpClient,false);
             }else {
-                itemsObj = HttpUtils.getJsonObjectUsingToken(itemsUrl,httpClient,user);
+                itemsObj = HttpUtils.getJsonObjectUsingToken(itemsUrl,httpClient,user,false);
             }
             if (itemsObj==null){
                 finished=true;

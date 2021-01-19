@@ -4,8 +4,12 @@ package com.ml;
  * Created by Muzzu on 8/18/2019.
  */
 
+
 import com.ml.utils.Counters;
 import com.ml.utils.DatabaseHelper;
+import com.ml.utils.HTMLParseUtils;
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
@@ -20,155 +24,21 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.ml.utils.Logger;
-import com.ml.utils.HttpUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-public class VisitCounter extends Thread {
-
-
-    //parametros
-    private Date date;
-    private boolean SAVE;
-    private boolean DEBUG;
-    private ArrayList<String> productIds;
-    private String dateOnQuery;
-    private String database;
-
-    VisitCounter(ArrayList<String> productIds, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String database){
-        this.productIds=productIds;
-        this.date=date;
-        this.dateOnQuery=dateOnQuery;
-        this.SAVE=SAVE;
-        this.DEBUG=DEBUG;
-        this.database=database;
-    }
-
-    static int TIMEOUT_MIN = 10;
-    static int MAX_THREADS_VISITS = 30;
-
-    public ArrayList<String> getZeroVisitsList(){
-        return this.zeroVisitsList;
-    }
-
-    public void resetZeroVisitsList(){
-        this.zeroVisitsList.clear();
-    }
-
-    private static volatile ArrayList<String> zeroVisitsList=new ArrayList<String>();
-
-    public void run(){
-
-        int logCountHelper=0;
-        String lineLog="";
-
-        String runnerID="R"+ Counters.getGlobalRunnerCount();
-
-        String msg =null;
-        if (DEBUG) {
-            msg = "XXXXXXXXXXXXXX Iniciando " + runnerID;
-            System.out.println(msg);
-            Logger.log(msg);
-        }
-
-        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-
-        String allProductIDsStr="";
-        for (String productId:productIds){
-            productId = productId.substring(0, 3) + productId.substring(4);//removing the minus sign
-            allProductIDsStr+=productId+",";
-        }
-        allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
-
-        String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
-
-        String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true);
-
-        if (!HttpUtils.isOK(htmlString)) {
-            // hacemos pausa por si es problema de red
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Logger.log(e);
-            }
-            Logger.log(runnerID + " hmlstring from page visits is null " + url);
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            httpClient = null;
-            httpClient = HttpUtils.buildHttpClient();
-
-            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG, true); // just 1 retry
-            if (!HttpUtils.isOK(htmlString)) {
-                httpClient=HttpUtils.buildHttpClient();
-                return;
-            }
-
-        }
+public class VisitCounter {
 
 
-        boolean processItems=true;
-        int pos1=0;
-        int pos2=0;
-        String productId=null;
-        String quantityStr=null;
-        int quantity=0;
-        while (processItems){
-            pos1=htmlString.indexOf("MLA",pos1);
-            if (pos1<0){
-                processItems=false;
-                continue;
-            }
+    static int PAUSE_MILLISECONDS = 130;
+    static int PAUSE_ON_ERRPR_MILLISECONDS = 3000;
 
-            pos2=htmlString.indexOf("\"",pos1);
-            productId=htmlString.substring(pos1,pos2);
-            productId=productId.substring(0,3)+"-"+productId.substring(3);
-            pos1=htmlString.indexOf("visits",pos1);
-            pos1+=8;
-            pos2=htmlString.indexOf(",",pos1);
-            quantityStr=htmlString.substring(pos1,pos2);
-            quantity=Integer.parseInt(quantityStr);
+    static String[] usuarios = new String[] {
+            "ACACIAYLENGA",
+            "QUEFRESQUETE",
+            "SOMOS_MAS"
+    };
 
-            logCountHelper++;
-            if (logCountHelper>5){
-                logCountHelper=0;
-                lineLog=lineLog.substring(0,lineLog.length()-1);
-                System.out.println(lineLog);
-                Logger.log(lineLog);
-                lineLog="";
-            }
-
-            lineLog+="   "+productId + " " + String.format("%05d", quantity) + "   |";
-
-            if (quantity==0){
-                zeroVisitsList.add(productId);
-                continue;
-            }
-            if (SAVE) {
-                DatabaseHelper.updateVisitOnDatabase(productId, quantity, date, database);
-            }
-        }
-        if (lineLog.length()>0) {
-            lineLog=lineLog.substring(0,lineLog.length()-1);
-            System.out.println(lineLog);
-            Logger.log(lineLog);
-        }
-
-        if (DEBUG) {
-            msg = "XXXXXXXXXXXXXX Este es el fin " + runnerID;
-            System.out.println(msg);
-            Logger.log(msg);
-        }
-
-        try {
-            httpClient.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        httpClient=null;
-
-    }
 
     public synchronized static HashMap<String,Integer> processVisits(Date date1, Date date2, ArrayList<String> productIds, boolean DEBUG){
         CloseableHttpClient httpClient=HttpUtils.buildHttpClient();
@@ -197,7 +67,7 @@ public class VisitCounter extends Thread {
             if (!HttpUtils.isOK(htmlString)) {
                 // hacemos pausa por si es problema de red
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS);
                 } catch (InterruptedException e) {
                     Logger.log(e);
                 }
@@ -244,12 +114,12 @@ public class VisitCounter extends Thread {
     }
 
 
-    private static ArrayList<String> processAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
+    public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
         int count = 0;
 
         ArrayList<String> tenProductIDs = new ArrayList<String>();
-        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
-
+        HashMap<String,Integer> visitsHashMap = null;
+        HashMap<String,Integer> result = new HashMap<String,Integer>();
 
         for (String productId : allProductIDs) {
             count++;
@@ -257,65 +127,125 @@ public class VisitCounter extends Thread {
             tenProductIDs.add(productId);
 
             if (count >= 10) {
-                process10Visits(date, dateOnQuery, tenProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+                visitsHashMap= retrive10Visits(date, dateOnQuery, tenProductIDs, SAVE,DEBUG,DATABASE);
+                result.putAll(visitsHashMap);
                 tenProductIDs = new ArrayList<String>();
                 count = 0;
             }
         }
         if (tenProductIDs.size() > 0) {  //processing last record
-            process10Visits(date, dateOnQuery, tenProductIDs, threadArrayList,SAVE,DEBUG,DATABASE);
+            visitsHashMap= retrive10Visits(date, dateOnQuery, tenProductIDs, SAVE,DEBUG,DATABASE);
+            result.putAll(visitsHashMap);
         }
-
-        for (Thread thread : threadArrayList) {
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        //clone
-        ArrayList<String> zeroVisitsList=new ArrayList<String>();
-        if (threadArrayList.size()>0){
-            VisitCounter aVisitCounter = (VisitCounter)threadArrayList.get(0);
-            for (String productIdWithZeroVisits: aVisitCounter.getZeroVisitsList()){
-                zeroVisitsList.add(productIdWithZeroVisits);
-            }
-            aVisitCounter.resetZeroVisitsList();
-        }else {
-            String msg="No product with 0 vitists";
-            System.out.println(msg);
-            Logger.log(msg);
-        }
-
-        return zeroVisitsList;
-
+        return result;
     }
 
-    private static void process10Visits(Date date, String dateOnQuery, ArrayList<String> tenProductIDs, ArrayList<Thread> threadArrayList, boolean SAVE, boolean DEBUG, String DATABASE) {
-        long currentTime;
-        long timeoutTime;
+    private static HashMap<String,Integer> retrive10Visits(Date date, String dateOnQuery, ArrayList<String> tenProductIDs, boolean SAVE, boolean DEBUG, String DATABASE) {
+        int logCountHelper=0;
+        String lineLog="";
+        HashMap<String,Integer> result = new HashMap<String,Integer>();
 
-        VisitCounter visitCounter = new VisitCounter(tenProductIDs, date, dateOnQuery, SAVE, DEBUG, DATABASE);
-        threadArrayList.add(visitCounter);
-        visitCounter.start();
-        currentTime = System.currentTimeMillis();
-        timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
+        int runnerCount = Counters.getGlobalRunnerCount();
 
-        while (MAX_THREADS_VISITS < Thread.activeCount()) {
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+
+        String allProductIDsStr="";
+        for (String productId:tenProductIDs){
+            productId = productId.substring(0, 3) + productId.substring(4);//removing the minus sign
+            allProductIDsStr+=productId+",";
+        }
+        allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
+
+        String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
+
+        int resto = runnerCount % 3;
+        String usuario = usuarios[resto];
+
+
+        if (DEBUG) {
+            Logger.log("Usuario: " + usuario);
+            System.out.println("Usuario: " + usuario);
+        }
+
+        //todo usar usuarios rotativos
+        JSONObject visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true);
+
+        if (visitsArray==null || !visitsArray.has("elArray")){
+            // hacemos pausa por si es problema de red
+
+            boolean b=false;
 
             try {
-                Thread.sleep(10l);
+                Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS);
             } catch (InterruptedException e) {
+                Logger.log(e);
+            }
+            Logger.log(" visitsArray is null " + url);
+            try {
+                httpClient.close();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
-            currentTime = System.currentTimeMillis();
-            if (currentTime > timeoutTime) {
-                String msg = "Error en de timeout.  Demasiado tiempo sin terminar de procesar una visita entre " + MAX_THREADS_VISITS + " visitas";
-                System.out.println(msg);
-                Logger.log(msg);
-                System.exit(0);
+            httpClient = null;
+            httpClient = HttpUtils.buildHttpClient();
+
+            visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true); // just 1 retry
+            if (visitsArray==null || !visitsArray.has("elArray")) {
+                httpClient=HttpUtils.buildHttpClient();
+                return result;
             }
+
         }
+
+        JSONArray elArray = visitsArray.getJSONArray("elArray");
+
+        for (int i=0; i<elArray.length(); i++){
+            JSONObject visitsObject = (JSONObject)elArray.get(i);
+            String id = visitsObject.getString("item_id");
+            String formattedId = HTMLParseUtils.getFormatedId(id);
+            int totalVisits = visitsObject.getInt("total_visits");
+
+
+            result.put(formattedId,totalVisits);
+
+            logCountHelper++;
+            if (logCountHelper>5){
+                logCountHelper=0;
+                lineLog=lineLog.substring(0,lineLog.length()-1);
+                System.out.println(lineLog);
+                Logger.log(lineLog);
+                lineLog="";
+            }
+
+            lineLog+="   "+formattedId + " " + String.format("%05d", totalVisits) + "   |";
+
+
+        }
+        if (lineLog.length()>0) {
+            lineLog=lineLog.substring(0,lineLog.length()-1);
+            System.out.println(lineLog);
+            Logger.log(lineLog);
+        }
+
+        try {
+            httpClient.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        httpClient=null;
+
+        //hacemos una pausa de entre PAUSE_MILLISECONDS y 10% mas
+        int min =PAUSE_MILLISECONDS;
+        int max = (int) (PAUSE_MILLISECONDS*1.1);
+        long random = (long) (Math.random() * (max - min + 1) + min);
+        try {
+            Thread.sleep(random);
+        } catch (InterruptedException e) {
+            Logger.log(e);
+        }
+
+        return result;
+
     }
 
 
@@ -359,7 +289,7 @@ public class VisitCounter extends Thread {
             dateOnQueryStr = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
 
 
-            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
+            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=? and (visitas is null or visitas = 0)");
             selectPreparedStatement.setDate(1, date2);
 
 
@@ -381,19 +311,29 @@ public class VisitCounter extends Thread {
             Logger.log(e);
         }
 
-        ArrayList<String> zeroVisitsList=processAllVisits(allProductIDs, date2, dateOnQueryStr,SAVE,DEBUG,database);
-        msg="Reintentando los ceros";
-        System.out.println(msg);
-        Logger.log(msg);
-        zeroVisitsList=processAllVisits(zeroVisitsList, date2, dateOnQueryStr,SAVE,DEBUG,database); //insistimos 2 veces mas cuando visitas devuelve cero
-        System.out.println(msg);
-        Logger.log(msg);
-        processAllVisits(zeroVisitsList, date2, dateOnQueryStr,SAVE,DEBUG,database);
+        HashMap visitsHashMap = retriveAllVisits(allProductIDs, date2, dateOnQueryStr,SAVE,DEBUG,database);
+
+        if (SAVE) {
+            for (Object key : visitsHashMap.keySet()) {
+                String formattedId = (String) key;
+                Integer totalVisits= (Integer) visitsHashMap.get(formattedId);
+                DatabaseHelper.updateVisitOnDatabase(formattedId, totalVisits, date2, database);
+            }
+
+        }
+
 
         msg="Visitas Procesadas: "+allProductIDs.size();
         System.out.println(msg);
         Logger.log(msg);
 
     }
+
+    public static void main (String args[]){
+        updateVisits("ML1",true,false);
+
+
+    }
+
 
 }

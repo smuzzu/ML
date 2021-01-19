@@ -58,7 +58,7 @@ public class ProductInfo {
         JSONArray unansweredQuestions = new JSONArray();
 
         String productListURL = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(usuario) + "/items/search?search_type=scan";
-        JSONObject jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,usuario);
+        JSONObject jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,usuario,false);
 
         JSONArray jSONArray = jsonResponse.getJSONArray("results");
         ArrayList<String> productsArrayList = new ArrayList<>();
@@ -70,7 +70,7 @@ public class ProductInfo {
         for (String productId : productsArrayList) {
             String permalinkStr = null;
             String questionsUrl = "https://api.mercadolibre.com/questions/search?search_type=scan&item=" + productId;
-            JSONObject jsonQuestions = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient,usuario);
+            JSONObject jsonQuestions = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient,usuario,false);
             JSONArray jsonQuestionsArray = (JSONArray) jsonQuestions.get("questions");
             for (int i = 0; i < jsonQuestionsArray.length(); i++) {
                 Object objectQuestion = jsonQuestionsArray.get(i);
@@ -81,7 +81,7 @@ public class ProductInfo {
                     if (statusStr.equals("UNANSWERED")) {
                         if (permalinkStr == null) {
                             String productDetailsUrl = "https://api.mercadolibre.com/items/" + productId;
-                            JSONObject jsonProduct = HttpUtils.getJsonObjectUsingToken(productDetailsUrl, httpClient,usuario);
+                            JSONObject jsonProduct = HttpUtils.getJsonObjectUsingToken(productDetailsUrl, httpClient,usuario,false);
                             Object permalinkObj = jsonProduct.get("permalink");
                             permalinkStr = (String) permalinkObj;
                         }
@@ -165,7 +165,7 @@ public class ProductInfo {
                 if (scrollId!=null){
                     questionsUrl+="&scroll_id="+scrollId;
                 }
-                JSONObject jsonQuestions = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient,usuario);
+                JSONObject jsonQuestions = HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient,usuario,false);
                 scrollId=jsonQuestions.getString("scroll_id");
                 JSONArray jsonQuestionsArray = (JSONArray) jsonQuestions.get("questions");
                 if (jsonQuestionsArray.length()<50){
@@ -233,7 +233,7 @@ public class ProductInfo {
 
         ArrayList<String> itemsInOrdersArrayList = new ArrayList<String>();
         String ordersUrl="https://api.mercadolibre.com/orders/search?seller="+TokenUtils.getIdCliente(usuario)+dateOnQuery2Str+"&order.status%20ne%20cancelled&order.status%20ne%20invalid";
-        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient,usuario);
+        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient,usuario,false);
         JSONArray jsonOrdersArray = (JSONArray) jsonOrders.get("results");
         for (Object orderObjectArray: jsonOrdersArray){
             JSONObject jsonOrder= (JSONObject) orderObjectArray;
@@ -269,7 +269,7 @@ public class ProductInfo {
 
         for (int offset=0; offset<=totalOrders; offset+=50) {
             String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(usuario) + "&order.status%20ne%20cancelled&order.status%20ne%20invalid&offset="+offset;
-            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, usuario);
+            JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, usuario,false);
             if (offset==0){
                 JSONObject pagingObj = jsonOrders.getJSONObject("paging");
                 totalOrders=pagingObj.getInt("total");
@@ -406,7 +406,7 @@ public class ProductInfo {
             if (scrollId!=null){
                 productListURL+="&scroll_id="+scrollId;
             }
-            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,usuario);
+            jsonResponse = HttpUtils.getJsonObjectUsingToken(productListURL, httpClient,usuario,false);
             scrollId=(String) jsonResponse.get("scroll_id");
             jsonProductArray = jsonResponse.getJSONArray("results");
             if (jsonProductArray.length()<50){
@@ -496,7 +496,7 @@ public class ProductInfo {
                 if (offset<=1000) {
                     jsonResponse = HttpUtils.getJsonObjectWithoutToken(itemsInCategoryURL, httpClient, false);
                 }else {
-                    jsonResponse = HttpUtils.getJsonObjectUsingToken(itemsInCategoryURL, httpClient,usuario);
+                    jsonResponse = HttpUtils.getJsonObjectUsingToken(itemsInCategoryURL, httpClient,usuario,false);
                 }
                 if (offset==0){
                     JSONObject pagingObj = jsonResponse.getJSONObject("paging");
