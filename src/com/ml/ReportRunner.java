@@ -818,7 +818,9 @@ public class ReportRunner {
             }
         }
 
-        if (!IGNORE_VISITS) {
+        if (!IGNORE_VISITS && !DATABASE.equals("ML6")) {
+            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
+            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
         }
     }

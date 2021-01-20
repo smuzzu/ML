@@ -314,6 +314,10 @@ public class VisitCounter {
         }
 
 
+        msg = "Procesando "+allProductIDs.size()+" registros";
+        System.out.println(msg);
+        Logger.log(msg);
+
         for (int i=0; i<allProductIDs.size(); i+=INTERVAL_SIZE){
             int from=i;
             int to=from+INTERVAL_SIZE;
@@ -323,6 +327,9 @@ public class VisitCounter {
             List<String> interval=allProductIDs.subList(from,to);
             HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), date2, dateOnQueryStr,SAVE,DEBUG,database);
             if (SAVE) {
+                msg = "Guardando "+INTERVAL_SIZE+" registros";
+                System.out.println(msg);
+                Logger.log(msg);
                 for (Object key : visitsHashMap.keySet()) {
                     String formattedId = (String) key;
                     Integer totalVisits= (Integer) visitsHashMap.get(formattedId);
@@ -339,9 +346,9 @@ public class VisitCounter {
     }
 
     public static void main (String args[]){
-        updateVisits("ML1",true,false);
-        updateVisits("ML1",true,false);
-        updateVisits("ML1",true,false);
+        updateVisits("ML6",true,false);
+        updateVisits("ML6",true,false);
+        updateVisits("ML6",true,false);
 
     }
 
