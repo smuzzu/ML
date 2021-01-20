@@ -23,6 +23,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,6 +33,7 @@ public class VisitCounter {
 
     static int PAUSE_MILLISECONDS = 130;
     static int PAUSE_ON_ERRPR_MILLISECONDS = 3000;
+    static int INTERVAL_SIZE=5000;
 
     static String[] usuarios = new String[] {
             "ACACIAYLENGA",
@@ -311,15 +313,22 @@ public class VisitCounter {
             Logger.log(e);
         }
 
-        HashMap visitsHashMap = retriveAllVisits(allProductIDs, date2, dateOnQueryStr,SAVE,DEBUG,database);
 
-        if (SAVE) {
-            for (Object key : visitsHashMap.keySet()) {
-                String formattedId = (String) key;
-                Integer totalVisits= (Integer) visitsHashMap.get(formattedId);
-                DatabaseHelper.updateVisitOnDatabase(formattedId, totalVisits, date2, database);
+        for (int i=0; i<allProductIDs.size(); i+=INTERVAL_SIZE){
+            int from=i;
+            int to=from+INTERVAL_SIZE;
+            if (to>allProductIDs.size()){
+                to=allProductIDs.size();
             }
-
+            List<String> interval=allProductIDs.subList(from,to);
+            HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), date2, dateOnQueryStr,SAVE,DEBUG,database);
+            if (SAVE) {
+                for (Object key : visitsHashMap.keySet()) {
+                    String formattedId = (String) key;
+                    Integer totalVisits= (Integer) visitsHashMap.get(formattedId);
+                    DatabaseHelper.updateVisitOnDatabase(formattedId, totalVisits, date2, database);
+                }
+            }
         }
 
 
@@ -331,7 +340,8 @@ public class VisitCounter {
 
     public static void main (String args[]){
         updateVisits("ML1",true,false);
-
+        updateVisits("ML1",true,false);
+        updateVisits("ML1",true,false);
 
     }
 

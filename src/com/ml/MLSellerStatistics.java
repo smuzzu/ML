@@ -61,7 +61,7 @@ public class MLSellerStatistics extends Thread {
     static boolean SAVE = true; //TODO CAMBIAR
     static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2020/12/01";
+    static String FECHA="2021/01/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
