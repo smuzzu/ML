@@ -33,6 +33,10 @@ public class ReportRunner {
     static final boolean DEBUG = false;
     static final boolean IGNORE_VISITS = false;
 
+    static final char COMPLETE = 'C';
+    static final char INCOMPLETE = 'I';
+    static final char UNDER_REVIEW = 'R';
+
     static final boolean REBUILD_INTERVALS = false;
     static final int MAX_INTERVAL_SIZE = 800;
 
@@ -253,7 +257,7 @@ public class ReportRunner {
                 }
                 itemsIds += incompleteList.get(i) + ",";
             }
-            if (itemsIds.contains(",")) {
+            if (itemsIds.endsWith(",")) {
                 itemsIds = itemsIds.substring(0, itemsIds.length() - 1);
                 String itemsUrl = "https://api.mercadolibre.com/items?ids=" + itemsIds;
                 JSONObject jsonObject = HttpUtils.getJsonObjectWithoutToken(itemsUrl, client, true);
@@ -286,8 +290,8 @@ public class ReportRunner {
                             itemHashMap.remove(id);
                             continue;
                         }
-                        boolean completed = completeItem(productObj, item, database);
-                        if (!completed) {
+                        char status = completeItem(productObj, item, database);
+                        if (status!=COMPLETE) {
                             itemHashMap.remove(id);
                         }
                     }
@@ -622,7 +626,7 @@ public class ReportRunner {
         }
     }
 
-    private static boolean completeItem(JSONObject productObj, Item item, String database) {
+    private static char completeItem(JSONObject productObj, Item item, String database) {
 
         if (!productObj.has("sold_quantity")) { //todo si esta under review hace rato lo volamos
             if (productObj.has("status") && !productObj.isNull("status")){
@@ -631,7 +635,7 @@ public class ReportRunner {
                     String msg = "No se procesara item "+item.id+" "+status;
                     System.out.println(msg);
                     Logger.log(msg);
-                    return false;
+                    return UNDER_REVIEW;
                 }
                 if (status.equals("inactive") || status.equals("closed")){
                     String msg = "Deshabilitando item "+item.id+" "+status;
@@ -642,13 +646,13 @@ public class ReportRunner {
                         String formattedId=HTMLParseUtils.getFormatedId(item.id);
                         DatabaseHelper.disableProduct(formattedId, database);
                     }
-                    return false;
+                    return INCOMPLETE;
                 }
             }
             String msg = "OJO AL PIOJO No pudo completar el item "+item.id;
             System.out.println(msg);
             Logger.log(msg);
-            return false;//under review y otros casos raros
+            return INCOMPLETE;// otros casos raros de incomplete
         }
 
         item.totalSold = productObj.getInt("sold_quantity");
@@ -717,7 +721,7 @@ public class ReportRunner {
                 item.sellerId = productObj.getInt("seller_id");
             }
         }
-        return true;
+        return COMPLETE;
     }
 
     protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals,
@@ -885,8 +889,8 @@ public class ReportRunner {
                 }
 
 
-                boolean completed = completeItem(productObj, item, database);
-                if (!completed) {
+                char status = completeItem(productObj, item, database);
+                if (status!=COMPLETE) {
                     itemHashMap.remove(id);
                 }
             }
