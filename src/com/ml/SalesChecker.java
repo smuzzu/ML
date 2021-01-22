@@ -72,7 +72,9 @@ public class SalesChecker {
         ArrayList<Order> completePendingOrders = new ArrayList<>();
         for (Order pendingOrder: pendingOrdersOnCloudArrayList) {  //viene de la base info limitada
             Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
-            completePendingOrders.add(onlineOrder);
+            if (onlineOrder.orderStatus!=Order.CANCELADO) {//salteamos el caso de una orden que se cargo en cloud y después se canceló
+                completePendingOrders.add(onlineOrder);
+            }
         }
 
         //check multi items

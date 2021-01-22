@@ -716,7 +716,6 @@ public class MessagesAndSalesHelper {
         order.sellerName =user;
         order.delivered=false;
         order.waitingForWithdrawal=false;
-        order.cancelled=false;
         order.refunded=false;
         order.finished=false;
         order.timeoutFulfilled =false;
