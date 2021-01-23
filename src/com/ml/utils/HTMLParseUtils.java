@@ -374,6 +374,18 @@ public class HTMLParseUtils {
                 }
             }
         }
+        if (discountStr == null) {
+            pos2 = htmlString.indexOf("% OFF");
+            if (pos2 != -1) {
+                pos1=pos2-5;
+                pos1=htmlString.indexOf(">",pos1);
+                if (pos1>0 && pos1<pos2){
+                    pos1++;
+                    discountStr=htmlString.substring(pos1,pos2);
+                }
+            }
+        }
+
         if (discountStr != null) {
             discountStr = discountStr.trim();
 
@@ -552,11 +564,26 @@ public class HTMLParseUtils {
 
     public static int getDiscount2(String productHTMLdata) {
         int discount = 0;
-        int discountPos1 = productHTMLdata.indexOf("item__discount"); //procesando descuento opcional
+        String discountStr = null;
+        int discountPos2 = 0;
+        int discountPos1 = productHTMLdata.indexOf("item__discount"); //este tag seguira existiendo?
         if (discountPos1 > 0) { //optional field
             discountPos1 += 17;
-            int discountPos2 = productHTMLdata.indexOf("%", discountPos1);
-            String discountStr = productHTMLdata.substring(discountPos1, discountPos2);
+            discountPos2 = productHTMLdata.indexOf("%", discountPos1);
+            discountStr = productHTMLdata.substring(discountPos1, discountPos2);
+        }
+        if (discountStr==null){ //el posta
+            discountPos2 = productHTMLdata.indexOf("% OFF");
+            if (discountPos2 != -1) {
+                discountPos1=discountPos2-5;
+                discountPos1=productHTMLdata.indexOf(">",discountPos1);
+                if (discountPos1>0 && discountPos1<discountPos2){
+                    discountPos1++;
+                    discountStr = productHTMLdata.substring(discountPos1, discountPos2);
+                }
+            }
+        }
+        if (discountStr!=null){
             try {
                 discount = Integer.parseInt(discountStr);
             } catch (NumberFormatException e) {
@@ -691,13 +718,10 @@ public class HTMLParseUtils {
 
 
     public static void main(String args[]){
-        String url = "https://articulo.mercadolibre.com.ar/MLA-722903608-botiquin-bano-shcneider-eco-34x46x14-wengue-bm134-_JM";
+        String url = "https://www.mercadolibre.com.ar/microfono-alctron-mc001-condensador-cardioide-plata/p/MLA15707597";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
-        boolean officialStore=getOfficialStore(productoPage);
-        long sellerId=getSellerId(productoPage,"pepito");
-        String seller = getSeller(productoPage,officialStore,"lalala");
-
+        int discount=getDiscount(productoPage,url);
         boolean b=false;
 
 

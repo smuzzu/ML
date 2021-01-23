@@ -411,7 +411,7 @@ public class ReportRunner {
                 resultListHMTLData = htmlStringFromPage.substring(resultSectionPos);
             }
 
-            String[] allHrefsOnPage = StringUtils.substringsBetween(resultListHMTLData, "<a href", "</a>");
+            String[] allHrefsOnPage = StringUtils.substringsBetween(resultListHMTLData, "<a href=\"", "</a>");
             if (allHrefsOnPage == null) { //todo check
                 System.out.println("this page has no Hrefs !!! " + allHrefsOnPage);
                 Logger.log("this page has no Hrefs !!!" + allHrefsOnPage);
@@ -420,8 +420,8 @@ public class ReportRunner {
 
             ArrayList<String> productsURLArrayList = new ArrayList();
             for (String href : allHrefsOnPage) {
-                if (href.indexOf(HTMLParseUtils.ARTICLE_PREFIX) > 0
-                        || href.indexOf(HTMLParseUtils.MERCADOLIBRE_BASE_URL)>0){
+                if (href.indexOf("http")==0 && (href.indexOf(HTMLParseUtils.ARTICLE_PREFIX) > 0
+                        || href.indexOf(HTMLParseUtils.MERCADOLIBRE_BASE_URL)>0)){
                     if (href.indexOf("-_JM") > 0) {
                         href = href.substring(href.indexOf("http"), href.indexOf("-_JM")) + "-_JM";
                         if (!productsURLArrayList.contains(href)) {
