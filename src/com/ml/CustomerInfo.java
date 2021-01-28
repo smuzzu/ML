@@ -1,6 +1,7 @@
 package com.ml;
 
 import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
 import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
@@ -15,6 +16,8 @@ public class CustomerInfo {
 
     static int RESULTS_WITHOUT_TOKEN=1000;
     static final int RESULTS_LIMIT = 10000;
+    static String USUARIO_PREGUNTON="SOMOS_MAS";
+
     static final char ALFOMBRAS='0';
     static final char CESTOS_COCINA ='1';
     static final char CORREDERAS_TELESCOPICAS='2';
@@ -48,8 +51,8 @@ public class CustomerInfo {
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="SM1280";
-        char categoria=RUEDAS_SILLA  ;
+        String nickname="MERIDIANO75";
+        char categoria=BURLETES;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -284,7 +287,7 @@ public class CustomerInfo {
                 client=HttpUtils.buildHttpClient();
             }
             String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+productId+"&from="+custId;
-            JSONObject questionsObj = HttpUtils.getJsonObjectWithoutToken(questionsUrl, client, false);
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, client, "SOMOS_MAS",false);
             if (questionsObj == null) {
                 continue;
             }
@@ -423,11 +426,6 @@ public class CustomerInfo {
                 }
             }
             offset+=50;
-            /*
-            if (itemsObjJSONArray.length()<50){
-                System.out.println("itemsObjJSONArray.length()<50");
-                finished=true;
-            }*/
         }
 
         return itemsArrayList;
