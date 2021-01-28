@@ -80,19 +80,21 @@ public class HTMLParseUtils {
                 if (sellerPos2 > 0) {
                     seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
                 }
-            }else {
-                sellerPos1=htmlStringFromProductPage.indexOf("Vendido por");
-                if (sellerPos1>0){
-                    sellerPos2=htmlStringFromProductPage.indexOf("</a>",sellerPos1);
-                    String sellerStr= htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
-                    sellerPos2=sellerStr.lastIndexOf("</span>");
-                    sellerStr=sellerStr.substring(0,sellerPos2);
-                    sellerPos1=sellerStr.lastIndexOf("<span");
-                    sellerPos1=sellerStr.indexOf(">",sellerPos1)+1;
-                    seller=sellerStr.substring(sellerPos1,sellerPos2);
-                }
             }
         }
+        if (seller==null || seller.isEmpty()){
+            sellerPos1=htmlStringFromProductPage.indexOf("Vendido por");
+            if (sellerPos1>0){
+                sellerPos2=htmlStringFromProductPage.indexOf("</a>",sellerPos1);
+                String sellerStr= htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
+                sellerPos2=sellerStr.lastIndexOf("</span>");
+                sellerStr=sellerStr.substring(0,sellerPos2);
+                sellerPos1=sellerStr.lastIndexOf("<span");
+                sellerPos1=sellerStr.indexOf(">",sellerPos1)+1;
+                seller=sellerStr.substring(sellerPos1,sellerPos2);
+            }
+        }
+
         if (seller == null || seller.trim().isEmpty()) {
             String msg = "No se pudo encontrar al vendedor " + productUrl;
             System.out.println(msg);
@@ -345,43 +347,51 @@ public class HTMLParseUtils {
 
 
     public static int getDiscount(String htmlString, String url) {
+        String reducedHtmlString=htmlString;
+        int pos1=htmlString.indexOf("Información sobre el vendedor");
+        if (pos1==-1){
+            pos1=htmlString.indexOf("Otras opciones de compra");
+        }
+        if (pos1!=-1) {
+            reducedHtmlString = htmlString.substring(0, pos1);
+        }
         int discount = 0;
         String discountStr = null;
-        int pos1 = htmlString.indexOf("Conseguí un");
+        pos1 = reducedHtmlString.indexOf("Conseguí un");
         int pos2 = 0;
         if (pos1 != -1) {
             pos1 += 12;
-            pos2 = htmlString.indexOf("%", pos1);
+            pos2 = reducedHtmlString.indexOf("%", pos1);
             if (pos2 == -1) {
                 String msg = "Error obteniendo descuento en " + url;
                 Logger.log(msg);
             }
             if (pos2 > pos1) {
-                discountStr = htmlString.substring(pos1, pos2);
+                discountStr = reducedHtmlString.substring(pos1, pos2);
             }
         }
         if (discountStr == null) {
-            pos1 = htmlString.indexOf("discount-arrow");
+            pos1 = reducedHtmlString.indexOf("discount-arrow");
             if (pos1 != -1) {
-                pos1 = htmlString.indexOf("<p>", pos1) + 3;
-                pos2 = htmlString.indexOf("%", pos1);
+                pos1 = reducedHtmlString.indexOf("<p>", pos1) + 3;
+                pos2 = reducedHtmlString.indexOf("%", pos1);
                 if (pos2 == -1) {
                     String msg = "Error obteniendo descuento en II " + url;
                     Logger.log(msg);
                 }
                 if (pos2 > pos1) {
-                    discountStr = htmlString.substring(pos1, pos2);
+                    discountStr = reducedHtmlString.substring(pos1, pos2);
                 }
             }
         }
         if (discountStr == null) {
-            pos2 = htmlString.indexOf("% OFF");
+            pos2 = reducedHtmlString.indexOf("% OFF");
             if (pos2 != -1) {
                 pos1=pos2-5;
-                pos1=htmlString.indexOf(">",pos1);
+                pos1=reducedHtmlString.indexOf(">",pos1);
                 if (pos1>0 && pos1<pos2){
                     pos1++;
-                    discountStr=htmlString.substring(pos1,pos2);
+                    discountStr=reducedHtmlString.substring(pos1,pos2);
                 }
             }
         }
@@ -718,10 +728,13 @@ public class HTMLParseUtils {
 
 
     public static void main(String args[]){
-        String url = "https://www.mercadolibre.com.ar/microfono-alctron-mc001-condensador-cardioide-plata/p/MLA15707597";
+        String url = "https://articulo.mercadolibre.com.ar/MLA-764154035-kit-reparacion-parche-intex-pegamento-colchon-pileta-inflabl-_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
-        int discount=getDiscount(productoPage,url);
+        boolean officialStore = getOfficialStore(productoPage);
+        String seller = getSeller(productoPage,officialStore,url);
+        int discount = getDiscount(productoPage,url);
+        int totalSold = getTotalSold(productoPage,url);
         boolean b=false;
 
 

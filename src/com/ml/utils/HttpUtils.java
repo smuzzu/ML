@@ -161,7 +161,7 @@ public class HttpUtils {
 
 
         //todo nota importante:  se supone que el nuevo formato aplica para coreo y cross docking
-        if (shippingType==Order.CORREO) {
+        if (shippingType==Order.CORREO || shippingType==Order.FLEX) {
             url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?access_token=" + token;
             if (text.length()>=350){ //todo restringir a shippingType = correo
                 Logger.log("Mensaje superior a 350 caracteres");
@@ -179,7 +179,7 @@ public class HttpUtils {
                 text+"\"}";
 
 
-        if (shippingType==Order.CORREO) {
+        if (shippingType==Order.CORREO || shippingType==Order.FLEX) {
             json = "{\"option_id\": \"OTHER\",\"text\": \"" + text + "\"}";
         }
 

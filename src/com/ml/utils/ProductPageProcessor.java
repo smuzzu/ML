@@ -84,6 +84,12 @@ public class ProductPageProcessor extends Thread {
             } else {
                 totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
                 if (totalSold <= 0) {
+                    // todo sacar
+                    msg="TOTAL SOLD = "+totalSold+" on "+url;
+                    Logger.log(msg);
+                    System.out.println(msg);
+                    Logger.log(htmlString);
+                    // todo sacar
                     disable = true;
                 }
             }
