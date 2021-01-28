@@ -22,8 +22,8 @@ public class SalesChecker {
 
     static String ACACIA = "ACACIAYLENGA";
 
-    static String usuario = "ACACIAYLENGA";
-    //static String usuario ="SOMOS_MAS";
+    //static String usuario = "ACACIAYLENGA";
+    static String usuario ="SOMOS_MAS";
     //static String usuario ="QUEFRESQUETE";
 
     public static void main(String[] args) {
