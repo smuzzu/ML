@@ -435,6 +435,12 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=172619074",  //LUCIAZAFFRANI
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=209025171",  //AMOBLAMIENTOS INTEVIL
 
+            //euro hard
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=159950125",  //DISTRIBUIDORA+SYG
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=60397285",   //EL-PLACARD
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=230054006",  //HERRAJES+DANSER
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=26142695",   //HIERROS+TORRENT
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=389848612",  //LACASADELOSHERRAJES+MDP
 
             //alfombreros
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=425673298",  //ABELEDOJAVIER
@@ -744,6 +750,13 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HT+HERRAJES
             {0, 2147483647}, //LUCIAZAFFRANI
             {0, 2147483647}, //AMOBLAMIENTOS INTEVIL
+
+            //euro hard
+            {0, 2147483647}, //DISTRIBUIDORA+SYG
+            {0, 2147483647}, //EL-PLACARD
+            {0, 2147483647}, //HERRAJES+DANSER
+            {0, 2147483647}, //HIERROS+TORRENT
+            {0, 2147483647}, //LACASADELOSHERRAJES+MDP
 
             //alfombreros
             {0, 2147483647}, //ABELEDOJAVIER
