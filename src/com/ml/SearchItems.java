@@ -84,7 +84,7 @@ public class SearchItems {
         Logger.log(msg);
         int newItems=0;
         String databaseSearchTerms=searchTerms.replace(" ","%");
-        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(databaseSearchTerms,"ML6");
+        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(databaseSearchTerms,"ML1");
         for (String id: idsML1){
             if (!idArrayList.contains(id)){
                 idArrayList.add(id);
@@ -97,12 +97,11 @@ public class SearchItems {
         Logger.log(msg);
 
 
-/*
         msg = "Buscando en ML2... ";
         System.out.println(msg);
         Logger.log(msg);
         newItems=0;
-        ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms,"ML6");
+        ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms,"ML2");
         for (String id: idsML2){
             if (!idArrayList.contains(id)){
                 idArrayList.add(id);
@@ -112,7 +111,7 @@ public class SearchItems {
         msg=idsML2.size() + " elementos encontrados en base ML2, de los cuales "+newItems+" son nuevos";
         System.out.println(msg);
         Logger.log(msg);
-*/
+
         msg="Total de elementos encontrados "+idArrayList.size();
         System.out.println(msg);
         Logger.log(msg);
