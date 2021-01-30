@@ -115,7 +115,10 @@ public class HTMLParseUtils {
         sellerPos1 = htmlStringFromProductPage.indexOf("seller_id");
         if (sellerPos1 > 0) {
             sellerPos1 = htmlStringFromProductPage.indexOf(":", sellerPos1)+1;
-            sellerPos2 = htmlStringFromProductPage.indexOf(",", sellerPos1);
+            sellerPos2=sellerPos1;
+            while (Character.isDigit(htmlStringFromProductPage.charAt(sellerPos2))){
+                sellerPos2++;
+            }
             sellerIdStr = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
         }
         if (sellerIdStr == null || sellerIdStr.trim().isEmpty()) {
@@ -348,51 +351,22 @@ public class HTMLParseUtils {
 
     public static int getDiscount(String htmlString, String url) {
         String reducedHtmlString=htmlString;
-        int pos1=htmlString.indexOf("Información sobre el vendedor");
-        if (pos1==-1){
-            pos1=htmlString.indexOf("Otras opciones de compra");
-        }
-        if (pos1!=-1) {
-            reducedHtmlString = htmlString.substring(0, pos1);
+        int pos1=htmlString.indexOf("price-tag-fraction\">");
+        int pos2=htmlString.indexOf("Ver los medios de pago");
+        if (pos1!=-1 && pos2!=-1 && pos2>pos1){
+            reducedHtmlString = htmlString.substring(pos1, pos2);
+        }else {
+            Logger.log("XXXXXX No se pudo obtener el reducedHtmlString en "+url);
         }
         int discount = 0;
         String discountStr = null;
-        pos1 = reducedHtmlString.indexOf("Conseguí un");
-        int pos2 = 0;
-        if (pos1 != -1) {
-            pos1 += 12;
-            pos2 = reducedHtmlString.indexOf("%", pos1);
-            if (pos2 == -1) {
-                String msg = "Error obteniendo descuento en " + url;
-                Logger.log(msg);
-            }
-            if (pos2 > pos1) {
-                discountStr = reducedHtmlString.substring(pos1, pos2);
-            }
-        }
-        if (discountStr == null) {
-            pos1 = reducedHtmlString.indexOf("discount-arrow");
-            if (pos1 != -1) {
-                pos1 = reducedHtmlString.indexOf("<p>", pos1) + 3;
-                pos2 = reducedHtmlString.indexOf("%", pos1);
-                if (pos2 == -1) {
-                    String msg = "Error obteniendo descuento en II " + url;
-                    Logger.log(msg);
-                }
-                if (pos2 > pos1) {
-                    discountStr = reducedHtmlString.substring(pos1, pos2);
-                }
-            }
-        }
-        if (discountStr == null) {
-            pos2 = reducedHtmlString.indexOf("% OFF");
-            if (pos2 != -1) {
-                pos1=pos2-5;
-                pos1=reducedHtmlString.indexOf(">",pos1);
-                if (pos1>0 && pos1<pos2){
-                    pos1++;
-                    discountStr=reducedHtmlString.substring(pos1,pos2);
-                }
+        pos2 = reducedHtmlString.indexOf("% OFF");
+        if (pos2 != -1) {
+            pos1=pos2-5;
+            pos1=reducedHtmlString.indexOf(">",pos1);
+            if (pos1>0 && pos1<pos2){
+                pos1++;
+                discountStr=reducedHtmlString.substring(pos1,pos2);
             }
         }
 
@@ -728,13 +702,15 @@ public class HTMLParseUtils {
 
 
     public static void main(String args[]){
-        String url = "https://articulo.mercadolibre.com.ar/MLA-764154035-kit-reparacion-parche-intex-pegamento-colchon-pileta-inflabl-_JM";
+        //String url = "https://articulo.mercadolibre.com.ar/MLA-761860218-espejo-maquillaje-mesa-maquillaje-envios-solo-caba-y-gba-_JM";
+        String url ="https://articulo.mercadolibre.com.ar/MLA-755603972-despensero-1-puerta-40x30x150-cm-organizador-blanco-wengue--_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
         boolean officialStore = getOfficialStore(productoPage);
         String seller = getSeller(productoPage,officialStore,url);
         int discount = getDiscount(productoPage,url);
         int totalSold = getTotalSold(productoPage,url);
+        long sellerId=getSellerId(productoPage,url);
         boolean b=false;
 
 
