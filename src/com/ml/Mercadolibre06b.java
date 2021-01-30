@@ -435,12 +435,14 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=172619074",  //LUCIAZAFFRANI
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=209025171",  //AMOBLAMIENTOS INTEVIL
 
-            //euro hard
+            //ducasse y euro hard
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=159950125",  //DISTRIBUIDORA+SYG
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=60397285",   //EL-PLACARD
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=230054006",  //HERRAJES+DANSER
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=26142695",   //HIERROS+TORRENT
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=389848612",  //LACASADELOSHERRAJES+MDP
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=136191303",  //ATILIOOSCARFARAONE
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=189983130",  //SOLUZIONE HOGAR
 
             //alfombreros
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=425673298",  //ABELEDOJAVIER
