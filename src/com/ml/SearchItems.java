@@ -12,10 +12,10 @@ import java.util.ArrayList;
 public class SearchItems {
 
     public static void main(String[] args) {
-        String searchTerms="dib";
+        String searchTerms="eurohard";
 
-        int priceInterval=200;
-        int maxPrice=8000;
+        int priceInterval=400;
+        int maxPrice=18000;
 
         int totalIntervals= (int)Math.round(maxPrice/priceInterval*1.0)+1;
         String priceArray[]=new String[totalIntervals];
@@ -41,10 +41,11 @@ public class SearchItems {
         System.out.println(msg);
         Logger.log(msg);
 
+        String urlSearchTerms=searchTerms.replace(" ","-");
         for (String priceRangeId: priceArray) {
             int totalItems = 999999;
             for (int offset = 0; offset <= totalItems; offset += 50) {
-                String searchUrl = "https://api.mercadolibre.com/sites/MLA/search?q=" + searchTerms + "&price=" + priceRangeId + "&offset=" + offset;
+                String searchUrl = "https://api.mercadolibre.com/sites/MLA/search?q=" + urlSearchTerms + "&price=" + priceRangeId + "&offset=" + offset;
                 JSONObject jsonSearchDetails = HttpUtils.getJsonObjectWithoutToken(searchUrl, httpClient, false);
                 if (offset == 0) {
                     JSONObject pagingObj = jsonSearchDetails.getJSONObject("paging");
@@ -82,7 +83,8 @@ public class SearchItems {
         System.out.println(msg);
         Logger.log(msg);
         int newItems=0;
-        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(searchTerms,"ML6");
+        String databaseSearchTerms=searchTerms.replace(" ","%");
+        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(databaseSearchTerms,"ML6");
         for (String id: idsML1){
             if (!idArrayList.contains(id)){
                 idArrayList.add(id);
@@ -95,7 +97,7 @@ public class SearchItems {
         Logger.log(msg);
 
 
-
+/*
         msg = "Buscando en ML2... ";
         System.out.println(msg);
         Logger.log(msg);
@@ -110,7 +112,7 @@ public class SearchItems {
         msg=idsML2.size() + " elementos encontrados en base ML2, de los cuales "+newItems+" son nuevos";
         System.out.println(msg);
         Logger.log(msg);
-
+*/
         msg="Total de elementos encontrados "+idArrayList.size();
         System.out.println(msg);
         Logger.log(msg);
