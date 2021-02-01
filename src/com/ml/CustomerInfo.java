@@ -13,10 +13,8 @@ import java.util.HashMap;
 
 public class CustomerInfo {
 
-
     static int RESULTS_WITHOUT_TOKEN=1000;
     static final int RESULTS_LIMIT = 10000;
-    static String USUARIO_PREGUNTON="SOMOS_MAS";
 
     static final char ALFOMBRAS='0';
     static final char CESTOS_COCINA ='1';
@@ -38,21 +36,19 @@ public class CustomerInfo {
     static final char MANIJAS_Y_PICAPORTES='H';
     static final char SILLONES_GERENCIALES='I'; //de oficina
     static final char ORGANIZADOR_ESCRITORIO='J'; //mampara anti covid
-    static final char ORGANIZADOR_ESCRITORIO2='K'; //mampara anti covid
-    static final char ORGANIZADOR_ESCRITORIO3='L'; //mampara anti covid
-    static final char HERRAMIENTAS_OTROS='M';   //minifix
-    static final char BISAGRAS='N';
-    static final char EQUIPAMIENTO_OFICINA_OTROS='Ñ'; //porta CPU
-    static final char MESAS_RATONAS='O'; //ratonas y mesasa
-    static final char BURLETES='P';
+    static final char HERRAMIENTAS_OTROS='K';   //minifix
+    static final char BISAGRAS='L';
+    static final char EQUIPAMIENTO_OFICINA_OTROS='M'; //porta CPU
+    static final char MESAS_RATONAS='N'; //ratonas y mesasa
+    static final char BURLETES='Ñ';
 
     public static void main (String[] args) {
 
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="MERIDIANO75";
-        char categoria=BURLETES;
+        String nickname="ALCIS91SCHLEGEL";
+        char categoria=ALFOMBRAS;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -315,10 +311,6 @@ public class CustomerInfo {
                 System.out.println("------------------------------");
             }
         }
-
-
-        boolean b= false;
-
     }
 
     private static HashMap<String,String> getStateHashMap(){
