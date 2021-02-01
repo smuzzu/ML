@@ -1203,7 +1203,7 @@ public class MessagesAndSalesHelper {
         String pictureId=null;
         String url=null;
         if (publicationJsonObject!=null) {
-            if (onlineOrderVariationId != 0) { //si eligió una variante tenemos que poner esa foto, else foto general
+            if (onlineOrderVariationId != 0 && publicationJsonObject.has("variations")) { //si eligió una variante tenemos que poner esa foto, else foto general
                 JSONArray variationsArray = publicationJsonObject.getJSONArray("variations");
                 for (int i = 0; i < variationsArray.length(); i++) {
                     JSONObject variation = variationsArray.getJSONObject(i);
@@ -1248,6 +1248,9 @@ public class MessagesAndSalesHelper {
                     + "?offset=" + messagesOffset+"&mark_as_read=false";
             long startTime2 = System.currentTimeMillis();
             JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
+            if (jsonMessages==null){
+                break;
+            }
             long elapsedTime2 = System.currentTimeMillis() - startTime2;
             if (elapsedTime2 >= tooMuchTime) {
                 httpClient = HttpUtils.buildHttpClient();
