@@ -84,12 +84,40 @@ public class ProductPageProcessor extends Thread {
                 totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
                 if (totalSold <= 0) {
                     // todo sacar
-                    msg="TOTAL SOLD = "+totalSold+" on "+url;
+                    msg = "TOTAL SOLD = " + totalSold + " on " + url + " vamos a recargar la pagina carajo";
                     Logger.log(msg);
                     System.out.println(msg);
-                    Logger.log(htmlString);
-                    // todo sacar
-                    disable = true;
+
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
+                    try {
+                        httpClient.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    httpClient = null;
+                    httpClient = HttpUtils.buildHttpClient();
+                    htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true,null);
+
+
+                    if (!HttpUtils.isOK(htmlString)) {
+                        Logger.log(htmlString); // todo sacar
+                        disable = true;
+                    } else {
+                        totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
+                    }
+
+                    if (totalSold <= 0) {
+                        // todo sacar
+                        msg = "TOTAL SOLD = " + totalSold + " on " + url;
+                        Logger.log(msg);
+                        System.out.println(msg);
+                        Logger.log(htmlString);
+                        disable = true;
+                    }
                 }
             }
 
