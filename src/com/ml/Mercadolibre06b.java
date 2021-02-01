@@ -2,16 +2,14 @@ package com.ml;
 
 import com.ml.utils.Counters;
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Item;
 import com.ml.utils.Logger;
 import org.apache.http.impl.client.CloseableHttpClient;
-
-import java.util.HashMap;
 
 public class Mercadolibre06b {
 
     static final String DATABASE = "ML6";
-    static final Boolean ONLY_RELEVANT = true;
+    static final boolean SAVE = true;
+    static final boolean ONLY_RELEVANT = true;
     static final int MINIMUM_SALES = 10;
     static final boolean FOLLOWING_DAY = true;
     static final boolean PREVIOUS_DAY = false;
@@ -867,7 +865,7 @@ public class Mercadolibre06b {
         String usuario = "SOMOS_MAS";
 
         ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
-                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES);
+                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES, SAVE);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "

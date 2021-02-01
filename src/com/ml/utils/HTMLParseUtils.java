@@ -705,7 +705,7 @@ public class HTMLParseUtils {
         //String url = "https://articulo.mercadolibre.com.ar/MLA-761860218-espejo-maquillaje-mesa-maquillaje-envios-solo-caba-y-gba-_JM";
         String url ="https://articulo.mercadolibre.com.ar/MLA-755603972-despensero-1-puerta-40x30x150-cm-organizador-blanco-wengue--_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
-        String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false);
+        String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false, null);
         boolean officialStore = getOfficialStore(productoPage);
         String seller = getSeller(productoPage,officialStore,url);
         int discount = getDiscount(productoPage,url);

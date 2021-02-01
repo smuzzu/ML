@@ -65,7 +65,7 @@ public class VisitCounter {
 
             allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
             String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
-            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true);
+            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true, null);
             if (!HttpUtils.isOK(htmlString)) {
                 // hacemos pausa por si es problema de red
                 try {
@@ -82,7 +82,7 @@ public class VisitCounter {
                 httpClient = HttpUtils.buildHttpClient();
             }
 
-            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true); // just 1 retry
+            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true, null); // just 1 retry
             boolean processItems=true;
             int pos1=0;
             int pos2=0;

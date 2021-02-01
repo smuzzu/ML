@@ -29,7 +29,6 @@ public class ReportRunner {
     static final int RESULTS_LIMIT = 10000;
 
     static int MAX_THREADS = 50;//14
-    static final boolean SAVE = true;
     static final boolean DEBUG = false;
     static final boolean IGNORE_VISITS = false;
 
@@ -244,7 +243,7 @@ public class ReportRunner {
         return result;
     }
 
-    private static void completeAndDisableItems(CloseableHttpClient client, HashMap<String, Item> itemHashMap, ArrayList<String> incompleteList, String database) {
+    private static void completeAndDisableItems(CloseableHttpClient client, HashMap<String, Item> itemHashMap, ArrayList<String> incompleteList, String database, boolean SAVE) {
         boolean processFinished = false;
         int i = -1;
         while (!processFinished) {
@@ -290,7 +289,7 @@ public class ReportRunner {
                             itemHashMap.remove(id);
                             continue;
                         }
-                        char status = completeItem(productObj, item, database);
+                        char status = completeItem(productObj, item, database,SAVE );
                         if (status!=COMPLETE) {
                             itemHashMap.remove(id);
                         }
@@ -374,7 +373,7 @@ public class ReportRunner {
             String uRL = webBaseUrl + sinceStr;
             uRL += "_DisplayType_G";
 
-            String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, client, DEBUG, false);
+            String htmlStringFromPage = HttpUtils.getHTMLStringFromPage(uRL, client, DEBUG, false, null);
             if (!HttpUtils.isOK(htmlStringFromPage)) { //suponemos que se terminó
                 // pero tambien hacemos pausa por si es problema de red
                 try {
@@ -498,7 +497,7 @@ public class ReportRunner {
                             }
                         }else{
                             String buyingOptionsUrl = productUrl + "/s";
-                            String HTMLpage = HttpUtils.getHTMLStringFromPage(buyingOptionsUrl, client, DEBUG, false);
+                            String HTMLpage = HttpUtils.getHTMLStringFromPage(buyingOptionsUrl, client, DEBUG, false, null);
                             if (HttpUtils.isOK(HTMLpage)){
                             }else {
                                 String msg = "No se pudo recuperar item ID 2 \n" + productUrl + " en pagina \n" + uRL;
@@ -626,7 +625,7 @@ public class ReportRunner {
         }
     }
 
-    private static char completeItem(JSONObject productObj, Item item, String database) {
+    private static char completeItem(JSONObject productObj, Item item, String database, boolean SAVE) {
 
         if (!productObj.has("sold_quantity")) { //todo si esta under review hace rato lo volamos
             if (productObj.has("status") && !productObj.isNull("status")){
@@ -726,7 +725,7 @@ public class ReportRunner {
 
     protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals,
                                           CloseableHttpClient client, String usuario, String DATABASE, boolean ONLY_RELEVANT,
-                                          boolean previousDay, boolean followingDay, int minimumSales) {
+                                          boolean previousDay, boolean followingDay, int minimumSales, boolean SAVE) {
         globalPreviousDay=previousDay;
         globalFollowingDay=followingDay;
         globalMinimumSales=minimumSales;
@@ -750,7 +749,7 @@ public class ReportRunner {
         if (!ONLY_RELEVANT) {
             for (String apiBaseUrl : apiBaseUrls) {
                 Logger.log("XXXXXXXXXX Procesando nueava api url " + apiBaseUrl);
-                processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE);
+                processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE,SAVE );
             }
         }
 
@@ -761,7 +760,7 @@ public class ReportRunner {
                 int since = interval[j - 1] + 1;
                 int upto = interval[j];
                 Logger.log("XXXXXXXXXX Procesando intervalo " + since + "-" + upto + " " + url);
-                processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE);
+                processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE,SAVE );
             }
         }
 
@@ -776,7 +775,7 @@ public class ReportRunner {
         Logger.log("XXXXXXXXXX Purgando items 1. itemHashMap=" + itemHashMap.size());
         ArrayList<String> incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
         Logger.log("XXXXXXXXXX Completando items 1.  itemHashMap=" + itemHashMap.size());
-        completeAndDisableItems(client, itemHashMap, incompleteList,DATABASE);
+        completeAndDisableItems(client, itemHashMap, incompleteList,DATABASE,SAVE );
         Logger.log("XXXXXXXXXX Purgando items 2. itemHashMap=" + itemHashMap.size());
         incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
         if (incompleteList.size() > 0) {
@@ -829,7 +828,7 @@ public class ReportRunner {
         }
     }
 
-    protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT, String database) {
+    protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT, String database, boolean SAVE) {
         if (since >= 0) {
             apiBaseUrl += "&price=" + since + "-" + upto;
         }
@@ -889,7 +888,7 @@ public class ReportRunner {
                 }
 
 
-                char status = completeItem(productObj, item, database);
+                char status = completeItem(productObj, item, database,SAVE );
                 if (status!=COMPLETE) {
                     itemHashMap.remove(id);
                 }

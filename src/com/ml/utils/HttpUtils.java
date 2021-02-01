@@ -23,7 +23,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -133,7 +132,7 @@ public class HttpUtils {
 
         JSONObject jsonResponse=null;
 
-        String jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false);
+        String jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false,null );
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
             if (jsonStringFromRequest.startsWith("[")){
@@ -216,13 +215,11 @@ public class HttpUtils {
 
         JSONObject jsonResponse=null;
         String token= TokenUtils.getToken(usuario);
-        String urlWithToken = uRL + "&access_token=" + token;
-        String jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
+        String jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false,token );
         if (jsonStringFromRequest.equals(EXPIRED_TOKEN)) {
             TokenUtils.refreshToken(httpClient,usuario);
             token= TokenUtils.getToken(usuario);
-            urlWithToken = uRL + "&access_token=" + token;
-            jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
+            jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false,token );
         }
         if (!isOK(jsonStringFromRequest)){ //1 solo reintento
             try {
@@ -238,12 +235,11 @@ public class HttpUtils {
             }
             httpClient = null;
             httpClient = HttpUtils.buildHttpClient();
-            jsonStringFromRequest = getHTMLStringFromPage(urlWithToken, httpClient, false, false);
+            jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false,null );
         }
         if (isOK(jsonStringFromRequest)) {
             jsonStringFromRequest = jsonStringFromRequest.substring(3);
             if (jsonStringFromRequest.startsWith("[")){
-                //jsonStringFromRequest=jsonStringFromRequest.substring(1,jsonStringFromRequest.length()-1);
                 if (giveMeArray) {
                     jsonStringFromRequest = "{\"elArray\":"+jsonStringFromRequest+"}";
                 }else {
@@ -280,7 +276,7 @@ public class HttpUtils {
     }
 
 
-    public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy) {
+    public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy, String token) {
 
         HttpGet httpGet = null;
 
@@ -293,6 +289,10 @@ public class HttpUtils {
             e.printStackTrace();
             Logger.log(e);
             return "nullORempty|";
+        }
+
+        if (token!=null){
+            httpGet.addHeader("Authorization","Bearer "+token);
         }
 
         CloseableHttpResponse response = null;
@@ -635,7 +635,7 @@ public class HttpUtils {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(productId);
-        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, false);
+        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, false,null );
         if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red
             try {
@@ -667,15 +667,16 @@ public class HttpUtils {
         return newQuestions;
     }
 
-    public static void main(String[] args){
+   public static void main(String[] args){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+        JSONObject object = getJsonObjectUsingToken("https://api.mercadolibre.com/users/me",httpClient,"QUEFRESQUETE",false);
         String text="Buenas noches Patricia. Mañana por la tarde te estaremos despachando por Mercadoenvíos 3 unidades de Soporte Porta Copas Cromado marca Häfele. Muchas gracias por tu compra!";
         long packId=2000000993640247l;
         long buyerCustId=21818340l;
         String user="SOMOS_MAS";
         postMessage(text,httpClient,packId,user,buyerCustId,Order.CORREO);
 
-    }
+   }
 
 
 }

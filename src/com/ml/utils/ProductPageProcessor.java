@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class ProductPageProcessor extends Thread {
 
@@ -55,7 +54,7 @@ public class ProductPageProcessor extends Thread {
 
             CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
-            String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
+            String htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true,null );
 
             if (!HttpUtils.isOK(htmlString)) { //un reintento mas que suficiente aca
                 // hacemos pausa por si es problema de red
@@ -72,7 +71,7 @@ public class ProductPageProcessor extends Thread {
                 }
                 httpClient = null;
                 httpClient = HttpUtils.buildHttpClient();
-                htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true);
+                htmlString = HttpUtils.getHTMLStringFromPage(url, httpClient, DEBUG, true, null);
             }
 
             boolean disable = false;
@@ -338,7 +337,7 @@ public class ProductPageProcessor extends Thread {
                     String idproducto = rs2.getString(2);
 
                     long time1=System.nanoTime();
-                    String htmlString = HttpUtils.getHTMLStringFromPage(url, client, DEBUG, true);
+                    String htmlString = HttpUtils.getHTMLStringFromPage(url, client, DEBUG, true,null );
                     long time2=System.nanoTime();
                     long elapsed=(time2-time1)/1000000;
                     long random = (long) (Math.random() * (max - min + 1) + min);
