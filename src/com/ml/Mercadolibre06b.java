@@ -757,6 +757,8 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HERRAJES+DANSER
             {0, 2147483647}, //HIERROS+TORRENT
             {0, 2147483647}, //LACASADELOSHERRAJES+MDP
+            {0, 2147483647}, //ATILIOOSCARFARAONE
+            {0, 2147483647}, //SOLUZIONE HOGAR
 
             //alfombreros
             {0, 2147483647}, //ABELEDOJAVIER
