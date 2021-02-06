@@ -35,7 +35,7 @@ public class VisitCounter {
     static int PAUSE_ON_ERRPR_MILLISECONDS = 3000;
     static int INTERVAL_SIZE=5000;
 
-    static String[] usuarios = new String[] {
+    public static String[] usuarios = new String[] {
             "ACACIAYLENGA",
             "QUEFRESQUETE",
             "SOMOS_MAS"

@@ -48,7 +48,6 @@ public class MLSellerStatistics extends Thread {
 
     static ResultSet globalSelectSellerResultSet = null;
     static String PROFILE_BASE_URL ="https://www.mercadolibre.com.ar/perfil/";
-    static String PROFILE_BASE_URL2 ="https://perfil.mercadolibre.com.ar/";
     static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/_CustId_";
     static String OFFICIAL_STORE_BASE_URL = "https://listado.mercadolibre.com.ar/_DisplayType_LF_Tienda_";
     static String VISITS_URL = "https://api.mercadolibre.com/users/CUSTID/items_visits?date_from=DATE1T00:00:00.000-00:00&date_to=DATE2T00:00:00.000-00:00";
@@ -57,17 +56,15 @@ public class MLSellerStatistics extends Thread {
     static int globalInsertCount=0;
     static int globalDisableCount=0;
 
-    static int MAX_THREADS = 30; //TODO CAMBIAR 30
+    static int MAX_THREADS = 20; //TODO CAMBIAR 30
     static boolean SAVE = true; //TODO CAMBIAR
     static String DATABASE = "ML2";
     static boolean DEBUG = false;
-    static String FECHA="2021/01/01";
+    static String FECHA="2021/02/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
 
-    static String SEE_SELLER_DETAILS_LABEL = "Ver más datos de";
-    //static String SEE_SELLER_DETAILS_LABEL = "Ver mais dados";
 
     private static String formatSeller(String seller) {
         try {//encode seller to url
@@ -287,7 +284,9 @@ public class MLSellerStatistics extends Thread {
 
     public void run() {
 
-        String runnerID="R"+getGlobalRunnerCount();
+
+        int runnerCount=getGlobalRunnerCount();
+        String runnerID="R"+runnerCount;
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
@@ -1276,6 +1275,10 @@ public class MLSellerStatistics extends Thread {
 
                 for (String productUrl : productsURLArrayList) {
 
+                    if (productUrl.indexOf("mercado-pago")>0){//propaganda de mercado pago
+                        continue;
+                    }
+
                     int initPoint = htmlString.indexOf(productUrl);
                     int nextPoint = htmlString.length();//just for the last item #48 o #50 depending on the page layout
 
@@ -1317,42 +1320,11 @@ public class MLSellerStatistics extends Thread {
                         }
                     }
 
-                    Double price = null;
-                    try {
-                        price = Double.parseDouble(priceStr);
-                        if (priceDecimalsStr != null) {
-                            price += Double.parseDouble(priceDecimalsStr) / 100;
-                        }
-                    } catch (NumberFormatException e) {
-                        Logger.log(" I couldn't get the price on product.  Ignoring " + productUrl);
-                        Logger.log(e);
+                    double price = HTMLParseUtils.getPrice2(productHTMLdata);
+
+                    if (price==0){
                         continue;
                     }
-
-/*
-                    double totalSold = 0;
-                    int soldPos1 = productHTMLdata.indexOf("item__condition\">") + 17;
-                    if (soldPos1 > 0) {//puede ser que no vendió o es usado
-                        int soldPos2 = productHTMLdata.indexOf("</div>", soldPos1);
-                        if (soldPos2 > 0) {
-                            String soldStr = productHTMLdata.substring(soldPos1, soldPos2);
-                            //parseo doble, primero ubicamos el div y despue vemos que su contenido tenga la palabra vendidos
-                            if (soldStr != null && soldStr.lastIndexOf("vendido") > 0) {
-                                soldPos2 = productHTMLdata.indexOf("vendido", soldPos1);
-                                if (soldPos2 > 0) {
-                                    soldStr = productHTMLdata.substring(soldPos1, soldPos2);
-                                    if (soldStr != null) {
-                                        soldStr = soldStr.trim();
-                                        try {
-                                            totalSold = Integer.parseInt(soldStr);
-                                        } catch (NumberFormatException e) {
-                                            Logger.log("I couldn't get total sold on " + productUrl);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }*/
 
                     countDown--;
                     ponderation=countDown^3;
@@ -1368,24 +1340,22 @@ public class MLSellerStatistics extends Thread {
             if (custId!=null){
                 String visitUrl = VISITS_URL.replaceAll("CUSTID",custId);
 
+                int resto = runnerCount % 3;
+                String usuario = VisitCounter.usuarios[resto];
+
+                if (DEBUG) {
+                    Logger.log("Usuario: " + usuario);
+                    System.out.println("Usuario: " + usuario);
+                }
+
                 boolean retry=true;
                 int retries=0;
-                while (retry && retries<5) {
+                while (retry && retries<3) {
                     retry=false;
                     retries++;
-                    String htmlString3 = HttpUtils.getHTMLStringFromPage(visitUrl, httpClient,DEBUG, true,null );
-                    if (HttpUtils.isOK(htmlString3)) {
-                        int pos1 = htmlString3.indexOf("total_visits\":");
-                        if (pos1 > 0) {
-                            pos1 += 14;
-                            int pos2 = htmlString3.indexOf(",", pos1);
-                            if (pos2 > 0) {
-                                String visitsStr = htmlString3.substring(pos1, pos2);
-                                if (visitsStr != null && visitUrl.length() > 0) {
-                                    visitsLastMonth = Integer.parseInt(visitsStr);
-                                }
-                            }
-                        }
+                    JSONObject visitsObject = HttpUtils.getJsonObjectUsingToken(visitUrl,httpClient,usuario,false);
+                    if (visitsObject!=null && visitsObject.has("total_visits")){
+                        visitsLastMonth=visitsObject.getInt("total_visits");
                     }
                     if (visitsLastMonth == 0) {
                         retry=true;
@@ -1399,7 +1369,6 @@ public class MLSellerStatistics extends Thread {
                             System.out.println(msg);
                             Logger.log(msg);
                             Logger.log(visitUrl);
-                            Logger.log(htmlString3);
                         }
                     }
                 }
