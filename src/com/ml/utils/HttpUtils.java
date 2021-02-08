@@ -156,12 +156,13 @@ public class HttpUtils {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
-        String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?access_token="+token;
-
+        //String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?access_token="+token;
+        String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId;
 
         //todo nota importante:  se supone que el nuevo formato aplica para coreo y cross docking
         if (shippingType==Order.CORREO || shippingType==Order.FLEX) {
-            url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?access_token=" + token;
+            //url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?access_token=" + token;
+            url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option";
             if (text.length()>=350){ //todo restringir a shippingType = correo
                 Logger.log("Mensaje superior a 350 caracteres");
                 Logger.log(text);
@@ -172,6 +173,7 @@ public class HttpUtils {
         HttpPost httpPost = new HttpPost(url);
         httpPost.setHeader("Accept", "application/json");
         httpPost.setHeader("Content-type", "application/json");
+        httpPost.addHeader("Authorization","Bearer "+token);
 
         String json = "{\"from\" : { \"user_id\": \""+myUserId
                 +"\",\"email\" : \"abcdfg@nospam.com\"},\"to\": { \"user_id\" : \""+customerId+"\"}, \"text\": \""+
@@ -670,11 +672,11 @@ public class HttpUtils {
    public static void main(String[] args){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
         JSONObject object = getJsonObjectUsingToken("https://api.mercadolibre.com/users/me",httpClient,"QUEFRESQUETE",false);
-        String text="Buenas noches Patricia. Mañana por la tarde te estaremos despachando por Mercadoenvíos 3 unidades de Soporte Porta Copas Cromado marca Häfele. Muchas gracias por tu compra!";
-        long packId=2000000993640247l;
-        long buyerCustId=21818340l;
-        String user="SOMOS_MAS";
-        postMessage(text,httpClient,packId,user,buyerCustId,Order.CORREO);
+        String text="Muchas gracias por tu compra";
+        long packId=4336466554l;
+        long buyerCustId=95978482l;
+        String user="ACACIAYLENGA";
+        postMessage(text,httpClient,packId,user,buyerCustId,Order.ACORDAR);
 
    }
 
