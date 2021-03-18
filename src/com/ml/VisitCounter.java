@@ -42,81 +42,7 @@ public class VisitCounter {
     };
 
 
-    public synchronized static HashMap<String,Integer> processVisits(Date date1, Date date2, ArrayList<String> productIds, boolean DEBUG){
-        CloseableHttpClient httpClient=HttpUtils.buildHttpClient();
-
-        HashMap<String,Integer> result = new HashMap<String,Integer>();
-        ArrayList<String> zeroVisitsList=new ArrayList<String>();
-
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        String strDate1 = dateFormat.format(date1);
-        String strDate2 = dateFormat.format(date2);
-        String dateOnQuery = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
-
-        int i=0;
-
-        while (i<productIds.size()) {
-            String allProductIDsStr="";
-            for (int j = 0; j < 10 && i < productIds.size(); j++) {
-                String productId=productIds.get(i);
-                allProductIDsStr+=productId+",";
-                i++;
-            }
-
-            allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
-            String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
-            String htmlString= HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true, null);
-            if (!HttpUtils.isOK(htmlString)) {
-                // hacemos pausa por si es problema de red
-                try {
-                    Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS);
-                } catch (InterruptedException e) {
-                    Logger.log(e);
-                }
-                try {
-                    httpClient.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                httpClient = null;
-                httpClient = HttpUtils.buildHttpClient();
-            }
-
-            htmlString=HttpUtils.getHTMLStringFromPage(url,httpClient,DEBUG,true, null); // just 1 retry
-            boolean processItems=true;
-            int pos1=0;
-            int pos2=0;
-            String productId=null;
-            String quantityStr=null;
-            int quantity=0;
-            while (processItems) {
-                pos1 = htmlString.indexOf("MLA", pos1);
-                if (pos1 < 0) {
-                    processItems = false;
-                    continue;
-                }
-
-                pos2 = htmlString.indexOf("\"", pos1);
-                productId = htmlString.substring(pos1, pos2);
-                //productId = productId.substring(0, 3) + "-" + productId.substring(3);
-                pos1 = htmlString.indexOf("visits", pos1);
-                pos1 += 8;
-                pos2 = htmlString.indexOf(",", pos1);
-                quantityStr = htmlString.substring(pos1, pos2);
-                quantity = Integer.parseInt(quantityStr);
-
-
-                if (quantity == 0) {
-                    zeroVisitsList.add(productId);
-                }
-                result.put(productId,quantity);
-            }
-        }
-        return result;
-    }
-
-
-    public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, Date date, String dateOnQuery, boolean SAVE, boolean DEBUG, String DATABASE) {
+    public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, String dateOnQuery, boolean DEBUG, String DATABASE) {
         int count = 0;
 
         ArrayList<String> tenProductIDs = new ArrayList<String>();
@@ -129,20 +55,20 @@ public class VisitCounter {
             tenProductIDs.add(productId);
 
             if (count >= 10) {
-                visitsHashMap= retrive10Visits(date, dateOnQuery, tenProductIDs, SAVE,DEBUG,DATABASE);
+                visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
                 result.putAll(visitsHashMap);
                 tenProductIDs = new ArrayList<String>();
                 count = 0;
             }
         }
         if (tenProductIDs.size() > 0) {  //processing last record
-            visitsHashMap= retrive10Visits(date, dateOnQuery, tenProductIDs, SAVE,DEBUG,DATABASE);
+            visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
             result.putAll(visitsHashMap);
         }
         return result;
     }
 
-    private static HashMap<String,Integer> retrive10Visits(Date date, String dateOnQuery, ArrayList<String> tenProductIDs, boolean SAVE, boolean DEBUG, String DATABASE) {
+    private static HashMap<String,Integer> retrive10Visits(String dateOnQuery, ArrayList<String> tenProductIDs, boolean DEBUG, String DATABASE) {
         int logCountHelper=0;
         String lineLog="";
         HashMap<String,Integer> result = new HashMap<String,Integer>();
@@ -153,7 +79,9 @@ public class VisitCounter {
 
         String allProductIDsStr="";
         for (String productId:tenProductIDs){
-            productId = productId.substring(0, 3) + productId.substring(4);//removing the minus sign
+            if (productId.contains("-")) {
+                productId = HTMLParseUtils.getUnformattedId(productId);//removing the minus sign
+            }
             allProductIDsStr+=productId+",";
         }
         allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
@@ -169,34 +97,38 @@ public class VisitCounter {
             System.out.println("Usuario: " + usuario);
         }
 
-        //todo usar usuarios rotativos
-        JSONObject visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true);
+        int retries = 0;
+        boolean retry = true;
 
-        if (visitsArray==null || !visitsArray.has("elArray")){
-            // hacemos pausa por si es problema de red
+        JSONObject visitsArray = null;
 
-            boolean b=false;
+        while (retry && retries < 5) {
+            retries++;
 
-            try {
-                Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS);
-            } catch (InterruptedException e) {
-                Logger.log(e);
-            }
-            Logger.log(" visitsArray is null " + url);
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            httpClient = null;
-            httpClient = HttpUtils.buildHttpClient();
+            visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true);
 
-            visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true); // just 1 retry
             if (visitsArray==null || !visitsArray.has("elArray")) {
-                httpClient=HttpUtils.buildHttpClient();
-                return result;
-            }
+                // hacemos pausa por si es problema de red
+                try {
+                    Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS * retries * retries);
+                } catch (InterruptedException e) {
+                    Logger.log(e);
+                }
+                Logger.log(" visitsArray is null " + url);
+                try {
+                    httpClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                httpClient = null;
+                httpClient = HttpUtils.buildHttpClient();
 
+            } else {
+                retry=false;
+            }
+        }
+        if (visitsArray==null || !visitsArray.has("elArray")) {
+            return result;
         }
 
         JSONArray elArray = visitsArray.getJSONArray("elArray");
@@ -325,7 +257,7 @@ public class VisitCounter {
                 to=allProductIDs.size();
             }
             List<String> interval=allProductIDs.subList(from,to);
-            HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), date2, dateOnQueryStr,SAVE,DEBUG,database);
+            HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), dateOnQueryStr,DEBUG,database);
             if (SAVE) {
                 msg = "Guardando "+INTERVAL_SIZE+" registros";
                 System.out.println(msg);

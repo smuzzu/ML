@@ -2,6 +2,7 @@ package com.ml;
 
 
 import com.ml.utils.DatabaseHelper;
+import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
 import com.ml.utils.TokenUtils;
@@ -12,6 +13,7 @@ import org.json.JSONObject;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ public class ProductInfo {
     static String DATABASE="ML3";
     static Date globalDate = null;
     static boolean IGNORE_CATETORIES=false;
+    static boolean SAVE=true;
 
 
     private static JSONArray getUnAnsweredQuestions(CloseableHttpClient httpClient) {
@@ -320,7 +323,11 @@ public class ProductInfo {
 
         ArrayList<String> itemsInOrdersArrayList =getItemsInOrdersBetweenDates(httpClient,date,date);
 
-        HashMap<String,Integer> oneDayVisitsHashMap = VisitCounter.processVisits(date, date, allProductIDsArrayList,false);
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String strDate = dateFormat.format(date);
+        String dateOnQueryStr = "&date_from=" + strDate + "T00:00:00.000-00:00&date_to=" + strDate + "T23:59:00.000-00:00";
+
+        HashMap<String,Integer> oneDayVisitsHashMap = VisitCounter.retriveAllVisits(allProductIDsArrayList,dateOnQueryStr,false,DATABASE);
 
         for (String productId : allProductIDsArrayList) {
             Info fixedProductDetails=allProductFixedDetailsHashMap.get(productId);
@@ -335,7 +342,7 @@ public class ProductInfo {
                     totalQuestions++;
                 }
             }
-            Integer visits = oneDayVisitsHashMap.get(productId);
+            Integer visits = oneDayVisitsHashMap.get(HTMLParseUtils.getFormatedId(productId));
 
             int salesTotal=0;
             for (String id: itemsInOrdersArrayList){
@@ -344,11 +351,16 @@ public class ProductInfo {
                 }
             }
 
-            if (salesTotal>visits){//la cocina de ML
-                visits=salesTotal;
-            }
-            if (totalQuestions>visits){
-                visits=totalQuestions;
+            if (visits!=null) {
+                if (salesTotal > visits) {//la cocina de ML
+                    visits = salesTotal;
+                }
+                if (totalQuestions > visits) {
+                    visits = totalQuestions;
+                }
+            }else{
+                Logger.log("XXXXXXXXXXXXXXXXXXXXX visits is null !!!"+productId);
+                visits=0;
             }
 
             int ranking=2000;
@@ -531,8 +543,10 @@ public class ProductInfo {
             System.out.println("Processing date: "+date);
             infoArrayList.addAll(getVisitsAndQuestions(httpClient, date, allProductIDsArrayList, allProductFixedDetailsHashMap,allTimesQuestionsHashMap, productsInCatetoriesHashMap));
         }
-        for (Info info:infoArrayList){
-            DatabaseHelper.insertDaily(DATABASE, info.date,info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title, info.ranking, info.user);
+        if (SAVE) {
+            for (Info info : infoArrayList) {
+                DatabaseHelper.insertDaily(DATABASE, info.date, info.productId, info.orders, info.visits, info.questions, info.active, info.price, info.title, info.ranking, info.user);
+            }
         }
     }
 
@@ -596,8 +610,9 @@ public class ProductInfo {
                     if (ranking==0){
                         ranking=-1;
                     }
-                    DatabaseHelper.insertWeekly(DATABASE,weeklyStartDate,weeklyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title,usuario);
-
+                    if (SAVE) {
+                        DatabaseHelper.insertWeekly(DATABASE, weeklyStartDate, weeklyEndDate, productId, sumSales, sumVisits, sumQuestions, ranking, sumPaused, price, title, usuario);
+                    }
                 }
             }catch (SQLException e){
                 String msg1 = "Exception in processWeekly";
@@ -671,8 +686,9 @@ public class ProductInfo {
                     if (ranking==0){
                         ranking=-1;
                     }
-                    DatabaseHelper.insertMonthly(DATABASE,monthlyStartDate,monthlyEndDate,productId,sumSales,sumVisits,sumQuestions,ranking,sumPaused,price,title,usuario);
-
+                    if (SAVE) {
+                        DatabaseHelper.insertMonthly(DATABASE, monthlyStartDate, monthlyEndDate, productId, sumSales, sumVisits, sumQuestions, ranking, sumPaused, price, title, usuario);
+                    }
                 }
             }catch (SQLException e){
                 String msg1 = "Exception in processMonthly";
