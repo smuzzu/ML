@@ -174,18 +174,20 @@ public class MessagesAndSalesHelper {
                 String feedbackUrl = "https://www.mercadolibre.com.ar/perfil/api/feedback/askForFeedback?userIdentifier=nickname%3D" + user + "&rating=all&limit=200&offset=" + offset + "&role=seller";
                 JSONObject feedbacksObj = HttpUtils.getJsonObjectWithoutToken(feedbackUrl, httpClient, false);
                 JSONArray feedbacksArray = feedbacksObj.getJSONArray("feedbacks");
-                for (Object feedbackObject : feedbacksArray){
-                    JSONObject feedbackJSONObject = (JSONObject)feedbackObject;
-                    String message = feedbackJSONObject.getString("message");
-                    if (message.length()>0){
-                        String nickName = feedbackJSONObject.getJSONObject("user").getString("nickname");
-                        if (usersThatLeftMessage.containsKey(nickName)){
-                            int numberOfMessages = usersThatLeftMessage.get(nickName);
-                            numberOfMessages++;
-                            usersThatLeftMessage.replace(nickName,numberOfMessages);
-                        } else {
-                            usersThatLeftMessage.put(nickName,1);
-                            userFeedbackMessages.put(nickName,message);
+                for (Object feedbackObject : feedbacksArray) {
+                    JSONObject feedbackJSONObject = (JSONObject) feedbackObject;
+                    if (!feedbackJSONObject.isNull("message")) {
+                        String message = feedbackJSONObject.getString("message");
+                        if (message.length() > 0) {
+                            String nickName = feedbackJSONObject.getJSONObject("user").getString("nickname");
+                            if (usersThatLeftMessage.containsKey(nickName)) {
+                                int numberOfMessages = usersThatLeftMessage.get(nickName);
+                                numberOfMessages++;
+                                usersThatLeftMessage.replace(nickName, numberOfMessages);
+                            } else {
+                                usersThatLeftMessage.put(nickName, 1);
+                                userFeedbackMessages.put(nickName, message);
+                            }
                         }
                     }
                 }
