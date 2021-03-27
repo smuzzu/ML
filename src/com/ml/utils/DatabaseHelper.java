@@ -1,5 +1,7 @@
 package com.ml.utils;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -97,8 +99,42 @@ public class DatabaseHelper {
         return globalSelectConnection;
     }
 
+    private static boolean isValidHostName(){
+        String hostname = "Unknown";
+        try
+        {
+            InetAddress addr;
+            addr = InetAddress.getLocalHost();
+            hostname = addr.getHostName();
+        }
+        catch (UnknownHostException ex)
+        {
+            System.out.println("Hostname can not be resolved");
+            return false;
+        }
+        String[] validHostNames=new String[]{
+                "DESKTOP-2PMB0TS",
+                "Ciclon",
+                "Rivadavia4"
+        };
+        for (String validHostName:validHostNames){
+            if (validHostName.equals(hostname)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 
     public static synchronized Connection getCloudConnection(){
+
+        if (!isValidHostName()){
+            String msg = "Error 59265358979323846264338327950288419716939937510";
+            System.out.println(msg);
+            Logger.log(msg);
+            System.exit(0);
+        }
 
         boolean resetConnection= globalCloudConnection ==null;
         if (!resetConnection){

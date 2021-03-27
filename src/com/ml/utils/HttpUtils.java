@@ -14,6 +14,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.cookie.CookieOrigin;
 import org.apache.http.entity.ContentType;
@@ -130,26 +131,7 @@ public class HttpUtils {
 
     public static JSONObject getJsonObjectWithoutToken(String uRL, CloseableHttpClient httpClient, boolean giveMeArray) {
 
-        JSONObject jsonResponse=null;
-
-        String jsonStringFromRequest = getHTMLStringFromPage(uRL, httpClient, false, false,null );
-        if (isOK(jsonStringFromRequest)) {
-            jsonStringFromRequest = jsonStringFromRequest.substring(3);
-            if (jsonStringFromRequest.startsWith("[")){
-                if (giveMeArray) {
-                    jsonStringFromRequest = "{\"elArray\":"+jsonStringFromRequest+"}";
-                }else {
-                    jsonStringFromRequest = jsonStringFromRequest.substring(1, jsonStringFromRequest.length() - 1);
-                }
-            }
-            try {
-                jsonResponse = new JSONObject(jsonStringFromRequest);
-            }
-            catch (JSONException e){
-                e.printStackTrace();
-            }
-        }
-        return jsonResponse;
+        return getJsonObjectUsingToken(uRL,httpClient,"QUEFRESQUETE",giveMeArray);
     }
 
     public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
@@ -213,6 +195,58 @@ public class HttpUtils {
         return ok;
     }
 
+    public static boolean updatePublication(String itemId, CloseableHttpClient httpClient, String user, String status, Double price) {
+        boolean ok=false;
+        //String myUserId=TokenUtils.getIdCliente(user);
+        String token = TokenUtils.getToken(user);
+        String url="https://api.mercadolibre.com/items/"+itemId;
+
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.addHeader("Authorization","Bearer "+token);
+        httpPut.setHeader("Content-type", "application/json");
+        httpPut.setHeader("Accept", "application/json");
+
+        String json = "{";
+        if (price!=null){
+            json += "\"price\": "+price;
+        }
+        if (status!=null){
+            if (!json.equals("{")){//si ya seteo otro parametro metemos coma
+                json +=",";
+            }
+            json += "\"status\":\""+status+"\"";
+        }
+        json+="}";
+
+        StringEntity entity = new StringEntity(json, StandardCharsets.US_ASCII);
+        httpPut.setEntity(entity);
+
+        CloseableHttpResponse response=null;
+        try {
+            response = httpClient.execute(httpPut);
+
+        }
+        catch (Exception e){
+            Logger.log("Error executing put "+e.getMessage());
+            Logger.log(e);
+            e.printStackTrace();
+        }
+
+        if (response!=null) {
+            StatusLine statusline = response.getStatusLine();
+            if (statusline != null) {
+                int statusCode = statusline.getStatusCode();
+                if (statusCode == 200 || statusCode == 201) { //este cambio dejarlo
+                    ok=true;
+                }else {
+                    Logger.log("Error actualizando publicacion. "+itemId+" status code =  "+statusCode);
+                }
+            }
+        }
+        return ok;
+    }
+
+
    public static JSONObject getJsonObjectUsingToken(String uRL, CloseableHttpClient httpClient, String usuario, boolean giveMeArray) {
 
         JSONObject jsonResponse=null;
@@ -256,9 +290,9 @@ public class HttpUtils {
             }
         }
         return jsonResponse;
-    }
+   }
 
-    synchronized static long increaseOrResetRequestCountersAndProxy(boolean reset){
+   synchronized static long increaseOrResetRequestCountersAndProxy(boolean reset){
         requestCount++;
         if (reset){
             requestCount=0;
@@ -266,7 +300,7 @@ public class HttpUtils {
             proxyOn=false;
         }
         return requestCount;
-    }
+   }
 
 
     synchronized static void rebuildClient(CloseableHttpClient client){
@@ -389,7 +423,52 @@ public class HttpUtils {
         return "nullORempty|";
     }
 
-    private static void proxyAndPauseManagement(boolean useProxy,HttpGet httpGet) {
+
+   public static int getStatusCode(String uRL, CloseableHttpClient client, String token) {
+
+        HttpGet httpGet = null;
+
+        try {
+            httpGet = new HttpGet(uRL);
+        } catch (Exception e){
+            String msg = "Error en getStatusCode parseando url "+uRL;
+            System.out.println(msg);
+            Logger.log(msg);
+            e.printStackTrace();
+            Logger.log(e);
+            return -1;
+        }
+
+        if (token!=null){
+            httpGet.addHeader("Authorization","Bearer "+token);
+        }
+
+        CloseableHttpResponse response = null;
+        HttpContext context = new BasicHttpContext();
+
+        int statusCode = 0;
+
+
+        try {
+            response = client.execute(httpGet, context);
+        } catch (IOException e) {
+            response = null;
+            Logger.log("Error en getStatusCode intento #" + uRL);
+            Logger.log(e);
+        }
+        Counters.incrementGlobalRequestCount();
+
+        if (response != null) {
+            StatusLine statusline = response.getStatusLine();
+            if (statusline != null) {
+                statusCode = statusline.getStatusCode();
+            }
+        }
+        return statusCode;
+   }
+
+
+   private static void proxyAndPauseManagement(boolean useProxy,HttpGet httpGet) {
         long eplapsedSeconds = (System.nanoTime() - timeRequestCount) / 1000000000L;
         long requestCount = increaseOrResetRequestCountersAndProxy(false);
         if (proxyOn){
@@ -424,17 +503,17 @@ public class HttpUtils {
                 }
             }
         }
-    }
+   }
 
-    public static boolean isOK(String hmlString){
+   public static boolean isOK(String hmlString){
         if (hmlString!=null && hmlString.length()>1){
             String result=hmlString.substring(0,2);
             return result.equals("ok");
         }
         return false;
-    }
+   }
 
-    public static boolean putJsonOnURL(CloseableHttpClient client, String uRL, JSONObject jsonObject, String usuario){
+   public static boolean putJsonOnURL(CloseableHttpClient client, String uRL, JSONObject jsonObject, String usuario){
         String token = TokenUtils.getToken(usuario);
         String urlWithToken = uRL + "&access_token=" + token;
         HttpPost httpPut = new HttpPost(urlWithToken);
@@ -498,10 +577,10 @@ public class HttpUtils {
         }
 
         return true; //put successfull
-    }
+   }
 
 
-    public static boolean downloadFile(CloseableHttpClient httpClient, String fileUrl, String filePath){
+   public static boolean downloadFile(CloseableHttpClient httpClient, String fileUrl, String filePath){
         HttpGet httpGet = new HttpGet(fileUrl);
 
         CloseableHttpResponse response = null;
@@ -575,10 +654,10 @@ public class HttpUtils {
             return false;
         }
         return true;
-    }
+   }
 
 
-    public static String getStringFromInputStream(InputStream is) {
+   public static String getStringFromInputStream(InputStream is) {
 
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
@@ -605,9 +684,9 @@ public class HttpUtils {
 
         return sb.toString();
 
-    }
+   }
 
-    private static synchronized boolean isUrlChanged(HttpContext context, String url) {
+   private static synchronized boolean isUrlChanged(HttpContext context, String url) {
         String newURL = null;
         if (context.getAttribute("http.request") instanceof HttpRequestWrapper) {
             HttpRequestWrapper httpRequestWrapper = (HttpRequestWrapper) context.getAttribute("http.request");
@@ -631,9 +710,9 @@ public class HttpUtils {
         }
 
         return false;
-    }
+   }
 
-    public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, String productId, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
+   public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, String productId, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(productId);
@@ -667,7 +746,7 @@ public class HttpUtils {
             }
         }
         return newQuestions;
-    }
+   }
 
    public static void main(String[] args){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
