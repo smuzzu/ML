@@ -26,8 +26,6 @@ public class MessagesAndSalesHelper {
     static HashMap<Long,String> reviewsHashMap = new HashMap<Long,String>();
     static ArrayList<String> allMyItems=new ArrayList<String>();
 
-    //static final String usuario="ACACIAYLENGA";
-    //static final String usuario="QUEFRESQUETE";
     static long tooMuchTime=10000l;
     static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
 
@@ -1287,8 +1285,8 @@ public class MessagesAndSalesHelper {
 
         Calendar calendar = Calendar.getInstance();
 
-        String user = "SOMOS_MAS";
-        //String user = "ACACIAYLENGA";
+        //String user = SData.getSomosMas();
+        String user = SData.getSomosMas();
 
         String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
                 calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");

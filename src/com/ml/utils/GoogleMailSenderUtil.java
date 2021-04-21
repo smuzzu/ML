@@ -3,7 +3,12 @@ package com.ml.utils;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
-import javax.mail.*;
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -13,14 +18,9 @@ import java.util.Properties;
 
 public class GoogleMailSenderUtil {
 
-    static final String username = "beatrizdassieu@gmail.com";
-    static final String password = "MePica33";
-    //static final String adressList = "sebamuzzu2@gmail.com, to_username_b@yahoo.com";
-    static final String adressList = "sebamuzzu2@gmail.com";
-
     public static boolean sendMail(String subject, String text,String destinationAddress, String []attachmets){
         if (destinationAddress==null || destinationAddress.isEmpty()){
-            destinationAddress=adressList;
+            destinationAddress=SData.getMailAddressList();
         }
         Properties prop = new Properties();
         prop.put("mail.smtp.host", "smtp.gmail.com");
@@ -31,13 +31,13 @@ public class GoogleMailSenderUtil {
         Session session = Session.getInstance(prop,
                 new javax.mail.Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
+                        return new PasswordAuthentication(SData.getMailUsername(), SData.getMailPassword());
                     }
                 });
         try {
             MimeMessage message = new MimeMessage(session);
             try {
-                message.setFrom(new InternetAddress("beatrizdassieu@gmail.com","Galperin"));
+                message.setFrom(new InternetAddress(SData.getMailUsername(),"Galperin"));
             } catch (UnsupportedEncodingException e) {
                 String errorMsg="UnsupportedEncodingException sending email=" + subject;
                 System.out.println(errorMsg);

@@ -1,7 +1,7 @@
 package com.ml;
 
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Logger;
+import com.ml.utils.SData;
 import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
@@ -21,7 +21,7 @@ public class CustomerInfo {
     static final char CORREDERAS_TELESCOPICAS='2';
     static final char ORGANIZADDOR_ROPA='3'; //perchero elevador y pantalonero
     static final char ORDENADORES_FILA='4';
-    static final char COCINA_ALMACENAMIENTO='5'; //portacopas
+    static final char COCINA_ALMACENAMIENTO='5'; //portacopas escurreplatos
     static final char CESTOS_PAPELERO ='6';
     static final char INSUMOS_OFICINA ='7';
     static final char MUEBLES_Y_SILLAS ='8';
@@ -41,14 +41,15 @@ public class CustomerInfo {
     static final char EQUIPAMIENTO_OFICINA_OTROS='M'; //porta CPU
     static final char MESAS_RATONAS='N'; //ratonas y mesasa
     static final char BURLETES='Ñ';
+    static final char CIERRAPUETAS='O';
 
     public static void main (String[] args) {
 
         //para buscar un item y su categoria
         //https://api.mercadolibre.com/items/MLA678401085
 
-        String nickname="ALCIS91SCHLEGEL";
-        char categoria=ALFOMBRAS;
+        String nickname="WOWLAMPARAS";
+        char categoria=CESTOS_PAPELERO;
 
         String categoryId=null;
         if (categoria==ALFOMBRAS){
@@ -126,12 +127,16 @@ public class CustomerInfo {
         if (categoria==BURLETES) {
             categoryId="MLA416677";
         }
+        if (categoria==CIERRAPUETAS) {
+            categoryId="MLA429496";
+        }
+
 
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 
-        //String user = "SOMOS_MAS";
-        String user = "ACACIAYLENGA";
+        //String user = SData.getSomosMas();
+        String user = SData.getAcaciaYLenga();
 
         nickname=nickname.replace(" ","+");
 
@@ -186,7 +191,6 @@ public class CustomerInfo {
 
             sellerRating="positive="+positive+" / neutral="+neutral+" / negative="+negative;
 
-            boolean b= false;
         }
 
         if (sellerObj.has("tags") && !sellerObj.isNull("tags")) {
@@ -283,7 +287,7 @@ public class CustomerInfo {
                 client=HttpUtils.buildHttpClient();
             }
             String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+productId+"&from="+custId;
-            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, client, "SOMOS_MAS",false);
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl, client, SData.getSomosMas(),false);
             if (questionsObj == null) {
                 continue;
             }
@@ -347,7 +351,7 @@ public class CustomerInfo {
         ArrayList<String> itemsArrayList = new ArrayList<>();
 
         //acacia  TODO meter todos los items, usando tokens
-        String acaciaylenga = "ACACIAYLENGA";
+        String acaciaylenga = SData.getAcaciaYLenga();
         boolean moreItems=true;
         String productListURL =null;
         JSONObject jsonResponse=null;
@@ -371,7 +375,7 @@ public class CustomerInfo {
         }
 
         //somos
-        String somos = "SOMOS_MAS";
+        String somos = SData.getSomosMas();
         moreItems=true;
         scrollId=null;
         while (moreItems){

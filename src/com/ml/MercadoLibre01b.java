@@ -2,8 +2,8 @@ package com.ml;
 
 import com.ml.utils.Counters;
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Item;
 import com.ml.utils.Logger;
+import com.ml.utils.SData;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 
@@ -165,8 +165,7 @@ public class MercadoLibre01b {
         }
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
-        HashMap<String, Item> itemHashMap = new HashMap<String, Item>();
-        String usuario = "SOMOS_MAS";
+        String usuario = SData.getSomosMas();
 
         //esto es para una prueba minima tambien hay que comentar los posible pausados
 /*        int selectedRecord=webBaseUrls.length-1;

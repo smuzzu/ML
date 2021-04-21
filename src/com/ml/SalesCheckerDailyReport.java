@@ -5,6 +5,8 @@ import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
 import com.ml.utils.MessagesAndSalesHelper;
 import com.ml.utils.Order;
+import com.ml.utils.SData;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 
 
@@ -13,24 +15,18 @@ import java.util.Collections;
 
 public class SalesCheckerDailyReport {
 
-    static String ACACIA = "ACACIAYLENGA";
-    static String SOMOS = "SOMOS_MAS";
-    static String QUEFRESQUETE = "QUEFRESQUETE";
-
-    
-
     public static void main(String[] args) {
 
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
-        String usuario = ACACIA;
+        String usuario = SData.getAcaciaYLenga();
         String msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
         ArrayList<Order> completePendingOrdersAcacia = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, usuario,httpClient);
 
-        usuario = SOMOS;
+        usuario = SData.getSomosMas();
         msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
@@ -127,7 +123,7 @@ public class SalesCheckerDailyReport {
         html += "</table>";
 
         String mailTitle="Reporte de entregas pendientes";
-        String destinationAdress="sebamuzzu2@gmail.com,centroequipamientos@centroequipamientos.com.ar";
+        String destinationAdress=SData.getMailAddressList();
         GoogleMailSenderUtil.sendMail(mailTitle, html, destinationAdress,null);
 
     }

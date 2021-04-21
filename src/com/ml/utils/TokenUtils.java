@@ -9,7 +9,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,39 +22,20 @@ import java.util.stream.Stream;
 
 public class TokenUtils {
 
-    static String QUEFRESQUETE="QUEFRESQUETE";
-    static String idClienteQUEFRESQUETE = "75607661";
-    static String tokenFileQUEFRESQUETE="C:"+File.separator+"centro"+File.separator+"tokenSeba.txt";
-    static String appIdQUEFRESQUETE = "1292869017866771";
-    static String appSecretQUEFRESQUETE = "lR09aH34VYvPyWsOPT6MY8rSWgizShg5";
-
-
-    static String ACACIAYLENGA="ACACIAYLENGA";
-    static String idClienteACACIAYLENGA = "241751796";
-    static String tokenFileACACIAYLENGA="C:"+File.separator+"centro"+File.separator+"tokenAcacia.txt";
-    static String appIdACACIAYLENGA = "4747672705070272";
-    static String appSecretACACIAYLENGA = "uiG40hwEV02Yto8edjCh8sv0kb4BIGz5";
-
-    static String SOMOS_MAS="SOMOS_MAS";
-    static String idClienteSOMOS_MAS = "67537324";
-    static String tokenFileSOMOS_MAS="C:"+File.separator+"centro"+File.separator+"tokenSomosMas.txt";
-    static String appIdSOMOS_MAS = "2799572367447893";
-    static String appSecretSOMOS_MAS = "TTNJrRQwILKSuPnv4VlE0huxtSkwpsFe";
-
     static String token = null;
     static String tokenUser = null;
     static String refresh_token = null;
 
-    private static String getFileStr(String user){
+    public static String getFileStr(String user){
         String tokenFile=null;
-        if (user.equals(QUEFRESQUETE)){
-            tokenFile=tokenFileQUEFRESQUETE;
+        if (user.equals(SData.getQuefresquete())){
+            tokenFile=SData.getTokenFileQuefresquete();
         }else {
-            if (user.equals(ACACIAYLENGA)){
-                tokenFile=tokenFileACACIAYLENGA;
+            if (user.equals(SData.getAcaciaYLenga())){
+                tokenFile=SData.getTokenFileAcaciaYLenga();
             }else{
-                if (user.equals("SOMOS_MAS")){
-                    tokenFile=tokenFileSOMOS_MAS;
+                if (user.equals(SData.getSomosMas())){
+                    tokenFile=SData.getTokenFileSomosMas();
                 }
             }
         }
@@ -80,11 +60,11 @@ public class TokenUtils {
                 token = fileStr.substring(0, eolPos1);
                 tokenUser= user;
                 String theRefreshToken = fileStr.substring(eolPos1+1,eolPos2);
-                encodedToken=encode(token);
-                String encodedRefreshToken=encode(theRefreshToken);
+                encodedToken= SData.encode(token);
+                String encodedRefreshToken= SData.encode(theRefreshToken);
                 DatabaseHelper.addTokenOnCloud(user,encodedToken,encodedRefreshToken);
             }else {
-                token=decode(encodedToken);
+                token= SData.decode(encodedToken);
                 tokenUser=user;
             }
         }
@@ -93,13 +73,13 @@ public class TokenUtils {
 
     public static int getUserNumber(String user) {
         int userNumber = 0;
-        if (user.equals(QUEFRESQUETE)) {
+        if (user.equals(SData.getQuefresquete())) {
             userNumber = 1;
         } else {
-            if (user.equals(ACACIAYLENGA)) {
+            if (user.equals(SData.getAcaciaYLenga())) {
                 userNumber = 2;
             } else {
-                if (user.equals("SOMOS_MAS")) {
+                if (user.equals(SData.getSomosMas())) {
                     userNumber = 3;
                 }
             }
@@ -111,20 +91,20 @@ public class TokenUtils {
         String appId=null;
         String appSecret=null;
         String tokenFile=null;
-        if (user.equals(QUEFRESQUETE)){
-            appId=appIdQUEFRESQUETE;
-            appSecret=appSecretQUEFRESQUETE;
-            tokenFile=tokenFileQUEFRESQUETE;
+        if (user.equals(SData.getQuefresquete())){
+            appId=SData.getAppIdQuefresquete();
+            appSecret=SData.getAppSecretQuefresquete();
+            tokenFile=SData.getTokenFileQuefresquete();
         }else {
-            if (user.equals(ACACIAYLENGA)){
-                appId=appIdACACIAYLENGA;
-                appSecret=appSecretACACIAYLENGA;
-                tokenFile=tokenFileACACIAYLENGA;
+            if (user.equals(SData.getAcaciaYLenga())){
+                appId=SData.getAppIdAcaciaYLenga();
+                appSecret=SData.getAppSecretAcaciaYLenga();
+                tokenFile=SData.getTokenFileAcaciaYLenga();
             }else{
-                if (user.equals(SOMOS_MAS)){
-                    appId=appIdSOMOS_MAS;
-                    appSecret=appSecretSOMOS_MAS;
-                    tokenFile=tokenFileSOMOS_MAS;
+                if (user.equals(SData.getSomosMas())){
+                    appId=SData.getAppIdSomosMas();
+                    appSecret=SData.getAppSecretSomosMas();
+                    tokenFile=SData.getTokenFileSomosMas();
                 }
             }
 
@@ -137,7 +117,7 @@ public class TokenUtils {
             int eolPos2 = fileStr.length() - 1;
             refresh_token = fileStr.substring(eolPos1, eolPos2);
         }else {
-            refresh_token=decode(encodedRefreshToken);
+            refresh_token= SData.decode(encodedRefreshToken);
         }
 
         String tokenURL = "https://api.mercadolibre.com/oauth/token?grant_type=refresh_token"
@@ -195,7 +175,7 @@ public class TokenUtils {
                 refresh_token = (String) refreshTokenObject;
             }
         }
-        String msg = "******************************* new token\n"+token+"\n"+refresh_token;
+        String msg = "******************************* new token";
         System.out.println(msg);
         Logger.log(msg);
 
@@ -212,21 +192,21 @@ public class TokenUtils {
             Logger.log(e);
         }
 
-        String encodedToken=encode(token);
-        encodedRefreshToken=encode(refresh_token);
+        String encodedToken= SData.encode(token);
+        encodedRefreshToken= SData.encode(refresh_token);
         DatabaseHelper.updateTokenOnCloud(user,encodedToken,encodedRefreshToken);
     }
 
     public static String getIdCliente(String user){
         String idCliente=null;
-        if (user.equals(QUEFRESQUETE)){
-            return idClienteQUEFRESQUETE;
+        if (user.equals(SData.getQuefresquete())){
+            return SData.getIdClienteQuefresquete();
         } else {
-            if (user.equals(ACACIAYLENGA)){
-                return idClienteACACIAYLENGA;
+            if (user.equals(SData.getAcaciaYLenga())){
+                return SData.getIdClienteAcaciaYLenga();
             } else {
-                if (user.equals("SOMOS_MAS")){
-                    return  idClienteSOMOS_MAS;
+                if (user.equals(SData.getSomosMas())){
+                    return  SData.getIdClienteSomosMas();
                 }
             }
         }
@@ -236,7 +216,7 @@ public class TokenUtils {
 
 
     public static void main(String[] args){
-        String userName="ACACIAYLENGA";
+        String userName=SData.getAcaciaYLenga();
 
 /*
         String token = DatabaseHelper.fetchTokenOnCloud(userName);
@@ -246,42 +226,6 @@ public class TokenUtils {
 
  */
         getToken(userName);
-    }
-
-    private static String encode(String str){
-        char[] charArray=str.toCharArray();
-        int z=0;
-        for (int i=0; i<charArray.length; i++){
-            z++;
-            if (z==96){
-                z=1;
-            }
-            int newValue = charArray[i]+z;
-            if (newValue>127){
-                newValue-=95;
-            }
-            charArray[i]=(char)newValue;
-        }
-        String result=String.valueOf(charArray);
-        return result;
-    }
-
-    private static String decode(String str){
-        char[] charArray=str.toCharArray();
-        int z=0;
-        for (int i=0; i<charArray.length; i++){
-            z++;
-            if (z==96){
-                z=1;
-            }
-            int newValue = charArray[i]-z;
-            if (newValue<32){
-                newValue+=95;
-            }
-            charArray[i]=(char)newValue;
-        }
-        String result=String.valueOf(charArray);
-        return result;
     }
 
 }

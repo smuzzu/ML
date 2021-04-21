@@ -1,14 +1,6 @@
 package com.ml;
 
-import com.ml.utils.DatabaseHelper;
-import com.ml.utils.GoogleMailSenderUtil;
-import com.ml.utils.HttpUtils;
-import com.ml.utils.Logger;
-import com.ml.utils.Message;
-import com.ml.utils.MessagesAndSalesHelper;
-import com.ml.utils.Order;
-import com.ml.utils.Product;
-import com.ml.utils.TokenUtils;
+import com.ml.utils.*;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.sql.Date;
@@ -20,11 +12,11 @@ import java.util.Calendar;
 
 public class SalesChecker {
 
-    static String ACACIA = "ACACIAYLENGA";
+    static String ACACIA = SData.getAcaciaYLenga();
 
-    //static String usuario = "ACACIAYLENGA";
-    static String usuario ="SOMOS_MAS";
-    //static String usuario ="QUEFRESQUETE";
+    //static String usuario = SData.getAcaciaYLenga();
+    static String usuario =SData.getSomosMas();
+    //static String usuario =SData.getQuefresquete();
 
     public static void main(String[] args) {
 
@@ -252,7 +244,7 @@ public class SalesChecker {
                             pendingOrder.billingAddressLine3;
                 }
 
-                String destinationAdress="sebamuzzu2@gmail.com, centroequipamientos@centroequipamientos.com.ar";
+                String destinationAdress=SData.getMailAddressList();
 
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAdress, attachments);
 

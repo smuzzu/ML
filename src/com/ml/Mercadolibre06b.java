@@ -3,6 +3,7 @@ package com.ml;
 import com.ml.utils.Counters;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.SData;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class Mercadolibre06b {
@@ -864,7 +865,7 @@ public class Mercadolibre06b {
 
         CloseableHttpClient client = HttpUtils.buildHttpClient();
 
-        String usuario = "SOMOS_MAS";
+        String usuario = SData.getSomosMas();
 
         ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
                 PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES, SAVE);

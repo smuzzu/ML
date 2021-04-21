@@ -6,6 +6,8 @@ import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
 import com.ml.utils.TokenUtils;
+import com.ml.utils.SData;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -47,7 +49,8 @@ public class ProductInfo {
         String answerText;
     }
 
-    static String usuario="SOMOS_MAS";
+    //static String usuario= SData.getAcaciaYLenga();
+    static String usuario= SData.getSomosMas();
 
 
     static long oneDayinMiliseconds = 86400000;

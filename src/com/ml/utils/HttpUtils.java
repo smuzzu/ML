@@ -131,19 +131,17 @@ public class HttpUtils {
 
     public static JSONObject getJsonObjectWithoutToken(String uRL, CloseableHttpClient httpClient, boolean giveMeArray) {
 
-        return getJsonObjectUsingToken(uRL,httpClient,"QUEFRESQUETE",giveMeArray);
+        return getJsonObjectUsingToken(uRL,httpClient,SData.getQuefresquete(),giveMeArray);
     }
 
     public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
-        //String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?access_token="+token;
         String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId;
 
         //todo nota importante:  se supone que el nuevo formato aplica para coreo y cross docking
         if (shippingType==Order.CORREO || shippingType==Order.FLEX) {
-            //url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?access_token=" + token;
             url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option";
             if (text.length()>=350){ //todo restringir a shippingType = correo
                 Logger.log("Mensaje superior a 350 caracteres");
@@ -750,11 +748,11 @@ public class HttpUtils {
 
    public static void main(String[] args){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        JSONObject object = getJsonObjectUsingToken("https://api.mercadolibre.com/users/me",httpClient,"QUEFRESQUETE",false);
+        JSONObject object = getJsonObjectUsingToken("https://api.mercadolibre.com/users/me",httpClient,SData.getQuefresquete(),false);
         String text="Muchas gracias por tu compra";
         long packId=4336466554l;
         long buyerCustId=95978482l;
-        String user="ACACIAYLENGA";
+        String user=SData.getAcaciaYLenga();
         postMessage(text,httpClient,packId,user,buyerCustId,Order.ACORDAR);
 
    }

@@ -56,10 +56,6 @@ public class DatabaseHelper {
     private static PreparedStatement globalUpdateVisits = null;
     private static PreparedStatement globalUpdateToken = null;
 
-    private static String globalCloudUrl = "jdbc:postgresql://rajje.db.elephantsql.com:5432/bivpmkkk";
-    private static String globalCloudUser = "bivpmkkk";
-    private static String globalCouldPassword = "TMpI5v0Gja7W974bDtDiF1RYenKW8-6f";
-
     private static boolean fetchTokenOnCloudFailureNotified =false;
     private static boolean updateTokenOnCloudFailureNotified =false;
     private static boolean cloudConnectionCreationFailureNotified=false;
@@ -113,9 +109,10 @@ public class DatabaseHelper {
             return false;
         }
         String[] validHostNames=new String[]{
-                "DESKTOP-2PMB0TS",
-                "Ciclon",
-                "Rivadavia4"
+                SData.getHostname1(),
+                SData.getHostname2(),
+                SData.getHostname3(),
+                SData.getHostname4()
         };
         for (String validHostName:validHostNames){
             if (validHostName.equals(hostname)){
@@ -148,8 +145,8 @@ public class DatabaseHelper {
         if (resetConnection) {
 
             Properties props = new Properties();
-            props.setProperty("user", globalCloudUser);
-            props.setProperty("password", globalCouldPassword);
+            props.setProperty("user", SData.getGlobalCloudUser());
+            props.setProperty("password", SData.getGlobalCouldPassword());
 
             try {
                 Class.forName("org.postgresql.Driver");
@@ -163,7 +160,7 @@ public class DatabaseHelper {
             while (!connected && retries<5) {
                 retries++;
                 try {
-                    globalCloudConnection = DriverManager.getConnection(globalCloudUrl, props);
+                    globalCloudConnection = DriverManager.getConnection(SData.getGlobalCloudUrl(), props);
                     globalCloudConnection.setAutoCommit(true);
                     connected=true;
                 } catch (SQLException e) {
@@ -184,7 +181,7 @@ public class DatabaseHelper {
             }
             if (!connected && !cloudConnectionCreationFailureNotified){
                 cloudConnectionCreationFailureNotified=true;
-                GoogleMailSenderUtil.sendMail("No se pudo establecer conecion con la base de datos cloud !!!","","sebamuzzu@gmail.com");
+                GoogleMailSenderUtil.sendMail("No se pudo establecer conecion con la base de datos cloud !!!","",SData.getMailErrorNotification());
             }
         }
         return globalCloudConnection;
@@ -817,7 +814,7 @@ public class DatabaseHelper {
         }
         if (token==null && !fetchTokenOnCloudFailureNotified){
             fetchTokenOnCloudFailureNotified=true;
-            GoogleMailSenderUtil.sendMail("No se pudo recuperar el token de "+userName+" on cloud","","sebamuzzu@gmail.com");
+            GoogleMailSenderUtil.sendMail("No se pudo recuperar el token de "+userName+" on cloud","",SData.getMailErrorNotification());
         }
         return token;
     }
@@ -912,7 +909,7 @@ public class DatabaseHelper {
         }
         if (!completed && updateTokenOnCloudFailureNotified){
             updateTokenOnCloudFailureNotified=true;
-            GoogleMailSenderUtil.sendMail("No se pudo actualizar el token de "+userName+" on cloud","","sebamuzzu@gmail.com");
+            GoogleMailSenderUtil.sendMail("No se pudo actualizar el token de "+userName+" on cloud","",SData.getMailErrorNotification());
         }
     }
 

@@ -2,6 +2,7 @@ package com.ml;
 
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.SData;
 import com.ml.utils.TokenUtils;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -16,259 +17,426 @@ public class Preciario {
 
     //Alan   400
     //Gio    350
+    //Nico   250
     //Charly 500
-    static double COSTO_MOTO =400; //aca va lo que cobra Alan
-    static double COSTO_TAXI =500; //aca va lo que cobra Charly
-    static double COSTO_ENVOLTORIOS=10.0; //todo estimar bien
+    static double COSTO_MOTO = 400; //aca va lo que cobra Alan
+    static double COSTO_TAXI = 500; //aca va lo que cobra Charly
+    static double COSTO_ENVOLTORIOS = 10.0; //todo estimar bien
 
+    static long[] idsArray = new long[]
+            {831749248,
+                    837410777,
+                    837424807,
+                    867228623,
+                    867232491,
+                    831770478,
+                    831769691,
+                    867287419,
+                    867289006,
+                    831772965,
+                    841308624,
+                    834666219,
+                    901398938,
+                    832013469,
+                    832020699,
+                    841208700,
+                    841207611,
+                    838284741,
+                    838289546,
+                    873079832,
+                    841318827,
+                    841315351,
+                    855898686,
+                    855899577,
+                    855893649,
+                    860363717,
+                    860218651,
+                    860231657,
+                    860249763,
+                    885525697,
+                    885527878,
+                    885532825,
+                    868847943,
+                    868847163,
+                    903382441,
+                    907462814,
+                    870370980,
+                    870406366,
+                    870410295,
+                    870837240,
+                    870839059,
+                    870837504,
+                    872468125,
+                    873273498,
+                    872467559,
+                    880932563,
+                    880933397,
+                    881643376,
+                    881926537,
+                    881711642,
+                    881728606,
+                    881730594,
+                    906171952,
+                    886329192,
+                    898091166,
+                    898091400,
+                    883153701,
+                    883155256,
+                    883250723
+            };
+    static double[] costArray = new double[]
+            {
+                    864.96,
+                    1153.28,
+                    1441.60,
+                    288.32,
+                    288.32,
+                    1246.56,
+                    1246.56,
+                    415.52,
+                    4.16,
+                    1479.44,
+                    1479.44,
+                    1832.98,
+                    1832.98,
+                    2746.62,
+                    2746.62,
+                    221.82,
+                    221.82,
+                    11035.58,
+                    11035.58,
+                    11035.58,
+                    1606.03,
+                    1606.03,
+                    15596.54,
+                    15596.54,
+                    15596.54,
+                    2508.63,
+                    3344.84,
+                    4181.05,
+                    836.21,
+                    243.19,
+                    243.19,
+                    243.19,
+                    279.63,
+                    279.63,
+                    279.63,
+                    279.63,
+                    5165.82,
+                    5165.82,
+                    5165.82,
+                    3320.11,
+                    3320.11,
+                    3320.11,
+                    2945.03,
+                    2945.03,
+                    2945.03,
+                    5529.33,
+                    5529.33,
+                    5529.33,
+                    76.85,
+                    614.77,
+                    1229.53,
+                    1844.30,
+                    205.71,
+                    205.71,
+                    822.84,
+                    822.84,
+                    31587.03,
+                    31587.03,
+                    31587.03
+            };
 
-    public static Price getPrice(String usuario, String itemID, double costoSinIva) {
-        Price item = new Price();
-
-        String msg="";
-        if (usuario==null || usuario.isEmpty()){
-            msg="getPrice. El usuario no se ingreso. No es posible continuar";
-            System.out.println(msg);
-            Logger.log(msg);
-            return null;
-        }
-        if (usuario.equals("A")){
-            usuario="ACACIAYLENGA";
-        } else {
-            if (usuario.equals("S")){
-                usuario="SOMOS_MAS";
-            }
-        }
-        if (!isValidUser(usuario)){
-            msg="getPrice. El usuario '"+usuario+ "' no es valido. No es posible continuar";
-            System.out.println(msg);
-            Logger.log(msg);
-            return null;
-        }
-
-        if (!isValidId(itemID)){
-            msg="getPrice. El jsonItem no se ingreso. No es posible continuar";
-            System.out.println(msg);
-            Logger.log(msg);
-            return null;
-        }
-
-        if (!isValidPrice(costoSinIva)){
-            msg="getPrice. El costo sin iva  "+costoSinIva+" no es valido. No es posible continuar";
-            System.out.println(msg);
-            Logger.log(msg);
-            return null;
-        }
-
-        if (!itemID.startsWith("MLA") || itemID.length()<11){
-            msg="getPrice. El jsonItem "+itemID+" no es valido. No es posible continuar";
-            System.out.println(msg);
-            Logger.log(msg);
-            return null;
-        }
-
-        item.usuario=usuario;
-        item.itemID=itemID;
-        item.costoSinIva=costoSinIva;
-
-        //TODO ingresos brutos?
-        //TODO y si el taxi hay que facturarlo?
-
-        System.out.println("Aguarde...");
-
-        CloseableHttpClient client= HttpUtils.buildHttpClient();
-
-        String itemUrl="https://api.mercadolibre.com/items/"+itemID;
-        JSONObject jsonItem = HttpUtils.getJsonObjectUsingToken(itemUrl,client,usuario,false);
-
-        if (jsonItem==null){
-            System.out.println("No se pudo encontrar el jsonItem: "+itemID+" del usuario "+usuario);
+    private static void checkHafele() {
+        if (costArray.length != idsArray.length) {
+            System.out.println("no coinciden los arrays");
             System.exit(0);
         }
+        for (int i = 0; i < idsArray.length; i++) {
+            long id = idsArray[i];
+            double costBeforeTaxes = costArray[i];
+            Price priceObj = getPrice(SData.getSomosMas(), "MLA" + id, costBeforeTaxes);
+            if (priceObj == null) {
+                System.out.println("priceObj is null " + id);
+                System.exit(0);
+            }
+            priceObj.print(false);
+            boolean b = false;
+        }
+    }
 
-        item.price=0.0; //todo manejar descuentos
+    public static String getPrice2(String usuario, String itemID, double costoSinIva, boolean showDetails) {
+        String result = "";
+        Price price = getPrice(usuario, itemID, costoSinIva);
+        if (price != null) {
+            result = price.print(showDetails);
+        }
+        return result;
+    }
+
+
+    protected static Price getPrice(String usuario, String itemID, double costoSinIva) {
+        Price item = new Price();
+
+        String msg = "";
+        if (usuario == null || usuario.isEmpty()) {
+            msg = "getPrice. El usuario no se ingreso. No es posible continuar";
+            System.out.println(msg);
+            Logger.log(msg);
+            return null;
+        }
+        if (usuario.equals("A")) {
+            usuario = SData.getAcaciaYLenga();
+        } else {
+            if (usuario.equals("S")) {
+                usuario = SData.getSomosMas();
+            }
+        }
+        if (!isValidUser(usuario)) {
+            msg = "getPrice. El usuario '" + usuario + "' no es valido. No es posible continuar";
+            System.out.println(msg);
+            Logger.log(msg);
+            return null;
+        }
+
+        if (!isValidId(itemID)) {
+            msg = "getPrice. El item no se ingreso. No es posible continuar";
+            System.out.println(msg);
+            Logger.log(msg);
+            return null;
+        }
+        itemID = itemID.trim();
+        if (!itemID.startsWith("MLA")) {
+            itemID = "MLA" + itemID;
+        }
+
+        if (!isValidPrice(costoSinIva)) {
+            msg = "getPrice. El costo sin iva  " + costoSinIva + " no es valido. No es posible continuar";
+            System.out.println(msg);
+            Logger.log(msg);
+            return null;
+        }
+
+        if (!itemID.startsWith("MLA") || itemID.length() < 11) {
+            msg = "getPrice. El jsonItem " + itemID + " no es valido. No es posible continuar";
+            System.out.println(msg);
+            Logger.log(msg);
+            return null;
+        }
+
+        item.usuario = usuario;
+        item.itemID = itemID;
+        item.costoSinIva = costoSinIva;
+
+        //TODO y si el taxi hay que facturarlo?
+
+        System.out.println("Aguarde...  Wait....");
+
+        CloseableHttpClient client = HttpUtils.buildHttpClient();
+
+        String itemUrl = "https://api.mercadolibre.com/items/" + itemID;
+        JSONObject jsonItem = HttpUtils.getJsonObjectUsingToken(itemUrl, client, usuario, false);
+
+        if (jsonItem == null) {
+            System.out.println("No se pudo encontrar el jsonItem: " + itemID + " del usuario " + usuario);
+            return null;
+        }
+
+        item.price = 0.0; //todo manejar descuentos
         if (jsonItem.has("price") && !jsonItem.isNull("price")) {
             item.price = jsonItem.getDouble("price");
         }
 
 
-        item.descripcion="N/A";
+        item.descripcion = "N/A";
         if (jsonItem.has("title") && !jsonItem.isNull("title")) {
             item.descripcion = jsonItem.getString("title");
         }
 
-        item.permalink="N/A";
+        item.permalink = "N/A";
         if (jsonItem.has("permalink") && !jsonItem.isNull("permalink")) {
             item.permalink = jsonItem.getString("permalink");
         }
 
-        String categoryId=null;
+        String categoryId = null;
         if (jsonItem.has("category_id") && !jsonItem.isNull("category_id")) {
             categoryId = jsonItem.getString("category_id");
         }
-        if (categoryId==null){
-            System.out.println("No se pudo encontrar la categoria del jsonItem: "+itemID+" del usuario "+usuario);
-            System.exit(0);
+        if (categoryId == null) {
+            System.out.println("No se pudo encontrar la categoria del item: " + itemID + " del usuario " + usuario);
+            return null;
         }
 
-        String listingTypeId=null;
+        String listingTypeId = null;
         if (jsonItem.has("listing_type_id") && !jsonItem.isNull("listing_type_id")) {
             listingTypeId = jsonItem.getString("listing_type_id");
         }
-        if (listingTypeId==null){
-            System.out.println("No se pudo encontrar el tipo de publicación del jsonItem: "+itemID+" del usuario "+usuario);
-            System.exit(0);
+        if (listingTypeId == null) {
+            System.out.println("No se pudo encontrar el tipo de publicación del item: " + itemID + " del usuario " + usuario);
+            return null;
         }
 
-        item.saleType="N/A";
-        item.saleCost=0.0;
-        String saleCostUrl="https://api.mercadolibre.com/sites/MLA/listing_prices?category_id="+categoryId+"&price="+item.price;
-        JSONObject saleCostArray = HttpUtils.getJsonObjectUsingToken(saleCostUrl,client,usuario,true);
-        if (saleCostArray!=null){
+        item.costoEvoltorios = COSTO_ENVOLTORIOS;
+        item.saleType = "N/A";
+        item.saleCost = 0.0;
+        String saleCostUrl = "https://api.mercadolibre.com/sites/MLA/listing_prices?category_id=" + categoryId + "&price=" + item.price;
+        JSONObject saleCostArray = HttpUtils.getJsonObjectUsingToken(saleCostUrl, client, usuario, true);
+        if (saleCostArray != null) {
             JSONArray costArray = saleCostArray.getJSONArray("elArray");
-            for (int i=0; i<costArray.length(); i++){
-                JSONObject costObj=costArray.getJSONObject(i);
-                if (costObj!=null && costObj.has("listing_type_id") && !costObj.isNull("listing_type_id")){
-                    String listingTypeId2=costObj.getString("listing_type_id");
-                    if (listingTypeId2.equals(listingTypeId)){
+            for (int i = 0; i < costArray.length(); i++) {
+                JSONObject costObj = costArray.getJSONObject(i);
+                if (costObj != null && costObj.has("listing_type_id") && !costObj.isNull("listing_type_id")) {
+                    String listingTypeId2 = costObj.getString("listing_type_id");
+                    if (listingTypeId2.equals(listingTypeId)) {
                         if (costObj.has("sale_fee_amount") && !costObj.isNull("sale_fee_amount")) {
                             item.saleCost = costObj.getDouble("sale_fee_amount");
                         }
-                        if (costObj.has("listing_type_name") && !costObj.isNull("listing_type_name")){
-                            item.saleType=costObj.getString("listing_type_name");
+                        if (costObj.has("listing_type_name") && !costObj.isNull("listing_type_name")) {
+                            item.saleType = costObj.getString("listing_type_name");
+                            if (item.saleType.contains("sica")) { //clásica o clasica
+                                item.saleType += "/standard";
+                            }
                         }
                     }
                 }
             }
-            if (item.saleCost==0.0){
-                System.out.println("No se pudo encontrar el costo de la comision para el jsonItem: "+itemID+" del usuario "+usuario);
-                System.exit(0);
+            if (item.saleCost == 0.0) {
+                System.out.println("No se pudo encontrar el costo de la comision para el item: " + itemID + " del usuario " + usuario);
+                return null;
             }
         }
 
-        item.freeShipping=false;
-        item.customShipping=false;
-        item.mercadoEnvios=0.0;
-        if (jsonItem.has("shipping") && !jsonItem.isNull("shipping")){
-            JSONObject shippingObj=jsonItem.getJSONObject("shipping");
-            if (shippingObj!=null){
+        item.freeShipping = false;
+        item.customShipping = false;
+        item.mercadoEnvios = 0.0;
+        if (jsonItem.has("shipping") && !jsonItem.isNull("shipping")) {
+            JSONObject shippingObj = jsonItem.getJSONObject("shipping");
+            if (shippingObj != null) {
                 if (shippingObj.has("free_shipping") && !shippingObj.isNull("free_shipping")) {
                     item.freeShipping = shippingObj.getBoolean("free_shipping");
                 }
             }
             if (shippingObj.has("mode") && !shippingObj.isNull("mode")
-                    && shippingObj.getString("mode").equals("custom")){
-                item.customShipping=true;
+                    && shippingObj.getString("mode").equals("custom")) {
+                item.customShipping = true;
             }
         }
 
-        if (item.freeShipping){
-            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client,5545 );
-            if (shippingOptionsObj!=null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")){
-                JSONArray optionsObj=shippingOptionsObj.getJSONArray("options");
-                for (int i=0; i<optionsObj.length(); i++){
-                    JSONObject theOptionObj=optionsObj.getJSONObject(i);
-                    if (theOptionObj!=null && theOptionObj.has("shipping_option_type") && !theOptionObj.isNull("shipping_option_type")){
-                        String shippingOptionType = theOptionObj.getString("shipping_option_type");
-                        if (!shippingOptionType.equals("agency")){
-                            continue;
-                        }
-                    }
-                    if (theOptionObj!=null && theOptionObj.has("list_cost") && !theOptionObj.isNull("list_cost")){
-                        item.mercadoEnvios= theOptionObj.getDouble("list_cost");
-                    }
-                }
-            }
-        }
-
-        double customShippingPrice=0.0;
-        double diferencialCustomShipping=0.0;
-        if (item.customShipping){
-            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client,1424);
-            if (shippingOptionsObj!=null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")){
-                JSONArray optionsObj=shippingOptionsObj.getJSONArray("options");
-                for (int i=0; i<optionsObj.length(); i++) {
+        if (item.freeShipping) {
+            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client, 5545);
+            if (shippingOptionsObj != null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")) {
+                JSONArray optionsObj = shippingOptionsObj.getJSONArray("options");
+                for (int i = 0; i < optionsObj.length(); i++) {
                     JSONObject theOptionObj = optionsObj.getJSONObject(i);
-                    if (theOptionObj!=null && theOptionObj.has("name") && !theOptionObj.isNull("name")){
-                        String shippingName=theOptionObj.getString("name");
-                        if (shippingName!=null && shippingName.contains("xpreso")){//expreso
+                    if (theOptionObj != null && theOptionObj.has("shipping_option_type") && !theOptionObj.isNull("shipping_option_type")) {
+                        String shippingOptionType = theOptionObj.getString("shipping_option_type");
+                        if (!shippingOptionType.equals("agency")) {
                             continue;
                         }
                     }
-                    if (theOptionObj!=null && theOptionObj.has("cost") && !theOptionObj.isNull("cost")){
-                        customShippingPrice=theOptionObj.getDouble("cost");
-                        diferencialCustomShipping=customShippingPrice- COSTO_TAXI;
+                    if (theOptionObj != null && theOptionObj.has("list_cost") && !theOptionObj.isNull("list_cost")) {
+                        item.mercadoEnvios = theOptionObj.getDouble("list_cost");
                     }
                 }
             }
         }
 
-        item.flex=false;
+        if (item.customShipping) {
+            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client, 1424);
+            if (shippingOptionsObj != null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")) {
+                JSONArray optionsObj = shippingOptionsObj.getJSONArray("options");
+                for (int i = 0; i < optionsObj.length(); i++) {
+                    JSONObject theOptionObj = optionsObj.getJSONObject(i);
+                    if (theOptionObj != null && theOptionObj.has("name") && !theOptionObj.isNull("name")) {
+                        String shippingName = theOptionObj.getString("name");
+                        if (shippingName != null && shippingName.contains("xpreso")) {//expreso
+                            continue;
+                        }
+                    }
+                    if (theOptionObj != null && theOptionObj.has("cost") && !theOptionObj.isNull("cost")) {
+                        item.customShippingPrice = theOptionObj.getDouble("cost");
+                        item.diferencialCustomShipping = item.customShippingPrice - COSTO_TAXI;
+                    }
+                }
+            }
+        }
+
+        item.flex = false;
         String flexUrl = "https://api.mercadolibre.com/sites/MLA/shipping/selfservice/items/" + itemID;
         int flexStatusCode = HttpUtils.getStatusCode(flexUrl, client, TokenUtils.getToken(usuario));
-        if (flexStatusCode==204){
-            item.flex=true;
-        }else {
-            if (flexStatusCode==403 || flexStatusCode==404){
-                item.flex=false;
-            }else {
-                System.out.println("status code = "+flexStatusCode+" buscando envio flex en el jsonItem "+itemID
-                        +"\nPor favor veriicar que el usuario "+usuario+" sea el correcto para este producto"
-                        +"\n"+item.permalink);
-                System.exit(0);
+        if (flexStatusCode == 204) {
+            item.flex = true;
+        } else {
+            if (flexStatusCode == 403 || flexStatusCode == 404) {
+                item.flex = false;
+            } else {
+                System.out.println("status code = " + flexStatusCode + " buscando envio flex en el jsonItem " + itemID
+                        + "\nPor favor veriicar que el usuario " + usuario + " sea el correcto para este producto"
+                        + "\n" + item.permalink);
+                return null;
             }
         }
         //todo controlar otros casos
 
         //aca calculamos la diferencia entre lo que paga ML y lo que cobra la moto
         //deberia coincidir con lo que dice aca https://www.mercadolibre.com.ar/ayuda/costos-envios-flex_3859
-        item.ayudaMotos=0.0;
-        item.diferenciaDeMotos=0.0;
-        if (item.flex){
-            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client, 1424);
-            if (shippingOptionsObj!=null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")){
-                JSONArray optionsObj=shippingOptionsObj.getJSONArray("options");
-                for (int i=0; i<optionsObj.length(); i++) {
-                    JSONObject theOptionObj = optionsObj.getJSONObject(i);
-                    if (theOptionObj != null && theOptionObj.has("shipping_method_type") && !theOptionObj.isNull("shipping_method_type")) {
-                        String shippongMethodType=theOptionObj.getString("shipping_method_type");
-                        if (shippongMethodType.equals("super_express")) {//es el envio rapido en capital
-                            item.ayudaMotos = theOptionObj.getDouble("list_cost");
-                            item.diferenciaDeMotos=item.ayudaMotos- COSTO_MOTO;
-                        }
-                    }
-                }
+        item.ayudaMotos = 0.0;
+        item.diferenciaDeMotos = 0.0;
+        if (item.flex) {
+            if (item.price <= 3500) {
+                item.ayudaMotos = 309.99;
+            } else {
+                item.ayudaMotos = 155;
             }
+            item.diferenciaDeMotos = item.ayudaMotos - COSTO_MOTO;
         }
 
 
-        item.ivaCompras=costoSinIva*0.21;
-        item.ivaVentas=item.price*0.21;
-        item.ivaAfavorML=(item.saleCost+item.mercadoEnvios)*.21;
+        item.ivaCompras = costoSinIva * 0.21;
+        item.ivaVentas = item.price * 0.21;
+        item.ivaAfavorML = (item.saleCost + item.mercadoEnvios) * .21;
 
-        item.profitSF=item.price-item.costoSinIva-item.saleCost-item.mercadoEnvios+item.ivaCompras+item.ivaAfavorML-COSTO_ENVOLTORIOS;
-        item.profit=item.profitSF-item.ivaVentas;
-        item.profitSFMoto=item.price-costoSinIva-item.saleCost+item.diferenciaDeMotos+item.ivaCompras+item.ivaAfavorML-COSTO_ENVOLTORIOS;
-        item.profitSFTaxi=item.price-costoSinIva-item.saleCost+diferencialCustomShipping+item.ivaCompras+item.ivaAfavorML-COSTO_ENVOLTORIOS;
+        item.profitSF = item.price - item.costoSinIva - item.saleCost - item.mercadoEnvios + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
+        item.profit = item.profitSF - item.ivaVentas;
+        item.profitSFMoto = item.price - costoSinIva - item.saleCost + item.diferenciaDeMotos + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
+        item.profitSFTaxi = item.price - item.costoSinIva - item.saleCost + item.diferencialCustomShipping + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
+        item.profitMoto = item.profitSFMoto - item.ivaVentas;
+        item.profitTaxi = item.profitSFTaxi - item.ivaVentas;
 
-        item.profitMoto=item.profitSFMoto-item.ivaVentas;
-        item.profitTaxi=item.profitSFTaxi-item.ivaVentas;
-        item.marging=item.profit/(costoSinIva+item.ivaCompras)*100;
-        item.margingMoto=item.profitMoto/(costoSinIva+item.ivaCompras)*100;
-        item.margingTaxi=item.profitTaxi/(costoSinIva+item.ivaCompras)*100;
-        item.maringSF=item.profitSF/(costoSinIva+item.ivaCompras)*100;
-        item.margingSFMoto=item.profitSFMoto/(costoSinIva+item.ivaCompras)*100;
-        item.margingSFTaxi=item.profitSFTaxi/(costoSinIva+item.ivaCompras)*100;
+        item.marging = item.profit / (costoSinIva + item.ivaCompras) * 100;
+        item.margingMoto = item.profitMoto / (costoSinIva + item.ivaCompras) * 100;
+        item.margingTaxi = item.profitTaxi / (costoSinIva + item.ivaCompras) * 100;
+        item.maringSF = item.profitSF / (costoSinIva + item.ivaCompras) * 100;
+        item.margingSFMoto = item.profitSFMoto / (costoSinIva + item.ivaCompras) * 100;
+        item.margingSFTaxi = item.profitSFTaxi / (costoSinIva + item.ivaCompras) * 100;
+
+        item.profitWorstCase = item.profit;
+        item.margingWorkstCase = item.marging;
+        if (item.flex) {
+            if (item.profitMoto < item.profitWorstCase) {
+                item.profitWorstCase = item.profitMoto;
+                item.margingWorkstCase = item.margingMoto;
+            }
+        }
+        if (item.customShipping) {
+            if (item.profitTaxi < item.profitWorstCase) {
+                item.profitWorstCase = item.profitTaxi;
+                item.margingWorkstCase = item.margingTaxi;
+            }
+        }
+
 
         return item;
     }
 
 
-    public static void main (String args[]){
+    public static void main(String args[]) {
 
-        String usuario="";
-        String itemId="";
-        double costoSinIva=0.0;
+        String usuario = "";
+        String itemId = "";
+        double costoSinIva = 0.0;
+
+        //checkHafele();
 
         while (true) {
 
@@ -280,7 +448,9 @@ public class Preciario {
             String msg = null;
             while (repeaInput) {
 
-                System.out.println("Ingrese la letra del usuario  codigo_de_proucto  costo_sin_iva\nej. A MLA680935542 2560.12");
+                System.out.println("Ingrese inicial_de_usuario  numero_de_publicacion  costo_sin_iva");
+                System.out.println("Insert user_first_initial publication_number cost_before_taxes");
+                System.out.println("ej./ie.: S 831772965 1479.44");
                 try {
                     Scanner in;
                     in = new Scanner(System.in);
@@ -289,7 +459,7 @@ public class Preciario {
                     e.printStackTrace();
                 }
                 if (userChoice == null || userChoice.isEmpty()) {
-                    msg = "main. No se ingreso informacion. No es posible continuar";
+                    msg = "No se ingreso informacion. No es posible continuar\nThere is no info. We cannot process your request";
                     System.out.println(msg);
                     Logger.log(msg);
                     continue;
@@ -297,7 +467,7 @@ public class Preciario {
                 userChoice = userChoice.trim();
                 data = userChoice.split("\\s+");
                 if (data.length != 3) {
-                    msg = "main. Cantidad de parametros incorrecta. '" + userChoice.trim() + "' No es posible continuar";
+                    msg = "Cantidad de parametros incorrecta/Wrong parameters quantity '" + userChoice.trim() + "' No es posible continuar/We cannot proceed";
                     System.out.println(msg);
                     Logger.log(msg);
                     continue;
@@ -308,22 +478,25 @@ public class Preciario {
                 String costoSinIvaStr = data[2];
 
                 if (!isValidUser(usuario)) {
-                    msg = "main. El usuario no se ingreso. No es posible continuar";
+                    msg = "El usuario no es valido. No es posible continuar/User is not valid. We cannot proceed";
                     System.out.println(msg);
                     Logger.log(msg);
                     continue;
                 }
                 if (usuario.equals("A")) {
-                    usuario = "ACACIAYLENGA";
+                    usuario = SData.getAcaciaYLenga();
                 } else {
                     if (usuario.equals("S")) {
-                        usuario = "SOMOS_MAS";
+                        usuario = SData.getSomosMas();
                     }
                 }
 
                 itemId = itemId.replaceAll("-", "");
+                if (!itemId.startsWith("MLA")) {
+                    itemId = "MLA" + itemId;
+                }
                 if (!isValidId(itemId)) {
-                    msg = "main. El usuario no se ingreso. No es posible continuar";
+                    msg = "El numero de publicacion no es valido/Invalid publication number " + itemId + " No es posible continuar/We cannot proceed";
                     System.out.println(msg);
                     Logger.log(msg);
                     continue;
@@ -331,7 +504,7 @@ public class Preciario {
 
                 costoSinIvaStr = costoSinIvaStr.replaceAll(",", ".");
                 if (!isValidPrice(costoSinIvaStr)) {
-                    msg = "main. El usuario no se ingreso. No es posible continuar";
+                    msg = "El precio sin iva no es valido/Invalid price before taxes " + costoSinIvaStr + " No es posible continuar/We cannot proceed";
                     System.out.println(msg);
                     Logger.log(msg);
                     continue;
@@ -373,7 +546,9 @@ public class Preciario {
 
             Price price = getPrice(usuario, itemId, costoSinIva);
 
-            price.print();
+            if (price != null) {
+                price.print(true);
+            }
 
 
         /*
@@ -394,36 +569,40 @@ public class Preciario {
     }
 
     private static JSONObject getShippingOptions(String usuario, String itemID, CloseableHttpClient client, int zipCode) {
-        String shippingOptionsUrl = "https://api.mercadolibre.com/items/" + itemID + "/shipping_options?zip_code="+zipCode+"&quantity=1";
+        String shippingOptionsUrl = "https://api.mercadolibre.com/items/" + itemID + "/shipping_options?zip_code=" + zipCode + "&quantity=1";
         return HttpUtils.getJsonObjectUsingToken(shippingOptionsUrl, client, usuario, false);
     }
 
 
-    public static boolean isValidUser(String usuario){
-        if (usuario==null || usuario.isEmpty()){
+    public static boolean isValidUser(String usuario) {
+        if (usuario == null || usuario.isEmpty()) {
             return false;
         }
-        if (usuario.equals("ACACIAYLENGA") || usuario.equals("SOMOS_MAS")){
+        if (usuario.equals(SData.getAcaciaYLenga()) || usuario.equals(SData.getSomosMas())) {
             return true;
         }
-        if (usuario.equals("A") || usuario.equals("S")){
+        if (usuario.equals("A") || usuario.equals("S")) {
             return true;
         }
         return false;
     }
 
     public static boolean isValidId(String id) {
-        if (id==null || id.length()<11){
+        if (id == null) {
             return false;
         }
-        if (!id.startsWith("MLA")){
+        id = id.trim();
+        if (!id.startsWith("MLA")) {
+            id = "MLA" + id;
+        }
+        if (id.length() < 11) {
             return false;
         }
-        String str=id.substring(3);
+        String str = id.substring(3);
         try {
             Long.parseLong(str);
             return true;
-        } catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             return false;
         }
     }
@@ -432,21 +611,21 @@ public class Preciario {
         try {
             Double.parseDouble(price);
             return true;
-        } catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             return false;
         }
     }
 
     public static boolean isValidPrice(double price) {
-       if (price>0.0){
-           return true;
-       }else {
-           return false;
-       }
+        if (price > 0.0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
-    private static class Price {
+    public static class Price {
         String usuario;
         String itemID;
         double costoSinIva;
@@ -486,48 +665,103 @@ public class Preciario {
         double profitSFTaxi;
         double margingSFTaxi;
 
-        public void print(){
+        public double profitWorstCase;
+        public double margingWorkstCase;
 
+        public String print(boolean showDetails) {
+
+            String result="";
             DecimalFormat decimalFormat = new DecimalFormat("#####.00");
 
             System.out.println(descripcion);
+            result+=descripcion+"<br/>";
             System.out.println(permalink);
-            System.out.println("Precio: "+price);
-            System.out.println("Costo sin Iva: "+costoSinIva);
-            System.out.println("Comision: "+saleCost+" / "+saleType);
+            result+="<a ref=\""+permalink+"\">"+permalink+"</a><br/>";
+            String priceStr="Precio/Price: " + price;
+            System.out.println(priceStr);
+            result+=priceStr+"<br/>";
+            String costBeforeTaxesStr="Costo sin Iva/Cost before taxes: " + costoSinIva;
+            System.out.println(costBeforeTaxesStr);
+            result+=costBeforeTaxesStr+"<br/>";
+            String feeStr="Comision/Fee: " + saleCost + " / " + saleType;
+            System.out.println(feeStr);
+            result+=feeStr+"<br/>";
             if (freeShipping) {
-                System.out.println("Mercadoenvios: " + mercadoEnvios);
+                String shippingStr="Mercadoenvios/Shipping: " + mercadoEnvios;
+                System.out.println(shippingStr);
+                result+=shippingStr+"<br/>";
             }
             if (flex) {
-                System.out.println("Ayuda moto: " + ayudaMotos);
-                System.out.println("Diff moto: " + diferenciaDeMotos);
-            }
-            if (customShipping){
-                System.out.println("Env. taxi: " + customShippingPrice);
-                System.out.println("Diff taxi: " + diferencialCustomShipping);
-
-            }
-            System.out.println("Iva Compras: "+decimalFormat.format(ivaCompras));
-            System.out.println("Iva Ventas: "+decimalFormat.format(ivaVentas));
-            System.out.println("Iva de ML: "+decimalFormat.format(ivaAfavorML));
-            System.out.println("Envoltorios: "+costoEvoltorios);
-
-            System.out.println("\nGanancia              "+decimalFormat.format(profit)+"  "+decimalFormat.format(marging)+" %");
-            if (flex) {
-                System.out.println("Ganancia con Moto     " + decimalFormat.format(profitMoto) + "  " + decimalFormat.format(margingMoto) + " %");
+                String ayudaMotoStr="Ayuda moto/Help for delivery: " + ayudaMotos;
+                System.out.println(ayudaMotoStr);
+                result+=ayudaMotoStr+"<br/>";
+                if (showDetails) {
+                    String diffMotoStr="Diff moto: " + diferenciaDeMotos;
+                    System.out.println(diffMotoStr);
+                    result+=diffMotoStr+"<br/>";
+                }
             }
             if (customShipping) {
-                System.out.println("Ganancia con Taxi     " + decimalFormat.format(profitTaxi) + "  " + decimalFormat.format(margingTaxi) + " %");
+                String customShippingStr="Env. taxi/Custom shipping: " + customShippingPrice;
+                System.out.println(customShippingStr);
+                result+=customShippingStr+"<br/>";
+                if (showDetails) {
+                    String diffTaxiStr="Diff taxi: " + diferencialCustomShipping;
+                    System.out.println(diffTaxiStr);
+                    result+=diffTaxiStr+"<br/>";
+                }
             }
-            System.out.println("\nGananciaSF            " + decimalFormat.format(profitSF) + "  " + decimalFormat.format(maringSF) + " %");
-            if (flex) {
-                System.out.println("GananciaSF con Moto   " + decimalFormat.format(profitSFMoto) + "  " + decimalFormat.format(margingSFMoto) + " %");
+            if (showDetails) {
+                String ivaComprasStr="Iva Compras: " + decimalFormat.format(ivaCompras);
+                System.out.println(ivaComprasStr);
+                result+=ivaComprasStr+"<br/>";
+                String ivaVentasStr="Iva Ventas: " + decimalFormat.format(ivaVentas);
+                System.out.println(ivaVentasStr);
+                result+=ivaVentasStr+"<br/>";
+                String ivaDeMl="Iva de ML: " + decimalFormat.format(ivaAfavorML);
+                System.out.println(ivaDeMl);
+                result+=ivaDeMl+"<br/>";
+                String envoltoriosStr="Envoltorios: " + costoEvoltorios;
+                System.out.println(envoltoriosStr);
+                result+=envoltoriosStr+"<br/>";
             }
-            if (customShipping) {
-                System.out.println("GananciaSF con Taxi   " + decimalFormat.format(profitSFTaxi) + "  " + decimalFormat.format(margingSFTaxi) + " %");
+
+            if (showDetails) {
+                String gananciaRetiraStr="\nGanancia retira        " + decimalFormat.format(profit) + "  " + decimalFormat.format(marging) + " %";
+                System.out.println(gananciaRetiraStr);
+                result+=gananciaRetiraStr+"<br/>";
+                if (flex) {
+                    String gananciaConMotoStr=("Ganancia con Moto     " + decimalFormat.format(profitMoto) + "  " + decimalFormat.format(margingMoto) + " %");
+                    System.out.println(gananciaConMotoStr);
+                    result+=gananciaConMotoStr+"<br/>";
+                }
+                if (customShipping) {
+                    String customShippingStr="Ganancia con Taxi     " + decimalFormat.format(profitTaxi) + "  " + decimalFormat.format(margingTaxi) + " %";
+                    System.out.println(customShippingStr);
+                    result+=customShippingStr+"<br/>";
+                }
+                String gananciaSFStr="\nGananciaSF            " + decimalFormat.format(profitSF) + "  " + decimalFormat.format(maringSF) + " %";
+                System.out.println(gananciaSFStr);
+                result+=gananciaSFStr+"<br/>";
+                if (flex) {
+                    String gananciaSFConMoto="GananciaSF con Moto   " + decimalFormat.format(profitSFMoto) + "  " + decimalFormat.format(margingSFMoto) + " %";
+                    System.out.println(gananciaSFConMoto);
+                    result+=gananciaSFConMoto+"<br/>";
+                }
+                if (customShipping) {
+                    String gananciaSFconTaxiStr="GananciaSF con Taxi   " + decimalFormat.format(profitSFTaxi) + "  " + decimalFormat.format(margingSFTaxi) + " %";
+                    System.out.println(gananciaSFconTaxiStr);
+                    result+=gananciaSFconTaxiStr+"<br/>";
+                }
             }
+
+            String profitStr="\nGanancia/Profit        " + decimalFormat.format(profitWorstCase) + "  " + decimalFormat.format(margingWorkstCase) + " %";
+            System.out.println(profitStr);
+            result+=profitStr+"<br/>";
 
             System.out.println("\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
+            return result;
         }
     }
 

@@ -10,6 +10,8 @@ import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HTMLParseUtils;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.SData;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
@@ -36,9 +38,9 @@ public class VisitCounter {
     static int INTERVAL_SIZE=5000;
 
     public static String[] usuarios = new String[] {
-            "ACACIAYLENGA",
-            "QUEFRESQUETE",
-            "SOMOS_MAS"
+            SData.getAcaciaYLenga(),
+            SData.getQuefresquete(),
+            SData.getSomosMas()
     };
 
 
