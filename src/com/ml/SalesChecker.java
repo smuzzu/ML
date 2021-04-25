@@ -337,7 +337,7 @@ public class SalesChecker {
                             if (pendingOrder.chatSent) {
                                 String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
                                 String text = firstMsgToBuyer+"<br/><br/>Version corta:<br/>"+firstMsgToBuyer2;
-                                GoogleMailSenderUtil.sendMail(mailTitle, text, null, null); //todo sacar
+                                GoogleMailSenderUtil.sendMail(mailTitle, text, SData.getMailErrorNotification(), null); //todo sacar
                             }
                             statusChanged = true;
                         }
@@ -356,7 +356,7 @@ public class SalesChecker {
                             msg1 += "<br><br>Mensajes post venta:<br>" + buyerSays;
                         }
                         String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
-                        pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, null, null);
+                        pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, SData.getMailErrorNotification(), null);
                         statusChanged = true;
                     }
                 }else {
@@ -364,7 +364,7 @@ public class SalesChecker {
                     String saleDetails = "https://www.mercadolibre.com.ar/ventas/" + pendingOrder.id + "/detalle";
                     String msg1 = "No pudimos notificar a este cliente porque mandó hizo una compra multi item, por favor notificar manualmente.<br>" + saleDetails;
                     String mailTitle = "primer mensaje para el cliente " + " " + pendingOrder.productTitle + " " + pendingOrder.id;
-                    pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, null, null);
+                    pendingOrder.chatSent = GoogleMailSenderUtil.sendMail(mailTitle, msg1, SData.getMailErrorNotification(), null);
                     statusChanged = true;
                 }
             }
