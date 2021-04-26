@@ -12,7 +12,8 @@ import java.sql.Timestamp;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class DatabaseHelper {
@@ -38,6 +39,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastMonthly = null;
     private static PreparedStatement globalSelectSales1 = null;
     private static PreparedStatement globalSelectSales2 = null;
+    private static PreparedStatement globalSelectQuestions = null;
     private static PreparedStatement globalSelectHolidays = null;
     private static PreparedStatement globalSelectProductOnCloud = null;
     private static PreparedStatement globalSelectServiceStatusOnCloud = null;
@@ -49,8 +51,10 @@ public class DatabaseHelper {
     private static PreparedStatement globalInsertMonthly = null;
     private static PreparedStatement globalInsertActivity = null;
     private static PreparedStatement globalInsertSale = null;
+    private static PreparedStatement globalInsertQuestion = null;
     private static PreparedStatement globalRemoveActivity = null;
     private static PreparedStatement globalRemoveSale = null;
+    private static PreparedStatement globalRemoveQuestions = null;
     private static PreparedStatement globalUpdateProduct = null;
     private static PreparedStatement globalDisableProduct=null;            ;
     private static PreparedStatement globalUpdateVisits = null;
@@ -660,6 +664,51 @@ public class DatabaseHelper {
         }
     }
 
+    public static void insertQuestion(long id, int userNumber, String data) {
+        Connection updateConnection = getCloudConnection();
+        try{
+            if (globalInsertQuestion ==null) {
+                globalInsertQuestion = updateConnection.prepareStatement("insert into public.preguntas(id,usuario,data) values (?,?,?)");
+            }
+            globalInsertQuestion.setLong(1,id);
+            globalInsertQuestion.setInt(2,userNumber);
+            globalInsertQuestion.setString(3,data);
+
+            int insertedRecords = globalInsertQuestion.executeUpdate();
+            if (insertedRecords!=1){
+                Logger.log("Couln't insert a record in questions table id="+id);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Cannot insert a record in questions table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+
+    public static void updateQuestion(long id, String text) {
+        Connection updateConnection =getCloudConnection();
+
+        try{
+            PreparedStatement ps = updateConnection.prepareStatement("update public.preguntas set "+
+                    "data=? where id=?");
+
+            ps.setString(1,text);
+            ps.setLong(2,id);
+
+            int updatedRecords = ps.executeUpdate();
+            if (updatedRecords!=1){
+                Logger.log("Couln't update a record in questions table id="+id);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("update a record in question table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+
     public static void updateSale(long id, Character state, Character shippingType, Boolean mailSent, Boolean chatSent) {
         Connection updateConnection =getCloudConnection();
 
@@ -724,6 +773,31 @@ public class DatabaseHelper {
             Logger.log(e);
         }
     }
+
+    public static void removeQuestion(long id) {
+        Connection updateConnection = getCloudConnection();
+
+
+        try{
+            if (globalRemoveQuestions ==null) {
+                globalRemoveQuestions = updateConnection.prepareStatement("delete from public.preguntas where id=?");
+            }
+
+            globalRemoveQuestions.setLong(1,id);
+
+            int removedRecords = globalRemoveQuestions.executeUpdate();
+            if (removedRecords!=1){
+                Logger.log("Couln't delete a record in questions table id="+id);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Cannot delete a record in questions table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+
 
     public static synchronized void disableProduct(String productId,String database){
         int registrosModificados=0;
@@ -981,6 +1055,41 @@ public class DatabaseHelper {
         }
         return resultSet;
     }
+
+    public static Map<Long,String> fetchQuestions() {
+        Map<Long,String> questionsMap = new HashMap<Long,String>();
+
+        ResultSet resultSet = null;
+        Connection selectConnection = getCloudConnection();
+
+        String query = "SELECT id,usuario,data FROM public.preguntas order by id";
+
+        try{
+            if (globalSelectQuestions ==null) {
+                globalSelectQuestions = selectConnection.prepareStatement(query);
+            }
+
+            resultSet = globalSelectQuestions.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get all questions");
+            }
+            while (resultSet.next()){
+                Long id = resultSet.getLong(1);
+                if (id!=null && id>0){
+                    String data = resultSet.getString(3);
+                    questionsMap.put(id,data);
+                }
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get all questions II");
+            Logger.log(e);
+        }
+
+        return questionsMap;
+    }
+
+
 
     public static ArrayList<Date> fetchHolidaysFromCloud() {
 
@@ -1364,9 +1473,14 @@ public class DatabaseHelper {
 
 
     public static void main(String[] args) {
-        Product product = getProductFromCloud("MLA-831749248");
+        //insertQuestion(2,2,"detalles");
+        Map<Long,String> questionsMap = fetchQuestions();
+        long id=11870686542L;
+        long id2=11870112456L;
+        removeQuestion(id);
+        removeQuestion(id2);
+        questionsMap = fetchQuestions();
         boolean b=false;
-
     }
 
 }

@@ -21,7 +21,7 @@ public class SalesChecker {
     public static void main(String[] args) {
 
         LocalTime now = LocalTime.now();
-        if (now.isAfter(NON_WORKING_HOURS_FROM) && now.isBefore(NON_WORKING_HOURS_TO)) {
+        if (now.isAfter(SData.NON_WORKING_HOURS_FROM) && now.isBefore(SData.NON_WORKING_HOURS_TO)) {
             String msg = "Zzzzzzzz "+now.toString();
             System.out.println(msg);
             Logger.log(msg);
@@ -43,7 +43,7 @@ public class SalesChecker {
         }
 
 
-        String msg="*********** Procesando usuario: "+usuario;
+        String msg="*********** Procesando ventas de usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
 
@@ -568,9 +568,6 @@ public class SalesChecker {
     static LocalTime AFTERNOON_TO = LocalTime.of(19,00);
     static LocalTime EVENING_FROM = LocalTime.of(20,30);
     static LocalTime EVENING_TO = LocalTime.of(2,00);
-
-    static LocalTime NON_WORKING_HOURS_FROM = LocalTime.of(0,01);
-    static LocalTime NON_WORKING_HOURS_TO = LocalTime.of(7,00);
 
     static ArrayList<Date> hollydays=null;
 

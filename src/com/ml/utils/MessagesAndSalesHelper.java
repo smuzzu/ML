@@ -379,7 +379,7 @@ public class MessagesAndSalesHelper {
         return previousQuestionsArrayList;
     }
 
-    private static String getQuestionFileName(String user){
+    public static String getQuestionFileName(String user){
         return "C:\\centro\\questions_"+ user +".txt";
     }
 
@@ -478,7 +478,7 @@ public class MessagesAndSalesHelper {
     }
 
 
-    private static ArrayList<Message>  getQuestionsFromFile(String fileName) {
+    public static ArrayList<Message>  getQuestionsFromFile(String fileName) {
 
         ArrayList<Message> previousQuestionsArrayList = new ArrayList<Message>();
 
@@ -621,7 +621,7 @@ public class MessagesAndSalesHelper {
     }
 
 
-    private static Timestamp getTimestamp(String dateStr){
+    public static Timestamp getTimestamp(String dateStr){
         Timestamp result=null;
         dateStr=dateStr.replace('T',' ');
         try {

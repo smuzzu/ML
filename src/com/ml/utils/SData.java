@@ -1,8 +1,12 @@
 package com.ml.utils;
 
 import java.io.File;
+import java.time.LocalTime;
 
 public class SData {
+
+    public static LocalTime NON_WORKING_HOURS_FROM = LocalTime.of(0,01);
+    public static LocalTime NON_WORKING_HOURS_TO = LocalTime.of(7,00);
 
     private static String QUEFRESQUETE="RWHJWKZY^O_Q";
     private static String idClienteQUEFRESQUETE = "8794<<=9";
