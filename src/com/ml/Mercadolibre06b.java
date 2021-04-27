@@ -376,6 +376,7 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=97562082",   //INSUOFFICE
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=121000172",  //AMV-TIENDA+ONLINE
 
+            //muebludeces
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=213476162",  //CERSARYDESIGN
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=129993069",  //JOY+TIENDA
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=58693232",   //MANU_CHAMBAIDEAS
@@ -383,6 +384,7 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=187186141",  //HIVICKY.
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=165804006",  //URWA9971249
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=24088738",  //MAURO+MUSUMECI
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=193071955",  //MALOR.
 
             //hafele + frank
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=141782424",  //ALLSURHERRAJES
@@ -414,6 +416,7 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=141299067",  //HERRAJESSOIFER
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=323780517",  //HOME.MARKET
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=22579885",   //KEUKEN HERRAJES
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=231944987",  //HERRAJESVEIGA LINE
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=577706727",  //REALHERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=121020308",  //QUIEROHERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=3154882",    //STOVI
@@ -433,6 +436,7 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=163421387",  //HT+HERRAJES
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=172619074",  //LUCIAZAFFRANI
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=209025171",  //AMOBLAMIENTOS INTEVIL
+            "https://api.mercadolibre.com/sites/MLA/search?seller_id=156064186",  //HERRAJESREVELLI
 
             //ducasse y euro hard
             "https://api.mercadolibre.com/sites/MLA/search?seller_id=159950125",  //DISTRIBUIDORA+SYG
@@ -701,6 +705,7 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HIVICKY.
             {0, 2147483647}, //URWA9971249
             {0, 2147483647}, //MAURO+MUSUMECI
+            {0, 2147483647}, //MALOR.
 
     //hafele + frank
             {0, 2147483647}, //ALLSURHERRAJES
@@ -732,6 +737,7 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HERRAJESSOIFER
             {0, 2147483647}, //HOME.MARKET
             {0, 2147483647}, //KEUKEN HERRAJES
+            {0, 2147483647}, //HERRAJESVEIGA LINE
             {0, 2147483647}, //REALHERRAJES
             {0, 2147483647}, //QUIEROHERRAJES
             {0, 2147483647}, //STOVI
@@ -751,6 +757,7 @@ public class Mercadolibre06b {
             {0, 2147483647}, //HT+HERRAJES
             {0, 2147483647}, //LUCIAZAFFRANI
             {0, 2147483647}, //AMOBLAMIENTOS INTEVIL
+            {0, 2147483647}, //HERRAJESREVELLI
 
             //euro hard
             {0, 2147483647}, //DISTRIBUIDORA+SYG
