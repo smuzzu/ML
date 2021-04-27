@@ -39,7 +39,8 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastMonthly = null;
     private static PreparedStatement globalSelectSales1 = null;
     private static PreparedStatement globalSelectSales2 = null;
-    private static PreparedStatement globalSelectQuestions = null;
+    private static PreparedStatement globalSelectQuestions1 = null;
+    private static PreparedStatement globalSelectQuestions2 = null;
     private static PreparedStatement globalSelectHolidays = null;
     private static PreparedStatement globalSelectProductOnCloud = null;
     private static PreparedStatement globalSelectServiceStatusOnCloud = null;
@@ -1065,11 +1066,11 @@ public class DatabaseHelper {
         String query = "SELECT id,usuario,data FROM public.preguntas order by id";
 
         try{
-            if (globalSelectQuestions ==null) {
-                globalSelectQuestions = selectConnection.prepareStatement(query);
+            if (globalSelectQuestions1 ==null) {
+                globalSelectQuestions1 = selectConnection.prepareStatement(query);
             }
 
-            resultSet = globalSelectQuestions.executeQuery();
+            resultSet = globalSelectQuestions1.executeQuery();
             if (resultSet==null){
                 Logger.log("Couldn't get all questions");
             }
@@ -1089,6 +1090,36 @@ public class DatabaseHelper {
         return questionsMap;
     }
 
+    public static String fetchQuestionSeller(Long questionId) {
+        String result="";
+
+        ResultSet resultSet = null;
+        Connection selectConnection = getCloudConnection();
+
+        String query = "SELECT usuario,data FROM public.preguntas where id=?";
+
+        try{
+            if (globalSelectQuestions2 ==null) {
+                globalSelectQuestions2 = selectConnection.prepareStatement(query);
+            }
+
+            globalSelectQuestions2.setLong(1,questionId);
+            resultSet = globalSelectQuestions2.executeQuery();
+            if (resultSet==null){
+                Logger.log("Couldn't get all questions");
+            }
+            if (resultSet.next()){
+                int userId = resultSet.getInt(1);
+                result=TokenUtils.getUserName(userId);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get all questions II");
+            Logger.log(e);
+        }
+
+        return result;
+    }
 
 
     public static ArrayList<Date> fetchHolidaysFromCloud() {

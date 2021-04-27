@@ -87,6 +87,24 @@ public class TokenUtils {
         return userNumber;
     }
 
+    public static String getUserName(int userID) {
+        String userName="N/A";
+
+        if (userID==1) {
+            userName=SData.getQuefresquete();
+        } else {
+            if (userID==2) {
+                userName=SData.getAcaciaYLenga();
+            } else {
+                if (userID==3) {
+                    userName=SData.getSomosMas();
+                }
+            }
+        }
+        return userName;
+    }
+
+
     public static synchronized void refreshToken(CloseableHttpClient httpClient,String user) {
         String appId=null;
         String appSecret=null;

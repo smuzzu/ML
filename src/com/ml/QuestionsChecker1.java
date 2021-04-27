@@ -51,9 +51,6 @@ public class QuestionsChecker1 {
         Logger.log(msg);
         System.out.println(msg);
 
-
-        ArrayList<Long> unansweredQuestionIDs=new ArrayList<Long>();
-
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
         long oneDayinMiliseconds = 86400000L;
@@ -87,7 +84,6 @@ public class QuestionsChecker1 {
                 Logger.log(msg);
                 continue;
             }
-            unansweredQuestionIDs.add(id);
 
             if (questionsOnCloud.containsKey(id)) {
                 continue;
@@ -103,7 +99,10 @@ public class QuestionsChecker1 {
             String text=line;
 
             text = processBasicInfo(httpClient, fromId,text);
-            text = processQuestionFiles(httpClient, fromId, text);
+            int pos1=text.indexOf("|");
+            String nickName=text.substring(0,pos1);
+            text=text.substring(pos1+1);
+            text = processQuestionFiles(httpClient, fromId, nickName, text);
             storeText(user, id, text);
         }
 
@@ -116,14 +115,18 @@ public class QuestionsChecker1 {
             String questionUrl = "https://api.mercadolibre.com/questions/"+questionId;
             JSONObject questionObject = HttpUtils.getJsonObjectUsingToken(questionUrl,httpClient,user,false);
             boolean delete=false;
-            if (questionObject.has("answer") && !questionObject.isNull("answer")){
+            if (questionObject==null){
                 delete=true;
             }else {
-                if (questionObject.has("date_created") && !questionObject.isNull("date_created")) {
-                    String dateCreatedStr=questionObject.getString("date_created");
-                    Timestamp creationTimestamp = MessagesAndSalesHelper.getTimestamp(dateCreatedStr);
-                    if (creationTimestamp.before(last3Days)) {
-                        delete=true;
+                if (questionObject.has("answer") && !questionObject.isNull("answer")) {
+                    delete = true;
+                } else {
+                    if (questionObject.has("date_created") && !questionObject.isNull("date_created")) {
+                        String dateCreatedStr = questionObject.getString("date_created");
+                        Timestamp creationTimestamp = MessagesAndSalesHelper.getTimestamp(dateCreatedStr);
+                        if (creationTimestamp.before(last3Days)) {
+                            delete = true;
+                        }
                     }
                 }
             }
@@ -133,13 +136,13 @@ public class QuestionsChecker1 {
         }
     }
 
-    private static String processQuestionFiles(CloseableHttpClient httpClient, long fromId, String text) {
-        String text2= processQuestionFiles(httpClient,SData.getAcaciaYLenga(),fromId,text);
-        String text3= processQuestionFiles(httpClient,SData.getSomosMas(),fromId,text2);
+    private static String processQuestionFiles(CloseableHttpClient httpClient, long fromId, String nickName, String text) {
+        String text2= processQuestionFiles(httpClient,SData.getAcaciaYLenga(),fromId,nickName,text);
+        String text3= processQuestionFiles(httpClient,SData.getSomosMas(),fromId,nickName,text2);
         return text3;
     }
 
-    private static String processQuestionFiles(CloseableHttpClient httpClient, String user, long fromId, String text) {
+    private static String processQuestionFiles(CloseableHttpClient httpClient, String user, long fromId, String nickName, String text) {
         String newText=text;
         String line="";
         String questionFileName=MessagesAndSalesHelper.getQuestionFileName(user);
@@ -155,7 +158,7 @@ public class QuestionsChecker1 {
                         System.out.print(line);
                         newText +=line;
                     }
-                    line="P: "+question.text+"\n";
+                    line=nickName+": "+question.text+"\n";
                     System.out.print(line);
                     newText +=line;
                     String answerId=question.id.substring(0,question.id.length()-1)+"R";
@@ -165,7 +168,7 @@ public class QuestionsChecker1 {
                     if (allQuestionsArrayList.contains(answer)) {
                         answer = allQuestionsArrayList.get(allQuestionsArrayList.indexOf(answer));
                     }
-                    line="R: "+answer.text+"\n\n";
+                    line=user+": "+answer.text+"\n\n";
                     System.out.print(line);
                     newText +=line;
                 }
@@ -353,7 +356,7 @@ public class QuestionsChecker1 {
         line="---------------------------------------------------------------------------------------------------------\n";
         System.out.print(line);
         newText+=line;
-        return newText;
+        return nickname+"|"+newText;
 
     }
 

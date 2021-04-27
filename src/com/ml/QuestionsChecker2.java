@@ -23,7 +23,6 @@ public class QuestionsChecker2 {
         System.out.println(msg);
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        String user = SData.getAcaciaYLenga();
         Map<Long,String> questionsOnCloud= DatabaseHelper.fetchQuestions();
         for (Long questionId: questionsOnCloud.keySet()){
             String text=null;
@@ -39,7 +38,7 @@ public class QuestionsChecker2 {
             }
             if (text!=null && text.startsWith("BASICO")){
                 text=text.substring(7);//removemos basico
-                text=processAllQuestionsInCategory(httpClient,user,questionId,text);
+                text=processAllQuestionsInCategory(httpClient,questionId,text);
                 String compressedTest=null;
                 try {
                     compressedTest = CompressionUtil.compressAndReturnB64(text);
@@ -56,8 +55,9 @@ public class QuestionsChecker2 {
     }
 
 
-    private static String processAllQuestionsInCategory(CloseableHttpClient httpClient,String user, long questionId, String text){
+    private static String processAllQuestionsInCategory(CloseableHttpClient httpClient, long questionId, String text){
         String newText=text;
+        String user=DatabaseHelper.fetchQuestionSeller(questionId);
         String questionUrl = "https://api.mercadolibre.com/questions/"+questionId;
         JSONObject questionObject = HttpUtils.getJsonObjectUsingToken(questionUrl,httpClient,user,false);
 
@@ -99,7 +99,12 @@ public class QuestionsChecker2 {
             Logger.log(msg);
             return newText;
         }
-
+        String customerUrl="https://api.mercadolibre.com/users/"+ fromId;
+        String customerNickname = "P";
+        JSONObject customerObj = HttpUtils.getJsonObjectWithoutToken(customerUrl, httpClient,false);
+        if (customerObj!=null && customerObj.has("nickname") && !customerObj.isNull("nickname")) {
+            customerNickname = customerObj.getString("nickname");
+        }
 
         String line="";
 
@@ -116,7 +121,7 @@ public class QuestionsChecker2 {
                 httpClient=HttpUtils.buildHttpClient();
             }
             String questionsUrl2 = "https://api.mercadolibre.com/questions/search?item="+productId+"&from="+fromId;
-            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl2, httpClient, SData.getSomosMas(),false);
+            JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl2, httpClient, user,false);
             if (questionsObj == null) {
                 continue;
             }
@@ -137,10 +142,22 @@ public class QuestionsChecker2 {
                 String itemUrl2="https://api.mercadolibre.com/items/"+productId;
                 JSONObject itemObj2 = HttpUtils.getJsonObjectWithoutToken(itemUrl2, httpClient, false);
                 String itemPermalink = itemObj2.getString("permalink");
+
+                String sellerNickname = "R";
+                if (itemObj2.has("seller_id") && !itemObj2.isNull("seller_id")){
+                    long sellerId=itemObj2.getLong("seller_id");
+                    String customerUrl2="https://api.mercadolibre.com/users/"+ sellerId;
+
+                    JSONObject customerObj2 = HttpUtils.getJsonObjectWithoutToken(customerUrl2, httpClient,false);
+                    if (customerObj2!=null && customerObj2.has("nickname") && !customerObj2.isNull("nickname")) {
+                        sellerNickname = customerObj2.getString("nickname");
+                    }
+                }
+
                 System.out.println(" ");
                 line="\n"+dateStr+" "+itemPermalink+"\n"
-                        +"P: "+questionText+"\n"
-                        +"R: "+answerText+"\n"
+                        +customerNickname+": "+questionText+"\n"
+                        +sellerNickname+": "+answerText+"\n"
                         +"------------------------------\n";
                 System.out.print(line);
                 newText+=line;
