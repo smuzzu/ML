@@ -9,8 +9,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 
 public class Preciario {
@@ -19,9 +24,9 @@ public class Preciario {
     //Gio    350
     //Nico   250
     //Charly 500
-    static double COSTO_MOTO = 400; //aca va lo que cobra Alan
-    static double COSTO_TAXI = 500; //aca va lo que cobra Charly
-    static double COSTO_ENVOLTORIOS = 10.0; //todo estimar bien
+    static Double COSTO_MOTO = null;
+    static Double COSTO_TAXI = null;
+    static Double COSTO_ENVOLTORIOS = null;
 
     static long[] idsArray = new long[]
             {831749248,
@@ -86,66 +91,65 @@ public class Preciario {
             };
     static double[] costArray = new double[]
             {
-                    864.96,
-                    1153.28,
-                    1441.60,
-                    288.32,
-                    288.32,
-                    1246.56,
-                    1246.56,
-                    415.52,
-                    4.16,
-                    1479.44,
-                    1479.44,
-                    1832.98,
-                    1832.98,
-                    2746.62,
-                    2746.62,
-                    221.82,
-                    221.82,
-                    11035.58,
-                    11035.58,
-                    11035.58,
-                    1606.03,
-                    1606.03,
-                    15596.54,
-                    15596.54,
-                    15596.54,
-                    2508.63,
-                    3344.84,
-                    4181.05,
-                    836.21,
-                    243.19,
-                    243.19,
-                    243.19,
-                    279.63,
-                    279.63,
-                    279.63,
-                    279.63,
-                    5165.82,
-                    5165.82,
-                    5165.82,
-                    3320.11,
-                    3320.11,
-                    3320.11,
-                    2945.03,
-                    2945.03,
-                    2945.03,
-                    5529.33,
-                    5529.33,
-                    5529.33,
-                    76.85,
-                    614.77,
-                    1229.53,
-                    1844.30,
-                    205.71,
-                    205.71,
-                    822.84,
-                    822.84,
-                    31587.03,
-                    31587.03,
-                    31587.03
-            };
+                    908.19,
+                    1210.92,
+                    1513.65,
+                    302.73,
+                    302.73,
+                    1308.89,
+                    1308.89,
+                    436.30,
+                    4.36,
+                    1553.40,
+                    1553.40,
+                    1924.63,
+                    1924.63,
+                    2883.96,
+                    2883.96,
+                    232.91,
+                    232.91,
+                    11587.36,
+                    11587.36,
+                    11587.36,
+                    1686.33,
+                    1686.33,
+                    16376.37,
+                    16376.37,
+                    16376.37,
+                    2634.06,
+                    3512.08,
+                    4390.10,
+                    878.02,
+                    255.35,
+                    255.35,
+                    255.35,
+                    293.61,
+                    293.61,
+                    293.61,
+                    293.61,
+                    5424.11,
+                    5424.11,
+                    5424.11,
+                    3486.12,
+                    3486.12,
+                    3486.12,
+                    3092.28,
+                    3092.28,
+                    3092.28,
+                    5805.80,
+                    5805.80,
+                    5805.80,
+                    80.69,
+                    645.50,
+                    1291.01,
+                    1936.51,
+                    216.00,
+                    205.19,
+                    863.98,
+                    820.76,
+                    33166.38,
+                    33166.38,
+                    33166.38            };
 
     private static void checkHafele() {
         if (costArray.length != idsArray.length) {
@@ -174,8 +178,56 @@ public class Preciario {
         return result;
     }
 
+    private static void loadCostsFromFile(){
+        StringBuilder contentBuilder = new StringBuilder();
+        try (Stream<String> stream = Files.lines(Paths.get("data.dat"), StandardCharsets.UTF_8)) {
+            stream.forEach(s -> contentBuilder.append(s).append("\n"));
+        }
+        catch (IOException e) {
+            String msg="No se pudo leer el data.dat No es posible continuar";
+            Logger.log(msg);
+            System.out.println(msg);
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        String costs = contentBuilder.toString();
+        String [] cost=costs.split("\n");
+        if (costs==null || costs.length()!=3){
+            String msg="No se pudo leer correctamente el archivo de costos. ";
+            Logger.log(msg);
+            System.out.println(msg);
+        }
+        for (int i=0; i<cost.length; i++){
+            String costStr=cost[i];
+            costStr=costStr.substring(0,costStr.indexOf("/"));
+            cost[i]=costStr.trim();
+        }
+        try {
+            COSTO_MOTO=Double.parseDouble(cost[0]);
+            COSTO_TAXI=Double.parseDouble(cost[1]);
+            COSTO_ENVOLTORIOS=Double.parseDouble(cost[2]);
+        }catch (Exception e){
+            String msg="No se pudo convertir a numero la inforamcion en el archivo de costos. ";
+            Logger.log(msg);
+            System.out.println(msg);
+            Logger.log(e);
+            e.printStackTrace();
+        }
+    }
+
 
     protected static Price getPrice(String usuario, String itemID, double costoSinIva) {
+
+        if (COSTO_MOTO==null || COSTO_TAXI==null || COSTO_ENVOLTORIOS==null){
+            loadCostsFromFile();
+            if (COSTO_MOTO==null || COSTO_TAXI==null || COSTO_ENVOLTORIOS==null){
+                String msg="No se saben los costos. No es posible continuar";
+                Logger.log(msg);
+                System.out.println(msg);
+                return null;
+            }
+        }
+
         Price item = new Price();
 
         String msg = "";
@@ -431,6 +483,8 @@ public class Preciario {
 
 
     public static void main(String args[]) {
+
+        checkHafele();
 
         String usuario = "";
         String itemId = "";
