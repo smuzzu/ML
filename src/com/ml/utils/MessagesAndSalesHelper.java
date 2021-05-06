@@ -750,19 +750,20 @@ public class MessagesAndSalesHelper {
             order.buyerCustId=buyerObject.getLong("id");
             if (buyerObject.has("nickname")) {
                 order.userNickName = buyerObject.getString("nickname");
-                order.buyerFirstName=humanNameFormater(buyerObject.getString("first_name"));
-                order.buyerLastName=humanNameFormater(buyerObject.getString("last_name"));
             }
             if (buyerObject.has("phone")) {
                 JSONObject phoneObj = buyerObject.getJSONObject("phone");
                 if (!phoneObj.isNull("number")) {
                     order.buyerPhone = phoneObj.getString("number");
+                    if (order.buyerPhone.contains("XXX")){
+                        order.buyerPhone=null;
+                    }
                 }
             }
             if (buyerObject.has("billing_info")) {
                 JSONObject billingInfoObj = buyerObject.getJSONObject("billing_info");
                 if (!billingInfoObj.isNull("doc_number")) {
-                    order.buyerDocNumber = "" + billingInfoObj.getLong("doc_number");
+                    order.buyerDocTypeAndNumber = "" + billingInfoObj.getLong("doc_number");
                 }
             }
         }
@@ -952,6 +953,9 @@ public class MessagesAndSalesHelper {
                 if (receiverAddressObj.has("receiver_phone")) {
                     if (!receiverAddressObj.isNull("receiver_phone")) {
                         order.buyerPhone = receiverAddressObj.getString("receiver_phone");
+                        if (order.buyerPhone.contains("XXX")){
+                            order.buyerPhone=null;
+                        }
                     }
                 }
             }
@@ -990,62 +994,59 @@ public class MessagesAndSalesHelper {
             }
         }
 
-        if (includeDetails) {
-            String billingInfoUrl = "https://api.mercadolibre.com/orders/" + order.id + "/billing_info?";
-            JSONObject billingInfoObject = HttpUtils.getJsonObjectUsingToken(billingInfoUrl, httpClient, user, false);
-            if (billingInfoObject != null) {
-                JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
-                String billingDocType = "";
-                String billingDocNUmber = "";
-                String billingFirstName = "";
-                String billingLastName = "";
-                String billingStreetName = "";
-                String billingStreetNumber = "";
-                String billingZipCode = "";
-                String billingCity = "";
-                String billingState = "";
-                String billingComments = "";
-                if (billingInfoObject2 != null) {
-                    billingDocType = billingInfoObject2.getString("doc_type");
-                    billingDocNUmber = billingInfoObject2.getString("doc_number");
-                    JSONArray additionalInfo = billingInfoObject2.getJSONArray("additional_info");
-                    if (additionalInfo != null) {
-                        for (int i = 0; i < additionalInfo.length(); i++) {
-                            JSONObject infoObject = additionalInfo.getJSONObject(i);
-                            if (infoObject != null) {
-                                String type = infoObject.getString("type");
-                                String value = infoObject.getString("value");
-                                if (type != null && !type.isEmpty()) {
-                                    if (value != null && !value.isEmpty()) {
 
-                                        if (type.equals("FIRST_NAME")) {
-                                            billingFirstName = value;
-                                        } else if (type.equals("LAST_NAME")) {
-                                            billingLastName = value;
-                                        } else if (type.equals("STREET_NAME")) {
-                                            billingStreetName = value;
-                                        } else if (type.equals("STREET_NUMBER")) {
-                                            billingStreetNumber = value;
-                                        } else if (type.equals("ZIP_CODE")) {
-                                            billingZipCode = value;
-                                        } else if (type.equals("CITY_NAME")) {
-                                            billingCity = value;
-                                        } else if (type.equals("STATE_NAME")) {
-                                            billingState = value;
-                                        } else if (type.equals("COMMENT")) {
-                                            billingComments = value;
-                                        }
+        String billingInfoUrl = "https://api.mercadolibre.com/orders/" + order.id + "/billing_info";
+        JSONObject billingInfoObject = HttpUtils.getJsonObjectUsingToken(billingInfoUrl, httpClient, user, false);
+        if (billingInfoObject != null) {
+            JSONObject billingInfoObject2 = billingInfoObject.getJSONObject("billing_info");
+            String billingDocType = "";
+            String billingDocNUmber = "";
+            String billingStreetName = "";
+            String billingStreetNumber = "";
+            String billingZipCode = "";
+            String billingCity = "";
+            String billingState = "";
+            String billingComments = "";
+            if (billingInfoObject2 != null) {
+                billingDocType = billingInfoObject2.getString("doc_type");
+                billingDocNUmber = billingInfoObject2.getString("doc_number");
+                JSONArray additionalInfo = billingInfoObject2.getJSONArray("additional_info");
+                if (additionalInfo != null) {
+                    for (int i = 0; i < additionalInfo.length(); i++) {
+                        JSONObject infoObject = additionalInfo.getJSONObject(i);
+                        if (infoObject != null) {
+                            String type = infoObject.getString("type");
+                            String value = infoObject.getString("value");
+                            if (type != null && !type.isEmpty()) {
+                                if (value != null && !value.isEmpty()) {
 
+                                    if (type.equals("FIRST_NAME")) {
+                                        order.buyerFirstName = value;
+                                    } else if (type.equals("LAST_NAME")) {
+                                        order.buyerLastName = value;
+                                    } else if (type.equals("STREET_NAME")) {
+                                        billingStreetName = value;
+                                    } else if (type.equals("STREET_NUMBER")) {
+                                        billingStreetNumber = value;
+                                    } else if (type.equals("ZIP_CODE")) {
+                                        billingZipCode = value;
+                                    } else if (type.equals("CITY_NAME")) {
+                                        billingCity = value;
+                                    } else if (type.equals("STATE_NAME")) {
+                                        billingState = value;
+                                    } else if (type.equals("COMMENT")) {
+                                        billingComments = value;
                                     }
+
                                 }
                             }
                         }
-                        order.billingDniCuit = billingDocType + " " + billingDocNUmber;
-                        order.billingName = humanNameFormater(billingFirstName + " " + billingLastName);
-                        order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
-                        order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
-                        order.billingAddressLine3 = billingComments;
                     }
+                    order.buyerDocTypeAndNumber = billingDocType + " " + billingDocNUmber;
+                    order.billingName = humanNameFormater(order.buyerFirstName + " " + order.buyerLastName);
+                    order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
+                    order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
+                    order.billingAddressLine3 = billingComments;
                 }
             }
         }

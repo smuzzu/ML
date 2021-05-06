@@ -196,7 +196,7 @@ public class SalesChecker {
                     mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, PRESTAR ESPECIAL ATENCION LOS ITEMS NOMBRADOS EN LA SEGUNDA PAGINA DE LA ETIQUETA</b><br/>";
                 }
                 mailBody += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName;
-                mailBody += "<br/>dni: " + pendingOrder.buyerDocNumber + " tel: " + pendingOrder.buyerPhone;
+                mailBody += "<br/>" + pendingOrder.buyerDocTypeAndNumber + " tel: " + pendingOrder.buyerPhone;
                 mailBody += "<br/>email: " + pendingOrder.buyerEmail;
 
                 if (buyerSays != null && !buyerSays.isEmpty()) {
@@ -237,7 +237,7 @@ public class SalesChecker {
                 if (usuario.equals(ACACIA)) {//facturar
                     mailBody += "<br/><br/><b>Factura:</b><br/>" +
                             pendingOrder.billingName + "<br/>" +
-                            pendingOrder.billingDniCuit + "<br/>" +
+                            pendingOrder.buyerDocTypeAndNumber + "<br/>" +
                             "Total: $" + pendingOrder.paymentAmount + "<br/>" +
                             pendingOrder.billingAddressLine1 + "<br/>" +
                             pendingOrder.billingAddressLine2 + "<br/>" +
