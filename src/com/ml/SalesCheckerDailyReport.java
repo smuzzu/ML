@@ -40,19 +40,22 @@ public class SalesCheckerDailyReport {
 
         String html = "<h1>Correo</h1><table border=1>";
         for (Order pendingOrder: completePendingOrders) {  //viene de la base info limitada
-            if (pendingOrder.shippingType==Order.CORREO && pendingOrder.readyForSending){
-                html+="<tr><td width=500px>"+pendingOrder.productTitle+"<br/>";
-                if (pendingOrder.productVariationText!=null && !pendingOrder.productVariationText.isEmpty()
-                    && !pendingOrder.productVariationText.equals("N/A")) {
-                    html += pendingOrder.productVariationText+"<br/>";
+            if (pendingOrder.shippingType==Order.CORREO && pendingOrder.readyForSending) {
+                html += "<tr><td width=500px>" + pendingOrder.productTitle + "<br/>";
+                if (pendingOrder.productVariationText != null && !pendingOrder.productVariationText.isEmpty()
+                        && !pendingOrder.productVariationText.equals("N/A")) {
+                    html += pendingOrder.productVariationText + "<br/>";
                 }
-                if (pendingOrder.productKeyAttributes!=null && !pendingOrder.productKeyAttributes.isEmpty()
+                if (pendingOrder.productKeyAttributes != null && !pendingOrder.productKeyAttributes.isEmpty()
                         && !pendingOrder.productKeyAttributes.equals("N/A")) {
-                    html+=pendingOrder.productKeyAttributes+"<br/>";
+                    html += pendingOrder.productKeyAttributes + "<br/>";
                 }
                 html += "Cantidad: " + pendingOrder.productQuantity + "<br/>";
-                html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName+"<td width=200px>&nbsp;</td></tr>";
-
+                if (pendingOrder.buyerFirstName == null || pendingOrder.buyerFirstName.isEmpty()) {
+                    html += "Comprador: " + pendingOrder.buyerBusinessName + "<td width=200px>&nbsp;</td></tr>";
+                } else {
+                    html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName + "<td width=200px>&nbsp;</td></tr>";
+                }
             }
         }
         html += "</table><br/><br/><br/>";
@@ -71,7 +74,11 @@ public class SalesCheckerDailyReport {
                     html+=pendingOrder.productKeyAttributes+"<br/>";
                 }
                 html += "Cantidad: " + pendingOrder.productQuantity + "<br/>";
-                html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName+"<td width=200px>&nbsp;</td></tr>";
+                if (pendingOrder.buyerFirstName == null || pendingOrder.buyerFirstName.isEmpty()) {
+                    html += "Comprador: " + pendingOrder.buyerBusinessName + "<td width=200px>&nbsp;</td></tr>";
+                }else {
+                    html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName + "<td width=200px>&nbsp;</td></tr>";
+                }
             }
         }
         html += "</table><br/><br/><br/>";
@@ -89,7 +96,11 @@ public class SalesCheckerDailyReport {
                     html+=pendingOrder.productKeyAttributes+"<br/>";
                 }
                 html += "Cantidad: " + pendingOrder.productQuantity + "<br/>";
-                html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName+"<br/>";
+                if (pendingOrder.buyerFirstName == null || pendingOrder.buyerFirstName.isEmpty()) {
+                    html += "Comprador: " + pendingOrder.buyerBusinessName + "<br/>";
+                }else {
+                    html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName + "<br/>";
+                }
                 if (pendingOrder.buyerPhone!=null && !pendingOrder.buyerPhone.isEmpty()){
                     html += "Telefono: " + pendingOrder.buyerPhone;
                 }
@@ -111,7 +122,11 @@ public class SalesCheckerDailyReport {
                     html+=pendingOrder.productKeyAttributes+"<br/>";
                 }
                 html += "Cantidad: " + pendingOrder.productQuantity + "<br/>";
-                html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName+"<br/>";
+                if (pendingOrder.buyerFirstName == null || pendingOrder.buyerFirstName.isEmpty()) {
+                    html += "Comprador: " + pendingOrder.buyerBusinessName + "<br/>";
+                }else {
+                    html += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName + "<br/>";
+                }
                 if (pendingOrder.buyerPhone!=null && !pendingOrder.buyerPhone.isEmpty()){
                     html += "Telefono: " + pendingOrder.buyerPhone;
                 }

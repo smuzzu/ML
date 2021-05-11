@@ -45,6 +45,8 @@ public class Order implements Comparable<Order> {
 
     public String buyerFirstName;
     public String buyerLastName;
+    public String buyerBusinessName;
+    public String buyerTaxerPayerType;
     public String buyerEmail;
     public String buyerPhone;
     public String buyerDocTypeAndNumber;

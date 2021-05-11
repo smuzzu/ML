@@ -195,7 +195,11 @@ public class SalesChecker {
                 if (pendingOrder.multiItem) {
                     mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, PRESTAR ESPECIAL ATENCION LOS ITEMS NOMBRADOS EN LA SEGUNDA PAGINA DE LA ETIQUETA</b><br/>";
                 }
-                mailBody += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName;
+                if (pendingOrder.buyerFirstName==null || pendingOrder.buyerFirstName.isEmpty()){
+                    mailBody += "Comprador: " + pendingOrder.buyerBusinessName;
+                }else {
+                    mailBody += "Comprador: " + pendingOrder.buyerFirstName + " " + pendingOrder.buyerLastName;
+                }
                 mailBody += "<br/>" + pendingOrder.buyerDocTypeAndNumber + " tel: " + pendingOrder.buyerPhone;
                 mailBody += "<br/>email: " + pendingOrder.buyerEmail;
 
@@ -237,8 +241,11 @@ public class SalesChecker {
                 if (usuario.equals(ACACIA)) {//facturar
                     mailBody += "<br/><br/><b>Factura:</b><br/>" +
                             pendingOrder.billingName + "<br/>" +
-                            pendingOrder.buyerDocTypeAndNumber + "<br/>" +
-                            "Total: $" + pendingOrder.paymentAmount + "<br/>" +
+                            pendingOrder.buyerDocTypeAndNumber + "<br/>";
+                    if (pendingOrder.buyerTaxerPayerType!=null){
+                        mailBody += pendingOrder.buyerTaxerPayerType + "<br/>";
+                    }
+                    mailBody += "Total: $" + pendingOrder.paymentAmount + "<br/>" +
                             pendingOrder.billingAddressLine1 + "<br/>" +
                             pendingOrder.billingAddressLine2 + "<br/>" +
                             pendingOrder.billingAddressLine3;

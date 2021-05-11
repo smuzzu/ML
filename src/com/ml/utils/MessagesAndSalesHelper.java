@@ -959,8 +959,8 @@ public class MessagesAndSalesHelper {
                     }
                 }
             }
-            order.shippingAddressLine1 = humanNameFormater(order.buyerAddressStreet);
-            order.shippingAddressLine2 = "CP " + order.buyerAddressZip + " - " + humanNameFormater(order.buyerAddressCity + ", " + order.buyerAddressState);
+            order.shippingAddressLine1 = nameFormatter(order.buyerAddressStreet);
+            order.shippingAddressLine2 = "CP " + order.buyerAddressZip + " - " + nameFormatter(order.buyerAddressCity + ", " + order.buyerAddressState);
             order.shippingAddressLine3 = order.buyerAddressComments;
         }
 
@@ -1021,9 +1021,13 @@ public class MessagesAndSalesHelper {
                                 if (value != null && !value.isEmpty()) {
 
                                     if (type.equals("FIRST_NAME")) {
-                                        order.buyerFirstName = value;
+                                        order.buyerFirstName = nameFormatter(value);
                                     } else if (type.equals("LAST_NAME")) {
-                                        order.buyerLastName = value;
+                                        order.buyerLastName = nameFormatter(value);
+                                    } else if (type.equals("BUSINESS_NAME")) {
+                                        order.buyerBusinessName = nameFormatter(value);
+                                    } else if (type.equals("TAXPAYER_TYPE_ID")) {
+                                        order.buyerTaxerPayerType = value;
                                     } else if (type.equals("STREET_NAME")) {
                                         billingStreetName = value;
                                     } else if (type.equals("STREET_NUMBER")) {
@@ -1043,9 +1047,13 @@ public class MessagesAndSalesHelper {
                         }
                     }
                     order.buyerDocTypeAndNumber = billingDocType + " " + billingDocNUmber;
-                    order.billingName = humanNameFormater(order.buyerFirstName + " " + order.buyerLastName);
-                    order.billingAddressLine1 = humanNameFormater(billingStreetName) + " " + billingStreetNumber;
-                    order.billingAddressLine2 = "CP " + billingZipCode + " - " + humanNameFormater(billingCity + ", " + billingState);
+                    if (order.buyerBusinessName==null || order.buyerBusinessName.isEmpty()){
+                        order.billingName = order.buyerBusinessName;
+                    }else{
+                        order.billingName = order.buyerFirstName + " " + order.buyerLastName;
+                    }
+                    order.billingAddressLine1 = nameFormatter(billingStreetName) + " " + billingStreetNumber;
+                    order.billingAddressLine2 = "CP " + billingZipCode + " - " + nameFormatter(billingCity + ", " + billingState);
                     order.billingAddressLine3 = billingComments;
                 }
             }
@@ -1286,8 +1294,8 @@ public class MessagesAndSalesHelper {
 
         Calendar calendar = Calendar.getInstance();
 
-        //String user = SData.getSomosMas();
         String user = SData.getSomosMas();
+        //String user = SData.getAcaciaYLenga();
 
         String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
                 calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");
@@ -1305,7 +1313,7 @@ public class MessagesAndSalesHelper {
         }
     }
 
-    private static String humanNameFormater(String inputString)
+    private static String nameFormatter(String inputString)
     {
         String result="";
 
@@ -1324,6 +1332,14 @@ public class MessagesAndSalesHelper {
             for (String name:strings) {
                 name=name.trim();
                 if (name.length()==0){
+                    continue;
+                }
+                if (name.equals("srl") || name.equals("SRL") || name.equals("s.r.l.") || name.equals("S.R.L.")){
+                    result+="SRL ";
+                    continue;
+                }
+                if (name.equals("sa") || name.equals("SA") || name.equals("s.a.") || name.equals("S.A.")){
+                    result+="SA ";
                     continue;
                 }
                 char[] nameCharArray=name.toCharArray();
