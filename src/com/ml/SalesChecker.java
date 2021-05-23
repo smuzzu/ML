@@ -14,8 +14,8 @@ public class SalesChecker {
 
     static String ACACIA = SData.getAcaciaYLenga();
 
-    //static String usuario = SData.getAcaciaYLenga();
-    static String usuario =SData.getSomosMas();
+    static String usuario = SData.getAcaciaYLenga();
+    //static String usuario =SData.getSomosMas();
     //static String usuario =SData.getQuefresquete();
 
     public static void main(String[] args) {
@@ -728,42 +728,49 @@ public class SalesChecker {
     private static ArrayList<String> nombresDobles=null;
 
     private static String processBuyerName(Order order){
-        if (nombresDobles==null){
-            nombresDobles=new ArrayList<String>();
-            nombresDobles.add("Maria");
-            nombresDobles.add("María");
-            nombresDobles.add("Jose");
-            nombresDobles.add("José");
-            nombresDobles.add("Juan");
+        String result="";
+        boolean processHumanName=true;
+        if (order.buyerFirstName!=null) {
+            result = order.buyerFirstName.trim();
+        }else { //empresa
+            result = order.buyerBusinessName.trim();
+            if (result.contains("SA") || result.contains("SRL")){
+                processHumanName=false;
+            }
         }
 
-        String result=order.buyerFirstName.trim();
-        if (result.contains(" ")){ //+ de in nombre
-            boolean cutDoubleName=true;
-            for (String nombreDoble:nombresDobles){
-                if (result.startsWith(nombreDoble)){
-                    cutDoubleName=false;
-                    break;
-                }
-            }
-            if (cutDoubleName) {
-                int pos = result.indexOf(" ");
-                result = result.substring(0, pos);
-            }
-        }
+       if (processHumanName) {
+           if (nombresDobles==null){
+               nombresDobles=new ArrayList<String>();
+               nombresDobles.add("Maria");
+               nombresDobles.add("María");
+               nombresDobles.add("Jose");
+               nombresDobles.add("José");
+               nombresDobles.add("Juan");
+           }
+
+           if (result.contains(" ")) { //+ de un nombre
+               boolean cutDoubleName = true;
+               for (String nombreDoble : nombresDobles) {
+                   if (result.startsWith(nombreDoble)) {
+                       cutDoubleName = false;
+                       break;
+                   }
+               }
+               if (cutDoubleName) {
+                   int pos = result.indexOf(" ");
+                   result = result.substring(0, pos);
+               }
+           }
+       }
 
         return result;
     }
 
     private static String processBuyerName2(Order order){
-        String result=order.buyerFirstName.trim();
-        if (result.contains(" ")){ //+ de in nombre
-            int pos = result.indexOf(" ");
-            result = result.substring(0, pos);
-        }
-        result=result.trim();
-        if (result.length()>9){
-            result=result.substring(0,9);
+        String result=processBuyerName(order);
+        if (result.length() > 9) {
+            result = result.substring(0, 9);
         }
         return result;
     }
