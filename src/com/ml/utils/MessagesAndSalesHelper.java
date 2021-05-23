@@ -1048,9 +1048,9 @@ public class MessagesAndSalesHelper {
                     }
                     order.buyerDocTypeAndNumber = billingDocType + " " + billingDocNUmber;
                     if (order.buyerBusinessName==null || order.buyerBusinessName.isEmpty()){
-                        order.billingName = order.buyerBusinessName;
-                    }else{
                         order.billingName = order.buyerFirstName + " " + order.buyerLastName;
+                    }else{
+                        order.billingName = order.buyerBusinessName;
                     }
                     order.billingAddressLine1 = nameFormatter(billingStreetName) + " " + billingStreetNumber;
                     order.billingAddressLine2 = "CP " + billingZipCode + " - " + nameFormatter(billingCity + ", " + billingState);
