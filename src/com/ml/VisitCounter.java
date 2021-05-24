@@ -5,12 +5,7 @@ package com.ml;
  */
 
 
-import com.ml.utils.Counters;
-import com.ml.utils.DatabaseHelper;
-import com.ml.utils.HTMLParseUtils;
-import com.ml.utils.HttpUtils;
-import com.ml.utils.Logger;
-import com.ml.utils.SData;
+import com.ml.utils.*;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 
@@ -280,10 +275,19 @@ public class VisitCounter {
     }
 
     public static void main (String args[]){
-        updateVisits("ML1",true,false);
-        updateVisits("ML2",true,false);
-        updateVisits("ML1",true,false);
-        updateVisits("ML2",true,false);
+
+        String hostname = TokenUtils.getHostname();
+        if (hostname!=null && hostname.equals(SData.getHostname1())) {
+            updateVisits("ML1", true, false);
+            updateVisits("ML2", true, false);
+            updateVisits("ML1", true, false);
+            updateVisits("ML2", true, false);
+            updateVisits("ML1", true, false);
+            updateVisits("ML2", true, false);
+        }else {
+            updateVisits("ML6", true, false);
+            updateVisits("ML6", true, false);
+        }
     }
 
 

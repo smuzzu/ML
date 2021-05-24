@@ -3,6 +3,9 @@ package com.ml;
 import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HttpUtils;
 import com.ml.utils.Logger;
+import com.ml.utils.SData;
+import com.ml.utils.TokenUtils;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -79,38 +82,57 @@ public class SearchItems {
         System.out.println(msg);
         Logger.log(msg);
 
-        msg = "Buscando en ML1... ";
-        System.out.println(msg);
-        Logger.log(msg);
-        int newItems=0;
-        String databaseSearchTerms=searchTerms.replace(" ","%");
-        ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(databaseSearchTerms,"ML1");
-        for (String id: idsML1){
-            if (!idArrayList.contains(id)){
-                idArrayList.add(id);
-                newItems++;
+        String hostname = TokenUtils.getHostname();
+        if (hostname!=null && hostname.equals(SData.getHostname1())) {
+            msg = "Buscando en ML1... ";
+            System.out.println(msg);
+            Logger.log(msg);
+            int newItems = 0;
+            String databaseSearchTerms = searchTerms.replace(" ", "%");
+            ArrayList<String> idsML1 = DatabaseHelper.fetchProductsLike(databaseSearchTerms, "ML1");
+            for (String id : idsML1) {
+                if (!idArrayList.contains(id)) {
+                    idArrayList.add(id);
+                    newItems++;
+                }
             }
-        }
 
-        msg=idsML1.size() + " elementos encontrados en base ML1, de los cuales "+newItems+" son nuevos";
-        System.out.println(msg);
-        Logger.log(msg);
+            msg = idsML1.size() + " elementos encontrados en base ML1, de los cuales " + newItems + " son nuevos";
+            System.out.println(msg);
+            Logger.log(msg);
 
 
-        msg = "Buscando en ML2... ";
-        System.out.println(msg);
-        Logger.log(msg);
-        newItems=0;
-        ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms,"ML2");
-        for (String id: idsML2){
-            if (!idArrayList.contains(id)){
-                idArrayList.add(id);
-                newItems++;
+            msg = "Buscando en ML2... ";
+            System.out.println(msg);
+            Logger.log(msg);
+            newItems = 0;
+            ArrayList<String> idsML2 = DatabaseHelper.fetchProductsLike(searchTerms, "ML2");
+            for (String id : idsML2) {
+                if (!idArrayList.contains(id)) {
+                    idArrayList.add(id);
+                    newItems++;
+                }
             }
+            msg = idsML2.size() + " elementos encontrados en base ML2, de los cuales " + newItems + " son nuevos";
+            System.out.println(msg);
+            Logger.log(msg);
+        }else {
+            msg = "Buscando en ML6... ";
+            System.out.println(msg);
+            Logger.log(msg);
+            int newItems = 0;
+            String databaseSearchTerms = searchTerms.replace(" ", "%");
+            ArrayList<String> idsML6 = DatabaseHelper.fetchProductsLike(databaseSearchTerms, "ML6");
+            for (String id : idsML6) {
+                if (!idArrayList.contains(id)) {
+                    idArrayList.add(id);
+                    newItems++;
+                }
+            }
+            msg = idsML6.size() + " elementos encontrados en base ML6, de los cuales " + newItems + " son nuevos";
+            System.out.println(msg);
+            Logger.log(msg);
         }
-        msg=idsML2.size() + " elementos encontrados en base ML2, de los cuales "+newItems+" son nuevos";
-        System.out.println(msg);
-        Logger.log(msg);
 
         msg="Total de elementos encontrados "+idArrayList.size();
         System.out.println(msg);

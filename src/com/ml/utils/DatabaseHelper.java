@@ -101,18 +101,8 @@ public class DatabaseHelper {
     }
 
     private static boolean isValidHostName(){
-        String hostname = "Unknown";
-        try
-        {
-            InetAddress addr;
-            addr = InetAddress.getLocalHost();
-            hostname = addr.getHostName();
-        }
-        catch (UnknownHostException ex)
-        {
-            System.out.println("Hostname can not be resolved");
-            return false;
-        }
+        String hostname = TokenUtils.getHostname();
+        if (hostname == null) return false;
         String[] validHostNames=new String[]{
                 SData.getHostname1(),
                 SData.getHostname2(),
@@ -126,7 +116,6 @@ public class DatabaseHelper {
         }
         return false;
     }
-
 
 
     public static synchronized Connection getCloudConnection(){
