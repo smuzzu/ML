@@ -821,11 +821,13 @@ public class ReportRunner {
             }
         }
 
+/*
         if (!IGNORE_VISITS && !DATABASE.equals("ML6")) {
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
         }
+ */
     }
 
     protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT, String database, boolean SAVE) {
