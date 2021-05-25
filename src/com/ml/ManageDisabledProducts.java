@@ -1,34 +1,23 @@
 package com.ml;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 
-import java.io.UnsupportedEncodingException;
-
-import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Properties;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 import com.ml.utils.DatabaseHelper;
 import com.ml.utils.HttpUtils;
-import com.ml.utils.Item;
 import com.ml.utils.Logger;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import com.ml.utils.SData;
+import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import org.json.JSONArray;
@@ -38,23 +27,20 @@ import org.json.JSONObject;
 
 public class ManageDisabledProducts {
 
-    static String DATABASE = "ML2";
 
     static CloseableHttpClient globalClient = null;
     static Connection globalSelectConnection = null;
     static Connection globalUpadteConnection = null;
-    static BufferedWriter globalLogger = null;
 
     static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-    public static void main(String[] args) {
-
+    public static void execute(String database){
 
         globalClient = HttpUtils.buildHttpClient();
 
-        globalSelectConnection = DatabaseHelper.getSelectConnection(DATABASE);
+        globalSelectConnection = DatabaseHelper.getSelectConnection(database);
 
-        globalUpadteConnection=DatabaseHelper.getDisableProductConnection(DATABASE);
+        globalUpadteConnection=DatabaseHelper.getDisableProductConnection(database);
 
 
 
@@ -75,7 +61,6 @@ public class ManageDisabledProducts {
 
         try {
             selectPreparedStatement = globalSelectConnection.prepareStatement("select id, url from productos where deshabilitado=true order by lastupdate desc");
-            //selectPreparedStatement = globalSelectConnection.prepareStatement("select id, url from productos where deshabilitado=false order by lastupdate desc");
             updatePrepredStatement= globalUpadteConnection.prepareStatement("update productos set deshabilitado=false, url=? where id = ?");
             selectResultSet = selectPreparedStatement.executeQuery();
 
@@ -103,12 +88,10 @@ public class ManageDisabledProducts {
                             if (code == 200 && productObj != null) {
                                 if (productObj.has("permalink") && !productObj.isNull("permalink")) {
                                     boolean update = true;
-
                                     String id2 = productObj.getString("id");
                                     String formattedId2="MLA-"+id2.substring(3);
                                     String permalink = productObj.getString("permalink");
                                     String status = productObj.getString("status");
-                                    String baseUrl=urlHashMap.get(formattedId2);
 
                                     if (status.equals("paused")) {
                                         String lastupdatedStr = productObj.getString("last_updated").substring(0, 10);
@@ -121,15 +104,6 @@ public class ManageDisabledProducts {
                                     if (status.equals("closed") || status.equals("inactive")) {
                                         update = false;
                                     }
-
-/*
-                                    if (permalink==null || baseUrl==null || baseUrl.equals(permalink)){
-                                        update=false;
-                                    }
-                                    if (baseUrl==null && permalink!=null){
-                                        update=true;
-                                    }
-*/
 
                                     if (update) {
                                         count4++;
@@ -193,4 +167,15 @@ public class ManageDisabledProducts {
         }
     }
 
+
+    public static void main(String[] args) {
+        String hostname = TokenUtils.getHostname();
+        if (hostname!=null && hostname.equals(SData.getHostname1())) {
+            execute("ML1");
+            execute("ML2");
+        }else {
+            execute("ML6");
+        }
+
+    }
 }
