@@ -14,6 +14,7 @@ public class Mercadolibre02b {
     static final String DATABASE="ML2";
     static final boolean SAVE = true;
     static final boolean ONLY_RELEVANT = false;
+    static final boolean IGNORE_VISITS = false;
     static final int MINIMUM_SALES = 1;
     static final boolean FOLLOWING_DAY = false;
     static final boolean PREVIOUS_DAY = false;
@@ -105,7 +106,7 @@ public class Mercadolibre02b {
         String usuario = SData.getSomosMas();
 
         ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
-                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES, SAVE);
+                IGNORE_VISITS, PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES, SAVE);
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "

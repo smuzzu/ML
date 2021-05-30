@@ -7,12 +7,12 @@ import com.ml.utils.SData;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 
-import java.util.HashMap;
 
 public class MercadoLibre01b {
     static final String DATABASE = "ML1";
     static final boolean SAVE = true;
     static final boolean ONLY_RELEVANT = false;
+    static final boolean IGNORE_VISITS = false;
     static final int MINIMUM_SALES = 1;
     static final boolean FOLLOWING_DAY = true;
     static final boolean PREVIOUS_DAY = false;
@@ -177,7 +177,7 @@ public class MercadoLibre01b {
         intervals=intervals1;*/
 
         ReportRunner.runWeeklyReport(webBaseUrls, apiBaseUrls, intervals, client, usuario, DATABASE, ONLY_RELEVANT,
-                PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES,SAVE );
+                IGNORE_VISITS, PREVIOUS_DAY, FOLLOWING_DAY, MINIMUM_SALES,SAVE );
 
         String msg = "******************************************************\r\n"
                 + Counters.getGlobalPageCount() + " paginas procesadas\r\n "
@@ -187,8 +187,6 @@ public class MercadoLibre01b {
                 + Counters.getGlobalNewsCount() + " productos con novedades";
         System.out.println(msg);
         Logger.log(msg);
-
-        boolean b = false;
 
     }
 

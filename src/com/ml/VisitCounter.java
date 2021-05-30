@@ -5,8 +5,13 @@ package com.ml;
  */
 
 
-import com.ml.utils.*;
-
+import com.ml.utils.Counters;
+import com.ml.utils.DatabaseHelper;
+import com.ml.utils.HTMLParseUtils;
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
+import com.ml.utils.SData;
+import com.ml.utils.TokenUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.IOException;
@@ -42,30 +47,30 @@ public class VisitCounter {
     public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, String dateOnQuery, boolean DEBUG, String DATABASE) {
         int count = 0;
 
-        ArrayList<String> threeProductIDs = new ArrayList<String>();
+        ArrayList<String> tenProductIDs = new ArrayList<String>();
         HashMap<String,Integer> visitsHashMap = null;
         HashMap<String,Integer> result = new HashMap<String,Integer>();
 
         for (String productId : allProductIDs) {
             count++;
 
-            threeProductIDs.add(productId);
+            tenProductIDs.add(productId);
 
-            if (count >= 3) {
-                visitsHashMap= retrive3Visits(dateOnQuery, threeProductIDs, DEBUG,DATABASE);
+            if (count >= 10) {
+                visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
                 result.putAll(visitsHashMap);
-                threeProductIDs = new ArrayList<String>();
+                tenProductIDs = new ArrayList<String>();
                 count = 0;
             }
         }
-        if (threeProductIDs.size() > 0) {  //processing last record
-            visitsHashMap= retrive3Visits(dateOnQuery, threeProductIDs, DEBUG,DATABASE);
+        if (tenProductIDs.size() > 0) {  //processing last record
+            visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
             result.putAll(visitsHashMap);
         }
         return result;
     }
 
-    private static HashMap<String,Integer> retrive3Visits(String dateOnQuery, ArrayList<String> threeProductIDs, boolean DEBUG, String DATABASE) {
+    private static HashMap<String,Integer> retrive10Visits(String dateOnQuery, ArrayList<String> tenProductIDs, boolean DEBUG, String DATABASE) {
         int logCountHelper=0;
         String lineLog="";
         HashMap<String,Integer> result = new HashMap<String,Integer>();
@@ -75,7 +80,7 @@ public class VisitCounter {
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
 
         String allProductIDsStr="";
-        for (String productId:threeProductIDs){
+        for (String productId:tenProductIDs){
             if (productId.contains("-")) {
                 productId = HTMLParseUtils.getUnformattedId(productId);//removing the minus sign
             }
@@ -278,11 +283,8 @@ public class VisitCounter {
 
         String hostname = TokenUtils.getHostname();
         if (hostname!=null && hostname.equals(SData.getHostname1())) {
-            updateVisits("ML1", true, false);
             updateVisits("ML2", true, false);
-            updateVisits("ML1", true, false);
             updateVisits("ML2", true, false);
-            updateVisits("ML1", true, false);
             updateVisits("ML2", true, false);
         }else {
             updateVisits("ML6", true, false);

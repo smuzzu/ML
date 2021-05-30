@@ -30,7 +30,6 @@ public class ReportRunner {
 
     static int MAX_THREADS = 50;//14
     static final boolean DEBUG = false;
-    static final boolean IGNORE_VISITS = false;
 
     static final char COMPLETE = 'C';
     static final char INCOMPLETE = 'I';
@@ -725,7 +724,8 @@ public class ReportRunner {
 
     protected static void runWeeklyReport(String[] webBaseUrls, String[] apiBaseUrls, int[][] intervals,
                                           CloseableHttpClient client, String usuario, String DATABASE, boolean ONLY_RELEVANT,
-                                          boolean previousDay, boolean followingDay, int minimumSales, boolean SAVE) {
+                                          boolean IGNORE_VISITS, boolean previousDay, boolean followingDay, int minimumSales,
+                                          boolean SAVE) {
         globalPreviousDay=previousDay;
         globalFollowingDay=followingDay;
         globalMinimumSales=minimumSales;
@@ -821,13 +821,13 @@ public class ReportRunner {
             }
         }
 
-/*
-        if (!IGNORE_VISITS && !DATABASE.equals("ML6")) {
+
+        if (!IGNORE_VISITS) {
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
             VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
         }
- */
+
     }
 
     protected static void processItemsWithApi(String apiBaseUrl, int since, int upto, CloseableHttpClient client, HashMap<String, Item> itemHashMap, String usuario, boolean ONLY_RELEVANT, String database, boolean SAVE) {
