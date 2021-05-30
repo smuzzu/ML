@@ -1,7 +1,5 @@
 package com.ml.utils;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -19,6 +17,7 @@ import java.util.Properties;
 public class DatabaseHelper {
 
     private static Connection globalSelectConnection = null;
+    private static String globalSelectDatabase=null;
 
     private static Connection globalDisableProductConnection = null;
     private static Connection globalVisitUpdateConnection = null;
@@ -69,7 +68,11 @@ public class DatabaseHelper {
 
     public static synchronized Connection getSelectConnection(String database){
 
-        boolean resetConnection=globalSelectConnection==null;
+        boolean resetConnection=false;
+        if (globalSelectDatabase==null || !globalSelectDatabase.equals(database)) {
+            globalSelectDatabase=database;
+            resetConnection = true;
+        }
         if (!resetConnection){
             try {
                 resetConnection=globalSelectConnection.isClosed();
@@ -79,7 +82,7 @@ public class DatabaseHelper {
         }
 
         if (resetConnection) {
-
+            resetConnections();
             try {
                 Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
@@ -1261,7 +1264,9 @@ public class DatabaseHelper {
         return resultArrayList;
     }
 
-
+    public static void resetSelectConnection(){
+        DatabaseHelper.globalSelectConnection=null;
+    }
 
     public static synchronized int fetchTotalSold(String productId, String database) {
         int totalSold=0;
@@ -1490,6 +1495,18 @@ public class DatabaseHelper {
         return twoHundredSeventyDaysBefore;
     }
 
+
+    private static void resetConnections(){
+        globalSelectConnection = null;
+        globalDisableProductConnection = null;
+        globalVisitUpdateConnection = null;
+        globalAddProductConnection = null;
+        globalAddDailyConnection = null;
+        globalAddWeeklyConnection = null;
+        globalAddMonthlyConnection = null;
+        globalAddActivityConnection = null;
+        globalCloudConnection = null;
+    }
 
 
     public static void main(String[] args) {
