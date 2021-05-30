@@ -36,6 +36,10 @@ public class ManageDisabledProducts {
 
     public static void execute(String database){
 
+        String msg="Actualizando pausados en "+database;
+        Logger.log(msg);
+        System.out.println(msg);
+
         globalClient = HttpUtils.buildHttpClient();
 
         globalSelectConnection = DatabaseHelper.getSelectConnection(database);
