@@ -854,7 +854,6 @@ public class DatabaseHelper {
                     globalSelectToken = selectConnection.prepareStatement("SELECT t1 FROM public.sopa where usuario=?");
                 }
                 globalSelectToken.setInt(1, userNumber);
-                ;
 
                 ResultSet resultSet = globalSelectToken.executeQuery();
                 if (resultSet == null) {
@@ -869,6 +868,8 @@ public class DatabaseHelper {
                 Logger.log(e);
             }
             if (token==null){
+                DatabaseHelper.resetCloudConnection();
+                globalSelectToken = null;
                 try{
                     Thread.sleep(2000 * retries * retries);//aguantamos los trapos 5 segundos antes de reintentar
                 } catch (InterruptedException e) {
@@ -1497,17 +1498,62 @@ public class DatabaseHelper {
 
 
     private static void resetConnections(){
-        globalSelectConnection = null;
-        globalDisableProductConnection = null;
-        globalVisitUpdateConnection = null;
-        globalAddProductConnection = null;
-        globalAddDailyConnection = null;
-        globalAddWeeklyConnection = null;
-        globalAddMonthlyConnection = null;
-        globalAddActivityConnection = null;
-        globalCloudConnection = null;
+        try {
+            if (globalSelectConnection!=null){
+                globalSelectConnection.close();
+                globalSelectConnection=null;
+            }
+            if (globalDisableProductConnection!=null){
+                globalDisableProductConnection.close();
+                globalDisableProductConnection=null;
+            }
+            if (globalVisitUpdateConnection!=null){
+                globalVisitUpdateConnection.close();
+                globalVisitUpdateConnection=null;
+            }
+            if (globalAddProductConnection!=null){
+                globalAddProductConnection.close();
+                globalAddProductConnection=null;
+            }
+            if (globalAddDailyConnection!=null){
+                globalAddDailyConnection.close();
+                globalAddDailyConnection=null;
+            }
+            if (globalAddWeeklyConnection!=null){
+                globalAddWeeklyConnection.close();
+                globalAddWeeklyConnection=null;
+            }
+            if (globalAddMonthlyConnection!=null){
+                globalAddMonthlyConnection.close();
+                globalAddMonthlyConnection=null;
+            }
+            if (globalAddActivityConnection!=null){
+                globalAddActivityConnection.close();
+                globalAddActivityConnection=null;
+            }
+        } catch (SQLException e) {
+            String msg="No se puede resetear las DB Connections";
+            Logger.log(msg);
+            System.out.println(msg);
+            Logger.log(e);
+            e.printStackTrace();
+        }
     }
 
+    private static void resetCloudConnection(){
+        try {
+            if (globalCloudConnection!=null){
+                globalCloudConnection.close();
+                globalCloudConnection=null;
+            }
+        } catch (SQLException e) {
+            String msg="No se puede resetear la Cloud Connection";
+            Logger.log(msg);
+            System.out.println(msg);
+            Logger.log(e);
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         //insertQuestion(2,2,"detalles");
