@@ -123,6 +123,7 @@ public class SData {
     private static final String mailUsername = "cgdxwo\"lj}~ur$Ow~s|!Cy'&";
     private static final String mailPassword = "NgSmhg:;";
     private static final String mailAddressList = "tgeer{\"#~<Kszox|?u#\"Ay|'.-+\"/4)1#0-*4;7<i.1;BA?6CH=E7DA>HOKPkBONoDV";
+    private static final String mailAddressList2 = "tgeer{\"#~<Kszox|?u#\"A$~!&HMMMP_(/$-1S*76";
     private static final String mailErrorNotification = "tgeer{\"#~Jrynw{>t\"!";
 
     public static String getMailUsername(){
@@ -136,6 +137,11 @@ public class SData {
     public static String getMailAddressList(){
         return decode(mailAddressList);
     }
+
+    public static String getMailAddressList2(){
+        return decode(mailAddressList2);
+    }
+
 
     public static String getMailErrorNotification(){
         return decode(mailErrorNotification);
@@ -198,21 +204,18 @@ public class SData {
         return result;
     }
 
-    public static void encondeTokenFile(){
-        String str = TokenUtils.getFileStr(SData.getAcaciaYLenga());
-        String str2 = encode(str);
-        boolean b=false;
-    }
-
 
     public static void main(String args[]){
-        encondeTokenFile();
+
+        System.out.println(getMailAddressList2());
+
+        boolean b=false;
         System.out.println(hostname4);
         System.out.println(encode(hostname4));
         System.out.println(decode(hostname4));
         System.out.println(decode("jr05<84;:7=A:B"));
 
-        boolean b=false;
+
 
     }
 

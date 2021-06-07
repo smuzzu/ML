@@ -14,8 +14,8 @@ public class SalesChecker {
 
     static String ACACIA = SData.getAcaciaYLenga();
 
-    static String usuario = SData.getAcaciaYLenga();
-    //static String usuario =SData.getSomosMas();
+    //static String usuario = SData.getAcaciaYLenga();
+    static String usuario =SData.getSomosMas();
     //static String usuario =SData.getQuefresquete();
 
     public static void main(String[] args) {
@@ -171,7 +171,9 @@ public class SalesChecker {
                     }
                 }
 
-                String mailTitle = "VENDISTE " + letraUser + " " + pendingOrder.productTitle + " " + pendingOrder.id;
+                String mailTitle = "VENDISTE " + letraUser + pendingOrder.id + " " + pendingOrder.productTitle;
+
+                String mailTitle2 = "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
 
                 String mailBody = pendingOrder.creationTimestamp + " " + saleDetails + "<br/><br/><br/>"
 
@@ -188,12 +190,15 @@ public class SalesChecker {
                 }
 
                 if (pendingOrder.productQuantity > 1) {
-                    mailBody += "<b>CANTIDAD: " + pendingOrder.productQuantity + "</b><br/>";
+                    mailBody += "<b>CANTIDAD/QTY: " + pendingOrder.productQuantity + "</b><br/>";
                 } else {
-                    mailBody += "Cantidad: " + pendingOrder.productQuantity + "<br/>";
+                    mailBody += "Cantidad/Qty: " + pendingOrder.productQuantity + "<br/>";
                 }
+                String mailBody2=mailBody;
+
                 if (pendingOrder.multiItem) {
                     mailBody += "<b>ESTA PERSONA COMPRO DISTINTAS CLASES DE PRODUCTO, PRESTAR ESPECIAL ATENCION LOS ITEMS NOMBRADOS EN LA SEGUNDA PAGINA DE LA ETIQUETA</b><br/>";
+                    mailBody2 +="<b>Compra de varios productos, consultar | This purchase include many items, please ask</b><br/>";
                 }
                 if (pendingOrder.buyerFirstName==null || pendingOrder.buyerFirstName.isEmpty()){
                     mailBody += "Comprador: " + pendingOrder.buyerBusinessName;
@@ -251,9 +256,15 @@ public class SalesChecker {
                             pendingOrder.billingAddressLine3;
                 }
 
-                String destinationAdress=SData.getMailAddressList();
+                mailBody2 += "<br/>Total: $" + pendingOrder.paymentAmount + "<br/>";
 
-                boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAdress, attachments);
+                String destinationAddress=SData.getMailAddressList();
+                String destinationAddress2="sebamuzzu2@gmail.com";//TODO CAMBIAR
+
+                boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAddress, attachments);
+                if (mailIsOk){
+                    GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, null);
+                }
 
                 pendingOrder.mailSent = mailIsOk && labelIsOk;
                 if (pendingOrder.mailSent) {
