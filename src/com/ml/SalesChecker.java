@@ -143,6 +143,8 @@ public class SalesChecker {
                 if (labelFileName != null) {
                     attachments[1] = labelFileName;
                 }
+                String[] attachments2 = new String[1];
+                attachments2[0] = photoFilePath;
 
                 String previousQuestionsOnItem = "";
                 for (Message question : pendingOrder.previousQuestionsOnItemArrayList) {
@@ -175,7 +177,7 @@ public class SalesChecker {
 
                 String mailTitle2 = "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
 
-                String mailBody = pendingOrder.creationTimestamp + " " + saleDetails + "<br/><br/><br/>"
+                String mailBody = pendingOrder.creationTimestamp + "<br/><br/>"
 
                         + "<b>Producto:</b><br/>"
                         + pendingOrder.productTitle + "<br/>";
@@ -207,6 +209,8 @@ public class SalesChecker {
                 }
                 mailBody += "<br/>" + pendingOrder.buyerDocTypeAndNumber + " tel: " + pendingOrder.buyerPhone;
                 mailBody += "<br/>email: " + pendingOrder.buyerEmail;
+
+                mailBody +="<br/>"+saleDetails;
 
                 if (buyerSays != null && !buyerSays.isEmpty()) {
                     mailBody += "<br/><br/><b>Mensaje del cliente:</b><br/>" + buyerSays;
@@ -263,7 +267,7 @@ public class SalesChecker {
 
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAddress, attachments);
                 if (mailIsOk){
-                    GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, null);
+                    GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, attachments2);
                 }
 
                 pendingOrder.mailSent = mailIsOk && labelIsOk;
