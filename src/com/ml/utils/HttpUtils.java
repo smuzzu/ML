@@ -12,6 +12,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -134,7 +135,44 @@ public class HttpUtils {
         return getJsonObjectUsingToken(uRL,httpClient,SData.getQuefresquete(),giveMeArray);
     }
 
-    public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
+    public static boolean delete(String url, CloseableHttpClient httpClient, String user) {
+        boolean ok=false;
+
+        String token = TokenUtils.getToken(user);
+
+        HttpDelete httpDelete = new HttpDelete(url);
+        //httpDelete.setHeader("Accept", "application/json");
+        //httpDelete.setHeader("Content-type", "application/json");
+        httpDelete.addHeader("Authorization","Bearer "+token);
+
+        CloseableHttpResponse response=null;
+        try {
+            response = httpClient.execute(httpDelete);
+
+        }
+        catch (Exception e){
+            Logger.log("Error executing put "+e.getMessage());
+            Logger.log(e);
+            e.printStackTrace();
+        }
+
+        if (response!=null) {
+            StatusLine statusline = response.getStatusLine();
+            if (statusline != null) {
+                int statusCode = statusline.getStatusCode();
+                if (statusCode == 200 || statusCode == 201) { //este cambio dejarlo
+                    ok=true;
+                }else {
+                    Logger.log("Error posteando mensaje post venta. status code =  "+statusCode);
+                }
+            }
+        }
+        return ok;
+    }
+
+
+
+        public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
