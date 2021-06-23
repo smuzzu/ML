@@ -263,10 +263,10 @@ public class SalesChecker {
                 mailBody2 += "<br/>Total: $" + pendingOrder.paymentAmount + "<br/>";
 
                 String destinationAddress=SData.getMailAddressList();
-                String destinationAddress2="sebamuzzu2@gmail.com";//TODO CAMBIAR
+                String destinationAddress2=SData.getMailAddressList2();
 
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAddress, attachments);
-                if (mailIsOk){
+                if (mailIsOk && letraUser!=null && letraUser.equals("S")){
                     GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, attachments2);
                 }
 
