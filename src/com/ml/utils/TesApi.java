@@ -16,6 +16,7 @@ public class TesApi {
     private static String baseProductUrl="https://api.mercadolibre.com/items/";
     private static String baseOrderUrl="https://api.mercadolibre.com/orders/";
     private static String baseShippingUrl="https://api.mercadolibre.com/shipments/";
+    private static String userByNickname="https://api.mercadolibre.com/sites/MLA/search?nickname=";
 
 
     private static String getCategory(String productId,String apiUser){
@@ -46,9 +47,31 @@ public class TesApi {
         return orderObject;
     }
 
+    private static long getUserIDByNickname(String nickname,String apiUser){
+        long result=0;
+        String userUrl = userByNickname+nickname;
+        JSONObject userObject = HttpUtils.getJsonObjectUsingToken(userUrl,HttpUtils.buildHttpClient(),apiUser,false);
+        if (userObject!=null && userObject.has("seller")){
+            JSONObject sellerObject=userObject.getJSONObject("seller");
+            if (sellerObject!=null && sellerObject.has("id")){
+                result=sellerObject.getLong("id");
+            }
+        }
+        if (result==0){
+            System.out.println("No se pudo obtener el id de "+nickname);
+        }
+        return result;
+    }
 
+    private static void unlockUser(String nickname, String user){
+        long lockedUserId=getUserIDByNickname(nickname,user);
+        String unlockUrl="https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(user)+"/order_blacklist/"+lockedUserId;
+        HttpUtils.delete(unlockUrl,HttpUtils.buildHttpClient(),user);
+    }
 
     public static void main(String[] args){
+
+        unlockUser("LAMESITAELEVABLE","SOMOS_MAS");
 
         String oderId="4485479390";
         //JSONObject orderObject = getOrder(oderId,QUEFRESQUETE);
