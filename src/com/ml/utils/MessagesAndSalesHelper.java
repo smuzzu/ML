@@ -94,10 +94,12 @@ public class MessagesAndSalesHelper {
         if (mediationsJSONArray.length()>0){
             for (int i=0; i<mediationsJSONArray.length(); i++){
                 JSONObject mediationObject = mediationsJSONArray.getJSONObject(i);
-                String mediationStatus=mediationObject.getString("status");
-                //todo profundizar tema reclamos recien abiertos aca aca
-                if (mediationStatus.equals("return_closed")){
-                    result=true;
+                if (mediationObject.has("status")) {
+                    String mediationStatus = mediationObject.getString("status");
+                    //todo profundizar tema reclamos recien abiertos aca aca
+                    if (mediationStatus.equals("return_closed")) {
+                        result = true;
+                    }
                 }
             }
         }
