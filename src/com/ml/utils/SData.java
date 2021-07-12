@@ -124,6 +124,7 @@ public class SData {
     private static final String mailPassword = "NgSmhg:;";
     private static final String mailAddressList = "tgeer{\"#~<Kszox|?u#\"Ay|'.-+\"/4)1#0-*4;7<i.1;BA?6CH=E7DA>HOKPkBONoDV";
     private static final String mailAddressList2 = "tgeer{\"#~<Kszox|?u#\"A$~!&HMMMP_(/$-1S*76";
+    private static final String mailAddressList3 = "tgeer{\"#~<Kszox|?u#\"A*x'.$|$-,%%+1%U^_\\h18-6:\\3@?";
     private static final String mailErrorNotification = "tgeer{\"#~Jrynw{>t\"!";
 
     public static String getMailUsername(){
@@ -142,6 +143,9 @@ public class SData {
         return decode(mailAddressList2);
     }
 
+    public static String getMailAddressList3(){
+        return decode(mailAddressList3);
+    }
 
     public static String getMailErrorNotification(){
         return decode(mailErrorNotification);
@@ -207,7 +211,7 @@ public class SData {
 
     public static void main(String args[]){
 
-        System.out.println(getMailAddressList2());
+        System.out.println(getMailAddressList3());
 
         boolean b=false;
         System.out.println(hostname4);

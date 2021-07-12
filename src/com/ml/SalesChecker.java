@@ -264,10 +264,15 @@ public class SalesChecker {
 
                 String destinationAddress=SData.getMailAddressList();
                 String destinationAddress2=SData.getMailAddressList2();
+                String destinationAddress3=SData.getMailAddressList3();
 
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAddress, attachments);
+
                 if (mailIsOk && letraUser!=null && letraUser.equals("S")){
-                    GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, attachments2);
+                    //GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, attachments2);
+                }
+                if (mailIsOk && letraUser!=null && letraUser.equals("A")){
+                    GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress3, attachments2);
                 }
 
                 pendingOrder.mailSent = mailIsOk && labelIsOk;
@@ -321,7 +326,7 @@ public class SalesChecker {
                                             if (pendingOrder.productQuantity == 1){
                                                 firstMsgToBuyer +="tu ";
                                             }
-                                            firstMsgToBuyer += productTitle + " en Av. Rivadavia 3756 CABA. <br>"
+                                            firstMsgToBuyer += productTitle + " en Av. Rivadavia 3756 CABA. "
                                                     + "Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00 "
                                                     + "y nuestro teléfono es 4982-2519.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
                                         } else {
@@ -352,7 +357,7 @@ public class SalesChecker {
                                     }
                                 }
 
-                                firstMsgToBuyer += "<br>Muchas gracias por tu compra!";
+                                firstMsgToBuyer += " Muchas gracias por tu compra!";
                                 firstMsgToBuyer2 += " Gracias!";
                             }
                             pendingOrder.chatSent = HttpUtils.postMessage(firstMsgToBuyer, httpClient, pendingOrder.packId, usuario, pendingOrder.buyerCustId, pendingOrder.shippingType);
