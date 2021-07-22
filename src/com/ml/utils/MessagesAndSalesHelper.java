@@ -678,19 +678,8 @@ public class MessagesAndSalesHelper {
 
 
     public static Order getOrderDetails(CloseableHttpClient httpClient, String user, long orderId){
-        String orderUrlListForOneURL="https://api.mercadolibre.com/orders/search?seller="
-                +TokenUtils.getIdCliente(user) +"&q="+orderId;
-
-        JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(orderUrlListForOneURL, httpClient, user, false);
-        JSONArray jsonOrdersArray = jsonOrders.getJSONArray("results");
-
-        if (jsonOrdersArray.length()!=1){
-            String msg = "error buscando "+orderUrlListForOneURL;
-            Logger.log(msg);
-            System.out.println(msg);
-        }
-
-        JSONObject jsonOrder = jsonOrdersArray.getJSONObject(0);
+        String orderUrl="https://api.mercadolibre.com/orders/"+orderId;
+        JSONObject jsonOrder = HttpUtils.getJsonObjectUsingToken(orderUrl,httpClient,user,false);
 
         Order order = new Order();
         order.id = orderId;
@@ -743,7 +732,7 @@ public class MessagesAndSalesHelper {
         String dateUpdatedStr=jsonOrder.getString("last_updated");
         order.updateTimestamp=getTimestamp(dateUpdatedStr);
 
-        order.paymentAmount=""+jsonOrder.getDouble("total_amount");
+        order.paymentAmount=jsonOrder.getDouble("total_amount");
 
         order.paymentStatus = jsonOrder.getString("status");
 

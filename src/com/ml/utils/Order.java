@@ -69,7 +69,7 @@ public class Order implements Comparable<Order> {
     public String itemReviewComment;
 
     public String paymentMethod;
-    public String paymentAmount;
+    public Double paymentAmount;
     public boolean paymentInstallments;
 
     public String productId;
