@@ -1,6 +1,16 @@
 package com.ml;
 
-import com.ml.utils.*;
+import com.ml.utils.DatabaseHelper;
+import com.ml.utils.GoogleMailSenderUtil;
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
+import com.ml.utils.Message;
+import com.ml.utils.MessagesAndSalesHelper;
+import com.ml.utils.Order;
+import com.ml.utils.Product;
+import com.ml.utils.SData;
+import com.ml.utils.TokenUtils;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.sql.Date;
@@ -13,6 +23,7 @@ import java.util.Calendar;
 public class SalesChecker {
 
     static String ACACIA = SData.getAcaciaYLenga();
+    static String SOMOS = SData.getSomosMas();
 
     //static String usuario = SData.getAcaciaYLenga();
     static String usuario =SData.getSomosMas();
@@ -82,14 +93,15 @@ public class SalesChecker {
 
         for (Order pendingOrder: completePendingOrders) {  //viene de la base info limitada
 
-            //if (onlineOrder.orderStatus==Order.VENDIDO) ?? hace falta
             boolean statusChanged = false;
 
+            double limiteAfip=39000.0;
+            boolean superaLimiteAFIP = false;
+            if (usuario.equals(SOMOS) && pendingOrder.paymentAmount>limiteAfip){
+                superaLimiteAFIP=true;
+            }
+
             Date orderCreationDate = new java.sql.Date(pendingOrder.creationTimestamp.getTime());
-
-            //viene de internet, mucha info
-
-            //onlineOrder.messageArrayList=MessagesAndSalesHelper.getAllMessagesOnOrder(onlineOrder.packId,usuario,httpClient);
 
             if (pendingOrder.shippingType == Order.FULL) {
                 continue; //no hacemos nada con los full por ahora
@@ -120,11 +132,14 @@ public class SalesChecker {
                         }
                     }
                 }
+                if (superaLimiteAFIP){
+                    hasLabel=false;
+                }
                 String letraUser = usuario.substring(0, 1);
 
                 boolean labelIsOk = true;
                 String labelFileName = null;
-                //if (hasLabel){ //con envio
+
                 if (hasLabel) {
                     labelFileName = downloadLabel(httpClient, pendingOrder.shippingId);
                     if (labelFileName == null || labelFileName.isEmpty()) {
@@ -156,7 +171,6 @@ public class SalesChecker {
                     previousQuestionsOnItem += question.text + "<br>";
                 }
 
-
                 String buyerSays = "";
                 if (pendingOrder.messageArrayList.size() > 0) {
 
@@ -173,12 +187,16 @@ public class SalesChecker {
                     }
                 }
 
-                String mailTitle = "VENDISTE " + letraUser + pendingOrder.id + " " + pendingOrder.productTitle;
+                String cancelarStr="";
+                if (superaLimiteAFIP){
+                    cancelarStr="CANCELAR - ";
+                }
 
-                String mailTitle2 = "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
+                String mailTitle = cancelarStr + "VENDISTE " + letraUser + pendingOrder.id + " " + pendingOrder.productTitle;
+
+                String mailTitle2 = cancelarStr + "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
 
                 String mailBody = pendingOrder.creationTimestamp + "<br/><br/>"
-
                         + "<b>Producto:</b><br/>"
                         + pendingOrder.productTitle + "<br/>";
 
