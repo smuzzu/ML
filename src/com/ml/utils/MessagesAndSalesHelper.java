@@ -1266,13 +1266,20 @@ public class MessagesAndSalesHelper {
                 message.id = messageJsonObject.getString("id");
                 message.text = messageJsonObject.getString("text");
                 String fromId = messageJsonObject.getJSONObject("from").getString("user_id");
+                JSONObject fromToObject=null; //todo limpiar
                 if (fromId.equals(TokenUtils.getIdCliente(user))) {
                     message.direction = 'E';
-                    message.buyerEmail = messageJsonObject.getJSONObject("to").getString("email");
+                    fromToObject=messageJsonObject.getJSONObject("to");
                 } else {
                     message.direction = 'R';
-                    message.buyerEmail = messageJsonObject.getJSONObject("from").getString("email");
+                    fromToObject=messageJsonObject.getJSONObject("from");
                 }
+                if (fromToObject!=null && fromToObject.has("email") && !fromToObject.isNull("email") ) {
+                    message.buyerEmail = fromToObject.getString("email");
+                }else {
+                    boolean noVieneMas=true;//todo limpiar
+                }
+
                 result.add(message);
             }
         }

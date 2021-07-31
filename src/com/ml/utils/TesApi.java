@@ -23,6 +23,7 @@ public class TesApi {
     private static String baseOrderUrl="https://api.mercadolibre.com/orders/";
     private static String baseShippingUrl="https://api.mercadolibre.com/shipments/";
     private static String userByNickname="https://api.mercadolibre.com/sites/MLA/search?nickname=";
+    private static String mercadopagoPayment="https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=";
 
 
     private static String getCategory(String productId,String apiUser){
@@ -208,6 +209,9 @@ public class TesApi {
 
         //isLocked("EDI_RE2010","SOMOS_MAS");
         //unlockUser("LAMESITAELEVABLE","SOMOS_MAS");
+        long orderId=4753621661L;
+        long customerId=221535448L;
+        JSONObject object = HttpUtils.getJsonObjectUsingToken("https://api.mercadopago.com/v1/customers/"+customerId,HttpUtils.buildHttpClient(),ACACIA,false);
         lockUser("EDI_RE2010","SOMOS_MAS",true,true);
         String oderId="4485479390";
         //JSONObject orderObject = getOrder(oderId,QUEFRESQUETE);
