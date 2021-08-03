@@ -26,6 +26,8 @@ public class MessagesAndSalesHelper {
     static HashMap<Long,String> reviewsHashMap = new HashMap<Long,String>();
     static ArrayList<String> allMyItems=new ArrayList<String>();
 
+    static String mercadopagoPaymentURL="https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=";
+
     static long tooMuchTime=10000l;
     static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
 
@@ -955,6 +957,31 @@ public class MessagesAndSalesHelper {
             order.shippingAddressLine3 = order.buyerAddressComments;
         }
 
+        if (includeDetails) {
+            String buyerPhone = getPayerPhone(user, order.id);
+            if (order.buyerPhone == null) {
+                order.buyerPhone = buyerPhone;
+            } else {
+                if (buyerPhone != null && buyerPhone.length() > 4) {
+                    int index1 = buyerPhone.length() - 4;
+                    int index2 = buyerPhone.length();
+                    if (!order.buyerPhone.endsWith(buyerPhone.substring(index1, index2))) {
+                        order.buyerPhone += " / " + buyerPhone;
+                    }
+                }
+            }
+
+            //todo esto es para recuperar el email
+            String orderUrl = "https://api.mercadolibre.com/orders/" + order.id;
+            JSONObject orderObject = HttpUtils.getJsonObjectUsingToken(orderUrl, httpClient, user, false);
+            if (orderObject != null && orderObject.has("buyer") && !orderObject.isNull("buyer")) {
+                JSONObject buyerObject = orderObject.getJSONObject("buyer");
+                if (buyerObject != null && buyerObject.has("email") && !buyerObject.isNull("email")) {
+                    order.buyerEmail = buyerObject.getString("email");
+                }
+            }
+        }
+
         if (order.shippingSubStatus!=null && order.shippingSubStatus.equals("waiting_for_withdrawal")) {
             order.waitingForWithdrawal = true;
         }
@@ -1096,16 +1123,6 @@ public class MessagesAndSalesHelper {
         order.buyerEmail="N/A";
         if (includeDetails) {
             order.messageArrayList=getAllMessagesOnOrder(order.packId,user,httpClient);
-            if (order.messageArrayList.size()>0){  //todo devolver
-                for (int i=0; i<order.messageArrayList.size(); i++) {
-                    Message msg =  order.messageArrayList.get(i);
-                    String emailAddress = msg.buyerEmail;
-                    if (emailAddress!=null && !emailAddress.contains("mercadolibre")) { //tiene que recibir al menos un mensaje para tener un email valido
-                        order.buyerEmail = emailAddress;
-                        break;
-                    }
-                }
-            }
 
             //todas las preguntass en el caso del proceso global
             order.previousQuestionsOnItemArrayList = new ArrayList<Message>();
@@ -1266,24 +1283,52 @@ public class MessagesAndSalesHelper {
                 message.id = messageJsonObject.getString("id");
                 message.text = messageJsonObject.getString("text");
                 String fromId = messageJsonObject.getJSONObject("from").getString("user_id");
-                JSONObject fromToObject=null; //todo limpiar
                 if (fromId.equals(TokenUtils.getIdCliente(user))) {
                     message.direction = 'E';
-                    fromToObject=messageJsonObject.getJSONObject("to");
                 } else {
                     message.direction = 'R';
-                    fromToObject=messageJsonObject.getJSONObject("from");
-                }
-                if (fromToObject!=null && fromToObject.has("email") && !fromToObject.isNull("email") ) {
-                    message.buyerEmail = fromToObject.getString("email");
-                }else {
-                    boolean noVieneMas=true;//todo limpiar
                 }
 
                 result.add(message);
             }
         }
         return result;
+    }
+
+    private static String getPayerPhone(String user, long orderId){
+        String payerPhone="";
+        JSONObject paymentsObject = HttpUtils.getJsonObjectUsingToken(mercadopagoPaymentURL+orderId,HttpUtils.buildHttpClient(),user,false);
+        if (paymentsObject!=null && paymentsObject.has("results") && !paymentsObject.isNull("results")){
+            JSONArray paymentResults=paymentsObject.getJSONArray("results");
+            if (paymentResults.length()>0) {
+                JSONObject paymentObject = paymentResults.getJSONObject(0);
+                if (paymentObject != null && paymentObject.has("payer") && !paymentObject.isNull("payer")) {
+                    JSONObject payer = paymentObject.getJSONObject("payer");
+                    if (payer != null && payer.has("phone") && !payer.isNull("phone")) {
+                        JSONObject phone = payer.getJSONObject("phone");
+                        if (phone != null) {
+                            String areaCode = "";
+                            if (phone.has("areaCode") && !phone.isNull("areaCode")) {
+                                areaCode = phone.getString("areaCode");
+                                payerPhone = areaCode;
+                            }
+                            String number = "";
+                            if (phone.has("number") && !phone.isNull("number")) {
+                                number = phone.getString("number");
+                                payerPhone += number;
+                            }
+                            payerPhone = areaCode + number;
+                            String extension = "";
+                            if (phone.has("extension") && !phone.isNull("extension")) {
+                                extension = phone.getString("extension");
+                                payerPhone += " int. " + extension;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return payerPhone;
     }
 
 

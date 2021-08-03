@@ -8,8 +8,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 
@@ -24,6 +22,9 @@ public class TesApi {
     private static String baseShippingUrl="https://api.mercadolibre.com/shipments/";
     private static String userByNickname="https://api.mercadolibre.com/sites/MLA/search?nickname=";
     private static String mercadopagoPayment="https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=";
+    private static String mercadopagoPayment2="https://api.mercadopago.com/v1/payments/";
+    private static String mercadopagoOrder="https://api.mercadopago.com/merchant_orders/search?payer_id=";
+    private static String mercadopagoCustomer="https://api.mercadopago.com/v1/customers/";
 
 
     private static String getCategory(String productId,String apiUser){
