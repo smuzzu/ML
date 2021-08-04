@@ -1120,7 +1120,6 @@ public class MessagesAndSalesHelper {
             order.paymentMethod = order.paymentMethod.substring(0, order.paymentMethod.length() - 3);
         }
 
-        order.buyerEmail="N/A";
         if (includeDetails) {
             order.messageArrayList=getAllMessagesOnOrder(order.packId,user,httpClient);
 
