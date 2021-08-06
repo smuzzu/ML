@@ -101,6 +101,11 @@ public class SData {
         return value;
     }
 
+    private static String MARIANA_TEST="ncumfth\\n}\u007F";
+    public static String getMarianaTest(){
+        return decode(MARIANA_TEST);
+    }
+
 
 
     private static String globalCloudUrl = "kfeg?vv{}q}q!\u007F{J@A&u\u007F!|F}|I\"*$0)#18873U,98eaaaa_4<JECBCD";

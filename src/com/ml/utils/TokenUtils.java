@@ -24,8 +24,12 @@ import java.util.stream.Stream;
 
 public class TokenUtils {
 
-    static String token = null;
-    static String tokenUser = null;
+    static String [][] tokenMatrix = {
+            {SData.getQuefresquete(), null, "0"},
+            {SData.getAcaciaYLenga(), null, "0"},
+            {SData.getSomosMas(), null, "0"},
+            {SData.getMarianaTest(), null, "0"}
+        };
     static String refresh_token = null;
 
     public static String getFileStr(String user){
@@ -52,23 +56,52 @@ public class TokenUtils {
     }
 
 
+    private static boolean needsToFetchTokenOnCloud(String user){
+        if (tokenMatrix[getUserNumber(user)-1][1]==null){
+            return true;
+        }
+        long previousTimestamp=0;
+        try{
+            previousTimestamp=Long.parseLong(tokenMatrix[getUserNumber(user)-1][2]);
+        }catch (Exception e){
+            String errorMsg="Error obteniendo needsToFetchTokenOnCloud "+user;
+            System.out.println(errorMsg);
+            Logger.log(errorMsg);
+            e.printStackTrace();
+            Logger.log(e);
+            return true;
+        }
+        long currentTimestamp=System.currentTimeMillis();
+        long elapsedTime=currentTimestamp-previousTimestamp;
+        long anHourInMilliseconds=3600000L;
+        if (elapsedTime>anHourInMilliseconds){
+            return true;
+        }
+        return false;
+    }
+
     public static synchronized String getToken(String user){
-        if (token==null || !tokenUser.equals(user)){
+        String token=null;
+        if (needsToFetchTokenOnCloud(user)){
             String encodedToken=DatabaseHelper.fetchTokenOnCloud(user);
             if (encodedToken==null){
                 String fileStr = getFileStr(user);
                 int eolPos1 = fileStr.indexOf("\n");
                 int eolPos2 = fileStr.length()-1;
                 token = fileStr.substring(0, eolPos1);
-                tokenUser= user;
+                tokenMatrix[getUserNumber(user)-1][1]=token;
+                tokenMatrix[getUserNumber(user)-1][2]=""+System.currentTimeMillis();
                 String theRefreshToken = fileStr.substring(eolPos1+1,eolPos2);
                 encodedToken= SData.encode(token);
                 String encodedRefreshToken= SData.encode(theRefreshToken);
                 DatabaseHelper.addTokenOnCloud(user,encodedToken,encodedRefreshToken);
             }else {
                 token= SData.decode(encodedToken);
-                tokenUser=user;
+                tokenMatrix[getUserNumber(user)-1][1]=token;
+                tokenMatrix[getUserNumber(user)-1][2]=""+System.currentTimeMillis();
             }
+        }else {
+            token=tokenMatrix[getUserNumber(user)-1][1];
         }
         return token;
     }
@@ -83,6 +116,10 @@ public class TokenUtils {
             } else {
                 if (user.equals(SData.getSomosMas())) {
                     userNumber = 3;
+                }else {
+                    if (user.equals(SData.getMarianaTest())) {
+                        userNumber = 4;
+                    }
                 }
             }
         }
@@ -183,12 +220,14 @@ public class TokenUtils {
             responseStr = HttpUtils.getStringFromInputStream(inputStream);
         }
 
+        String token="";
         if (responseStr != null && responseStr.length() > 0) {
             JSONObject jsonResponse = new JSONObject(responseStr);
             Object tokenObject = jsonResponse.get("access_token");
             if (tokenObject != null) {
                 token = (String) tokenObject;
-                tokenUser=user;
+                tokenMatrix[getUserNumber(user)-1][1]=token;
+                tokenMatrix[getUserNumber(user)-1][2]=""+System.currentTimeMillis();
             }
             Object refreshTokenObject = jsonResponse.get("refresh_token");
             if (refreshTokenObject != null) {
@@ -217,6 +256,12 @@ public class TokenUtils {
         DatabaseHelper.updateTokenOnCloud(user,encodedToken,encodedRefreshToken);
     }
 
+    private static void updateTokenOnCloud(String user, String token, String refreshToken){
+        String encodedToken= SData.encode(token);
+        String encodedRefreshToken= SData.encode(refreshToken);
+        DatabaseHelper.updateTokenOnCloud(user,encodedToken,encodedRefreshToken);
+    }
+
     public static String getIdCliente(String user){
         String idCliente=null;
         if (user.equals(SData.getQuefresquete())){
@@ -237,7 +282,7 @@ public class TokenUtils {
 
     public static void main(String[] args){
         String userName=SData.getAcaciaYLenga();
-
+        //updateTokenOnCloud(SData.getMarianaTest(),"token","");
 /*
         String token = DatabaseHelper.fetchTokenOnCloud(userName);
         String refrehsToken=DatabaseHelper.fetchRefreshTokenOnCloud(userName);
