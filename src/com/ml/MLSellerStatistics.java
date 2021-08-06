@@ -50,17 +50,18 @@ public class MLSellerStatistics extends Thread {
     static String PROFILE_BASE_URL ="https://www.mercadolibre.com.ar/perfil/";
     static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/_CustId_";
     static String OFFICIAL_STORE_BASE_URL = "https://listado.mercadolibre.com.ar/_DisplayType_LF_Tienda_";
-    static String VISITS_URL = "https://api.mercadolibre.com/users/CUSTID/items_visits?date_from=DATE1T00:00:00.000-00:00&date_to=DATE2T00:00:00.000-00:00";
+    static String VISITS_URL = "https://api.mercadolibre.com/users/CUSTID/items_visits?date_from=DATE1&date_to=DATE2";
+
     static int globalRunnerCount;
-    static int globalProdutCount=0;
+    static int globalProductCount =0;
     static int globalInsertCount=0;
     static int globalDisableCount=0;
 
-    static int MAX_THREADS = 20; //TODO CAMBIAR 30
-    static boolean SAVE = true; //TODO CAMBIAR
-    static String DATABASE = "ML2";
+    static int MAX_THREADS = 30;
+    static boolean SAVE = true;
+    static String DATABASE = "ML1";
     static boolean DEBUG = false;
-    static String FECHA="2021/02/01";
+    static String FECHA="2021/08/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -1340,7 +1341,7 @@ public class MLSellerStatistics extends Thread {
             if (custId!=null){
                 String visitUrl = VISITS_URL.replaceAll("CUSTID",custId);
 
-                int resto = runnerCount % 3;
+                int resto = runnerCount % VisitCounter.usuarios.length;
                 String usuario = VisitCounter.usuarios[resto];
 
                 if (DEBUG) {
@@ -1594,7 +1595,7 @@ public class MLSellerStatistics extends Thread {
     }
 
      private static synchronized void incrementGlobalProductCount(){
-        globalProdutCount++;
+        globalProductCount++;
     }
 
     private static synchronized void incrementGlobalInsertCount(){
@@ -1675,7 +1676,7 @@ public class MLSellerStatistics extends Thread {
         String msg = "TERMINO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
         System.out.println(msg);
         Logger.log(msg);
-        msg = "Se procesaron " +globalProdutCount+" vendedores. \nSe guardo la reputacion de "+globalInsertCount+" vendedores\n" +
+        msg = "Se procesaron " + globalProductCount +" vendedores. \nSe guardo la reputacion de "+globalInsertCount+" vendedores\n" +
                 "Se deshabilitaron "+globalDisableCount+" vendedores";
         System.out.println(msg);
         Logger.log(msg);

@@ -30,93 +30,143 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class VisitCounter {
+public class VisitCounter extends Thread {
 
 
     static int PAUSE_MILLISECONDS = 130;
     static int PAUSE_ON_ERRPR_MILLISECONDS = 3000;
     static int INTERVAL_SIZE=5000;
+    static int TIMEOUT_MIN=10;
+    static int MAX_THREADS=9;
+
+    static String visitsQueryURL =null;
+    static HashMap<String,Integer> allVisitsHashMap = new HashMap<String,Integer>();
+
+    static String visitsQueryURLForOneDay =
+            "https://api.mercadolibre.com/items/[PUBLICATION_ID]/visits/time_window?last=1&unit=day&ending=[YYYY-MM-DD]";
+    static String visitsQueryURLForDayRange =
+            "https://api.mercadolibre.com/items/visits?ids=[PUBLICATION_ID]&date_from=[FROM-YYYY-MM-DD]&date_to=[TO-YYYY-MM-DD]";
+
+    String publicationId=null;
 
     public static String[] usuarios = new String[] {
             SData.getAcaciaYLenga(),
             SData.getQuefresquete(),
-            SData.getSomosMas()
+            SData.getSomosMas(),
+            SData.getMarianaTest()
     };
 
 
-    public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, String dateOnQuery, boolean DEBUG, String DATABASE) {
-        int count = 0;
-
-        ArrayList<String> tenProductIDs = new ArrayList<String>();
-        HashMap<String,Integer> visitsHashMap = null;
-        HashMap<String,Integer> result = new HashMap<String,Integer>();
-
-        for (String productId : allProductIDs) {
-            count++;
-
-            tenProductIDs.add(productId);
-
-            if (count >= 10) {
-                visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
-                result.putAll(visitsHashMap);
-                tenProductIDs = new ArrayList<String>();
-                count = 0;
-            }
-        }
-        if (tenProductIDs.size() > 0) {  //processing last record
-            visitsHashMap= retrive10Visits(dateOnQuery, tenProductIDs, DEBUG,DATABASE);
-            result.putAll(visitsHashMap);
-        }
-        return result;
+    public static String getVisitsQueryURLForOneDay(Date date){
+        long oneDayInMilliseconds = 86400000L; //this will add a complete day on milliseconds
+        Date followingDay = new Date(date.getTime() + oneDayInMilliseconds);
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String nextDayStr = dateFormat.format(followingDay);
+        return visitsQueryURLForOneDay.replace("[YYYY-MM-DD]",nextDayStr);
     }
 
-    private static HashMap<String,Integer> retrive10Visits(String dateOnQuery, ArrayList<String> tenProductIDs, boolean DEBUG, String DATABASE) {
-        int logCountHelper=0;
-        String lineLog="";
-        HashMap<String,Integer> result = new HashMap<String,Integer>();
+    public static String getVisitsQueryURLForDayRange(Date dateFrom, Date dateTo){
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String dateFromStr = dateFormat.format(dateFrom);
+        String dateToStr = dateFormat.format(dateTo);
+        return visitsQueryURLForDayRange.replace("[FROM-YYYY-MM-DD]",dateFromStr).replace("[TO-YYYY-MM-DD]",dateToStr);
+    }
+
+    private static String getVisitsQueryURLWithId(String publicationId){
+        return visitsQueryURL.replace("[PUBLICATION_ID]",HTMLParseUtils.getUnformattedId(publicationId));
+    }
+
+
+    public static HashMap<String,Integer> retriveAllVisits(ArrayList<String> allProductIDs, String visitsQueryURLParam) {
+        visitsQueryURL = visitsQueryURLParam;
+        ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
+        long currentTime;
+        long timeoutTime;
+
+
+        for (String productId : allProductIDs) {
+
+            VisitCounter visitCounter = new VisitCounter();
+            threadArrayList.add(visitCounter);
+            visitCounter.publicationId=productId;
+            visitCounter.start();
+            currentTime = System.currentTimeMillis();
+            timeoutTime = currentTime + TIMEOUT_MIN * 60l * 1000l;
+
+            while (MAX_THREADS < (Thread.activeCount() - 1)) {
+
+                try {
+                    Thread.sleep(10l);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                currentTime = System.currentTimeMillis();
+                if (currentTime > timeoutTime) {
+                    String errorMsg="Error de timeout.  Paso demasiado tiempo sin terminar de procesar las visitsa de " + productId;
+                    System.out.println(errorMsg);
+                    Logger.log(errorMsg);
+                    System.exit(0);
+                }
+            }
+        }
+
+        for (Thread thread : threadArrayList) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return allVisitsHashMap;
+    }
+
+
+
+
+    public void run() {
+
+        CloseableHttpClient httpClient=HttpUtils.buildHttpClient();
 
         int runnerCount = Counters.getGlobalRunnerCount();
 
-        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
+        String url = getVisitsQueryURLWithId(publicationId);
 
-        String allProductIDsStr="";
-        for (String productId:tenProductIDs){
-            if (productId.contains("-")) {
-                productId = HTMLParseUtils.getUnformattedId(productId);//removing the minus sign
-            }
-            allProductIDsStr+=productId+",";
-        }
-        allProductIDsStr=allProductIDsStr.substring(0,allProductIDsStr.length()-1);
-
-        String url = "https://api.mercadolibre.com/items/visits?ids="+allProductIDsStr+dateOnQuery;
-
-        int resto = runnerCount % 3;
+        int resto = runnerCount % usuarios.length;
         String usuario = usuarios[resto];
-
-
-        if (DEBUG) {
-            Logger.log("Usuario: " + usuario);
-            System.out.println("Usuario: " + usuario);
-        }
 
         int retries = 0;
         boolean retry = true;
 
-        JSONObject visitsArray = null;
+        JSONObject visitsObject = null;
 
         while (retry && retries < 5) {
             retries++;
 
-            visitsArray = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,true);
+            visitsObject = HttpUtils.getJsonObjectUsingToken(url,httpClient,usuario,false);
 
-            if (visitsArray==null || !visitsArray.has("elArray")) {
+            //String url2="https://api.mercadolibre.com/items/"+HTMLParseUtils.getUnformattedId(this.publicationId)+"/visits/time_window?last=7&unit=day&ending=2021-07-31";
+            //JSONObject visitsObject2 = HttpUtils.getJsonObjectUsingToken(url2,httpClient,usuario,false);
+
+            if (visitsObject!=null && visitsObject.has("results") && !visitsObject.isNull("results")){
+                JSONArray resultsArray = visitsObject.getJSONArray("results");
+                if (resultsArray!=null && !resultsArray.isEmpty()){
+                    JSONObject resultObject=resultsArray.getJSONObject(0);
+                    if (resultObject!=null && resultObject.has("total") && !resultObject.isNull("total")){
+                        int total=resultObject.getInt("total");
+                        boolean b=false;
+                    }
+                }
+            }
+
+            if (visitsObject==null) {
                 // hacemos pausa por si es problema de red
                 try {
                     Thread.sleep(PAUSE_ON_ERRPR_MILLISECONDS * retries * retries);
                 } catch (InterruptedException e) {
                     Logger.log(e);
                 }
-                Logger.log(" visitsArray is null " + url);
+                Logger.log(" visitsObject is null " + url);
                 try {
                     httpClient.close();
                 } catch (IOException e) {
@@ -129,50 +179,18 @@ public class VisitCounter {
                 retry=false;
             }
         }
-        if (visitsArray==null || !visitsArray.has("elArray")) {
-            return result;
+        if (visitsObject==null) {
+           return;
         }
 
-        JSONArray elArray = visitsArray.getJSONArray("elArray");
+        int totalVisits = visitsObject.getInt("total_visits");
+        System.out.println("R"+runnerCount+" "+publicationId+" "+totalVisits);
 
-        for (int i=0; i<elArray.length(); i++){
-            JSONObject visitsObject = (JSONObject)elArray.get(i);
-            String id = visitsObject.getString("item_id");
-            String formattedId = HTMLParseUtils.getFormatedId(id);
-            int totalVisits = visitsObject.getInt("total_visits");
+        allVisitsHashMap.put(HTMLParseUtils.getFormatedId(publicationId),totalVisits);
 
-
-            result.put(formattedId,totalVisits);
-
-            logCountHelper++;
-            if (logCountHelper>5){
-                logCountHelper=0;
-                lineLog=lineLog.substring(0,lineLog.length()-1);
-                System.out.println(lineLog);
-                Logger.log(lineLog);
-                lineLog="";
-            }
-
-            lineLog+="   "+formattedId + " " + String.format("%05d", totalVisits) + "   |";
-
-
-        }
-        if (lineLog.length()>0) {
-            lineLog=lineLog.substring(0,lineLog.length()-1);
-            System.out.println(lineLog);
-            Logger.log(lineLog);
-        }
-
-        try {
-            httpClient.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        httpClient=null;
-
-        //hacemos una pausa de entre PAUSE_MILLISECONDS y 10% mas
+        //hacemos una pausa de entre PAUSE_MILLISECONDS y PAUSE_MILLISECONDS * 3
         int min =PAUSE_MILLISECONDS;
-        int max = (int) (PAUSE_MILLISECONDS*1.1);
+        int max = (int) (PAUSE_MILLISECONDS*3);
         long random = (long) (Math.random() * (max - min + 1) + min);
         try {
             Thread.sleep(random);
@@ -180,12 +198,10 @@ public class VisitCounter {
             Logger.log(e);
         }
 
-        return result;
-
     }
 
 
-    public static void updateVisits(String database, boolean SAVE, boolean DEBUG) {
+    public static void updateVisits(String database, boolean SAVE) {
 
         String msg = "\nProcesando Visitas";
         System.out.println(msg);
@@ -196,7 +212,8 @@ public class VisitCounter {
         ArrayList<String> allProductIDs = new ArrayList<String>();
         Date date1=null;
         Date date2=null;
-        String dateOnQueryStr=null;
+        String visitsQueryURLParam=null;
+
         try {
 
             PreparedStatement datesPreparedStatement = connection.prepareStatement("SELECT fecha FROM public.movimientos group by fecha order by fecha desc");
@@ -219,13 +236,11 @@ public class VisitCounter {
             }
             date1 = rs.getDate(1);
 
-            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            String strDate1 = dateFormat.format(date1);
-            String strDate2 = dateFormat.format(date2);
-            dateOnQueryStr = "&date_from=" + strDate1 + "T00:00:00.000-00:00&date_to=" + strDate2 + "T23:59:00.000-00:00";
+            visitsQueryURLParam=getVisitsQueryURLForDayRange(date1,date2);
 
-
-            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=? and (visitas is null or visitas = 0)");
+            //todo restablecer
+            //PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=? and (visitas is null or visitas = 0)");
+            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
             selectPreparedStatement.setDate(1, date2);
 
 
@@ -259,7 +274,7 @@ public class VisitCounter {
                 to=allProductIDs.size();
             }
             List<String> interval=allProductIDs.subList(from,to);
-            HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), dateOnQueryStr,DEBUG,database);
+            HashMap visitsHashMap = retriveAllVisits(new ArrayList<String>(interval), visitsQueryURLParam);
             if (SAVE) {
                 msg = "Guardando "+INTERVAL_SIZE+" registros";
                 System.out.println(msg);
@@ -283,12 +298,13 @@ public class VisitCounter {
 
         String hostname = TokenUtils.getHostname();
         if (hostname!=null && hostname.equals(SData.getHostname1())) {
-            updateVisits("ML2", true, false);
-            updateVisits("ML2", true, false);
-            updateVisits("ML2", true, false);
+            updateVisits("ML1", false);
+            updateVisits("ML2", false);
+            updateVisits("ML1", false);
+            updateVisits("ML2", false);
         }else {
-            updateVisits("ML6", true, false);
-            updateVisits("ML6", true, false);
+            updateVisits("ML6", true);
+            updateVisits("ML6", true);
         }
     }
 

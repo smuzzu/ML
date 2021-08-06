@@ -823,9 +823,9 @@ public class ReportRunner {
 
 
         if (!IGNORE_VISITS) {
-            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
-            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
-            VisitCounter.updateVisits(DATABASE,SAVE,DEBUG);
+            VisitCounter.updateVisits(DATABASE,SAVE);
+            VisitCounter.updateVisits(DATABASE,SAVE);
+            VisitCounter.updateVisits(DATABASE,SAVE);
         }
 
     }

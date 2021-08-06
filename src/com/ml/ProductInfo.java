@@ -15,7 +15,6 @@ import org.json.JSONObject;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ public class ProductInfo {
     static String DATABASE="ML3";
     static Date globalDate = null;
     static boolean IGNORE_CATETORIES=false;
-    static boolean SAVE=true;
+    static boolean SAVE=false;
 
 
     private static JSONArray getUnAnsweredQuestions(CloseableHttpClient httpClient) {
@@ -257,18 +256,11 @@ public class ProductInfo {
     private static HashMap<Integer,Integer> getOrdersStatistics(CloseableHttpClient httpClient){
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSX");
                                                                    // 2018-06-08T20:21:27.000-04:00
-/*
-        HashMap<Integer,Integer> statistics = new HashMap<Integer, Integer>();
-        for (int i=0;i<24;i++){
-            statistics.put(i,0);
-        }*/
         HashMap<Integer,Integer> statistics = new HashMap<Integer, Integer>();
         for (int i=0;i<32;i++){
             statistics.put(i,0);
         }
-        //String dateOnQuery2Str = "&order.date_created.from=2019-06-24T15:53:04.000-03:00&order.date_created.to=2019-06-24T15:53:04.000-03:00";
 
-        //ArrayList<String> itemsInOrdersArrayList = new ArrayList<String>();
         int totalOrders=999999;
         int count=0;
 
@@ -301,12 +293,6 @@ public class ProductInfo {
                     sales++;
                     statistics.put(dayOfMonth, sales);
 
-/*                    if (day>0 && day<6) {//S a D
-                        count++;
-                        int sales = statistics.get(hour);
-                        sales++;
-                        statistics.put(hour, sales);
-                    }*/
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -326,11 +312,9 @@ public class ProductInfo {
 
         ArrayList<String> itemsInOrdersArrayList =getItemsInOrdersBetweenDates(httpClient,date,date);
 
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        String strDate = dateFormat.format(date);
-        String dateOnQueryStr = "&date_from=" + strDate + "T00:00:00.000-00:00&date_to=" + strDate + "T23:59:00.000-00:00";
+        String visitsQueryURLParam = VisitCounter.getVisitsQueryURLForOneDay(date);
 
-        HashMap<String,Integer> oneDayVisitsHashMap = VisitCounter.retriveAllVisits(allProductIDsArrayList,dateOnQueryStr,false,DATABASE);
+        HashMap<String,Integer> oneDayVisitsHashMap = VisitCounter.retriveAllVisits(allProductIDsArrayList,visitsQueryURLParam);
 
         for (String productId : allProductIDsArrayList) {
             Info fixedProductDetails=allProductFixedDetailsHashMap.get(productId);
@@ -539,7 +523,7 @@ public class ProductInfo {
 
 
         Date dailyStartDate=new Date(lastDairyUpdate.getTime()+oneDayinMiliseconds);
-        Date dailyEndDate=new Date(todaysDate.getTime()-oneDayinMiliseconds);
+        Date dailyEndDate=new Date(todaysDate.getTime()-3*oneDayinMiliseconds);
         ArrayList<Info> infoArrayList = new ArrayList<Info>();
         for (long iterator=dailyStartDate.getTime(); iterator<=dailyEndDate.getTime(); iterator+=oneDayinMiliseconds) {
             Date date = new Date(iterator);
