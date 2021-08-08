@@ -186,7 +186,7 @@ public class VisitCounter extends Thread {
         int totalVisits = visitsObject.getInt("total_visits");
         System.out.println("R"+runnerCount+" "+publicationId+" "+totalVisits);
 
-        allVisitsHashMap.put(HTMLParseUtils.getFormatedId(publicationId),totalVisits);
+        allVisitsHashMap.put(publicationId,totalVisits);
 
         //hacemos una pausa de entre PAUSE_MILLISECONDS y PAUSE_MILLISECONDS * 3
         int min =PAUSE_MILLISECONDS;
@@ -207,6 +207,7 @@ public class VisitCounter extends Thread {
         System.out.println(msg);
         Logger.log(msg);
         Counters.initGlobalRunnerCount();
+        DatabaseHelper.initUpdateVisits();
 
         Connection connection = DatabaseHelper.getSelectConnection(database);
         ArrayList<String> allProductIDs = new ArrayList<String>();
@@ -238,9 +239,7 @@ public class VisitCounter extends Thread {
 
             visitsQueryURLParam=getVisitsQueryURLForDayRange(date1,date2);
 
-            //todo restablecer
-            //PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=? and (visitas is null or visitas = 0)");
-            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=?");
+            PreparedStatement selectPreparedStatement = connection.prepareStatement("SELECT idproducto FROM public.movimientos WHERE fecha=? and (visitas is null or visitas = 0)");
             selectPreparedStatement.setDate(1, date2);
 
 
@@ -298,10 +297,10 @@ public class VisitCounter extends Thread {
 
         String hostname = TokenUtils.getHostname();
         if (hostname!=null && hostname.equals(SData.getHostname1())) {
-            updateVisits("ML1", false);
-            updateVisits("ML2", false);
-            updateVisits("ML1", false);
-            updateVisits("ML2", false);
+            updateVisits("ML1", true);
+            updateVisits("ML2", true);
+            updateVisits("ML1", true);
+            updateVisits("ML2", true);
         }else {
             updateVisits("ML6", true);
             updateVisits("ML6", true);
