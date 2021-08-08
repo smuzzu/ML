@@ -812,6 +812,10 @@ public class DatabaseHelper {
 
     }
 
+    public static void initUpdateVisits(){
+        globalUpdateVisits=null;
+    }
+
     public static synchronized void updateVisitOnDatabase(String productId, int quantity, Date date, String database){
 
         if (globalUpdateVisits ==null) {
