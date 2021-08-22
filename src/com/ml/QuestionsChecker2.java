@@ -62,7 +62,7 @@ public class QuestionsChecker2 {
         JSONObject questionObject = HttpUtils.getJsonObjectUsingToken(questionUrl,httpClient,user,false);
 
         String itemId=null;
-        if (questionObject.has("item_id") && !questionObject.isNull("item_id")){
+        if (questionObject!=null && questionObject.has("item_id") && !questionObject.isNull("item_id")){
             itemId=questionObject.getString("item_id");
         }
         if (itemId==null || itemId.isEmpty()){
