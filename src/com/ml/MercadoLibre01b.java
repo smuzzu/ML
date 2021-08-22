@@ -12,7 +12,7 @@ public class MercadoLibre01b {
     static final String DATABASE = "ML1";
     static final boolean SAVE = true;
     static final boolean ONLY_RELEVANT = false;
-    static final boolean IGNORE_VISITS = false;
+    static final boolean IGNORE_VISITS = true;
     static final int MINIMUM_SALES = 1;
     static final boolean FOLLOWING_DAY = true;
     static final boolean PREVIOUS_DAY = false;
