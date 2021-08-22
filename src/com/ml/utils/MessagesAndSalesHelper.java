@@ -1335,9 +1335,11 @@ public class MessagesAndSalesHelper {
 
 
         Calendar calendar = Calendar.getInstance();
+        Timestamp year2021 = Timestamp.valueOf("2021-01-01 00:00:00.1");
 
         String user = SData.getSomosMas();
         //String user = SData.getAcaciaYLenga();
+        boolean SINCE_2021=true;
 
         String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
                 calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");
@@ -1350,6 +1352,9 @@ public class MessagesAndSalesHelper {
         String headers=new Order().getPrintableCSVHeader();
         Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){
+            if (SINCE_2021 && order.creationTimestamp.before(year2021)){
+                continue;
+            }
             String record = order.getPrintableCSVValues();
             Logger.writeOnFile(fileName,record);
         }
