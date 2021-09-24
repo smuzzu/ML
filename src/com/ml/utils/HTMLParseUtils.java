@@ -43,64 +43,37 @@ public class HTMLParseUtils {
         return officialStore;
     }
 
-    public static String getSeller(String htmlStringFromProductPage, boolean officialStore, String productUrl) {
+    public static String getSeller(String htmlStringFromProductPage,String productUrl) {
         int sellerPos1 = 0;
         int sellerPos2 = 0;
         String seller = null;
-        if (officialStore) {
-            sellerPos1 = htmlStringFromProductPage.indexOf("official-store-info");
-            if (sellerPos1 > 0) {
-                sellerPos1 = htmlStringFromProductPage.indexOf("title", sellerPos1);
-                sellerPos1 += 7;
-                sellerPos2 = htmlStringFromProductPage.indexOf("<", sellerPos1);
-                seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
-            }else {
-                sellerPos1=htmlStringFromProductPage.lastIndexOf("ui-pdp-seller__header__title");
-                sellerPos1=htmlStringFromProductPage.indexOf(">",sellerPos1)+1;
-                sellerPos2=htmlStringFromProductPage.indexOf("<",sellerPos1);
-                seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
-
-            }
-        } else {
-            sellerPos1 = htmlStringFromProductPage.indexOf("reputation-info block");
-            if (sellerPos1==-1){
-                sellerPos1=htmlStringFromProductPage.indexOf("ui-pdp-seller__list-extra-info");
-            }
-            if (sellerPos1 > 0) {
-                sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL,sellerPos1);
-                if (sellerPos1>0){
-                    sellerPos1 += 35;
-                }else {
-                    sellerPos1 = htmlStringFromProductPage.indexOf(PROFILE_BASE_URL2,sellerPos1);
-                    if (sellerPos1 > 0){
-                        sellerPos1 += 34;
-                    }
-                }
-                sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
-                if (sellerPos2 > 0) {
-                    seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
-                }
-            }
-        }
-        if (seller==null || seller.isEmpty()){
-            sellerPos1=htmlStringFromProductPage.indexOf("Vendido por");
-            if (sellerPos1>0){
-                sellerPos2=htmlStringFromProductPage.indexOf("</a>",sellerPos1);
-                String sellerStr= htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
-                sellerPos2=sellerStr.lastIndexOf("</span>");
-                sellerStr=sellerStr.substring(0,sellerPos2);
-                sellerPos1=sellerStr.lastIndexOf("<span");
-                sellerPos1=sellerStr.indexOf(">",sellerPos1)+1;
-                seller=sellerStr.substring(sellerPos1,sellerPos2);
-            }
-        }
-
-        if (seller == null || seller.trim().isEmpty()) {
-            String msg = "No se pudo encontrar al vendedor " + productUrl;
-            System.out.println(msg);
+        sellerPos1 = htmlStringFromProductPage.indexOf("\"dimension120\"");
+        if (sellerPos1==-1){
+            String msg = "getSeller: no anda dimension120, imposible recuperar el usuario en "+productUrl;
             Logger.log(msg);
-        } else {
-            seller = unFormatSeller(seller);
+            Logger.log(htmlStringFromProductPage);
+            Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            return null;
+        }
+        sellerPos1=htmlStringFromProductPage.indexOf(",",sellerPos1);
+        sellerPos1=htmlStringFromProductPage.indexOf("\"",sellerPos1);
+        sellerPos1++;
+        sellerPos2=htmlStringFromProductPage.indexOf("\"",sellerPos1);
+        if (sellerPos2==-1){
+            String msg = "getSeller: no anda sellerPos2 imposible recuperar el usuario en "+productUrl;
+            Logger.log(msg);
+            Logger.log(htmlStringFromProductPage);
+            Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            return null;
+        }
+        seller=htmlStringFromProductPage.substring(sellerPos1,sellerPos2);
+        if (seller==null || seller.trim().isEmpty()){
+            String msg = "getSeller: is null or empty imposible recuperar el usuario en "+productUrl;
+            Logger.log(msg);
+            Logger.log(htmlStringFromProductPage);
+            Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            System.out.println(msg);
+            return null;
         }
         return seller;
 
@@ -703,11 +676,14 @@ public class HTMLParseUtils {
 
     public static void main(String args[]){
         //String url = "https://articulo.mercadolibre.com.ar/MLA-761860218-espejo-maquillaje-mesa-maquillaje-envios-solo-caba-y-gba-_JM";
-        String url ="https://articulo.mercadolibre.com.ar/MLA-755603972-despensero-1-puerta-40x30x150-cm-organizador-blanco-wengue--_JM";
+        //String url ="https://articulo.mercadolibre.com.ar/MLA-755603972-despensero-1-puerta-40x30x150-cm-organizador-blanco-wengue--_JM";
+        //String url ="https://articulo.mercadolibre.com.ar/MLA-813759067-soyal-ar-721h-control-de-acceso-rfidteclado-1000-usuarios-_JM";
+        //String url = "https://articulo.mercadolibre.com.ar/MLA-910255299-sillas-patas-de-aluminio-boston-blancas-x6-gardenlife-_JM?"; //tienda oficial
+        String url = "https://articulo.mercadolibre.com.ar/MLA-682995428-escritorio-de-lustre-estilo-ingles-_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false, null);
         boolean officialStore = getOfficialStore(productoPage);
-        String seller = getSeller(productoPage,officialStore,url);
+        String seller = getSeller(productoPage,url);
         int discount = getDiscount(productoPage,url);
         int totalSold = getTotalSold(productoPage,url);
         long sellerId=getSellerId(productoPage,url);
