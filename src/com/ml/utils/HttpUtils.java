@@ -616,8 +616,12 @@ public class HttpUtils {
    }
 
 
-   public static boolean downloadFile(CloseableHttpClient httpClient, String fileUrl, String filePath){
+   public static boolean downloadFile(CloseableHttpClient httpClient, String fileUrl, String filePath, String usuario){
         HttpGet httpGet = new HttpGet(fileUrl);
+       String token = TokenUtils.getToken(usuario);
+       if (token!=null){
+           httpGet.addHeader("Authorization","Bearer "+token);
+       }
 
         CloseableHttpResponse response = null;
         HttpContext context = new BasicHttpContext();

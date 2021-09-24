@@ -473,9 +473,7 @@ public class SalesChecker {
         long minutes=System.currentTimeMillis()/1000/60;
         String labelFileName="Etiqueta_"+usuario.substring(0,1)+"_"+shippingId+"_"+minutes+".pdf";
         String etiquetaUrl="https://api.mercadolibre.com/shipment_labels?shipment_ids="+shippingId+"&savePdf=Y";
-        String token = TokenUtils.getToken(usuario);
-        String urlWithToken = etiquetaUrl + "&access_token=" + token;
-        boolean successfullDownload=HttpUtils.downloadFile(httpClient,urlWithToken,labelFileName);
+        boolean successfullDownload=HttpUtils.downloadFile(httpClient,etiquetaUrl,labelFileName,usuario);
         if (!successfullDownload){
             labelFileName=null;
         }
@@ -484,7 +482,7 @@ public class SalesChecker {
 
     private static String downloadPhoto(CloseableHttpClient httpClient, String productVariationPictureUrl){
         String photoFilePath="Foto_"+usuario.substring(0,1)+"_"+System.currentTimeMillis()+".jpg";
-        boolean successfullDownload=HttpUtils.downloadFile(httpClient,productVariationPictureUrl,photoFilePath);
+        boolean successfullDownload=HttpUtils.downloadFile(httpClient,productVariationPictureUrl,photoFilePath,usuario);
         if (!successfullDownload){
             photoFilePath=null;
         }
