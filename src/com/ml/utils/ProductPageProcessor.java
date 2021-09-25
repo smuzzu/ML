@@ -148,7 +148,7 @@ public class ProductPageProcessor extends Thread {
 
                 long theSellerId = HTMLParseUtils.getSellerId(htmlString, url);
                 
-                String seller = HTMLParseUtils.getSeller(htmlString, url);
+                String seller = HTMLParseUtils.getSeller(htmlString, officialStore, url);
 
                 String lastQuestion = HTMLParseUtils.getLastQuestion(htmlString);
 
