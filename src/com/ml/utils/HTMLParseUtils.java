@@ -11,7 +11,6 @@ public class HTMLParseUtils {
 
     public static String OFICIAL_STORE_LABEL = "Tienda oficial de Mercado Libre";
     public static String PROFILE_BASE_URL = "https://perfil.mercadolibre.com.ar/";
-    public static String PROFILE_BASE_URL2 = "http://perfil.mercadolibre.com.ar/";
     public static String PRODUCT_LIST_BASE_URL = "https://listado.mercadolibre.com.ar/";
     public static String QUESTIONS_BASE_URL = "https://articulo.mercadolibre.com.ar/noindex/questions/";
     public static String CATALOG_PRODUCT_BASE_URL = "https://api.mercadolibre.com/products/";
@@ -72,24 +71,33 @@ public class HTMLParseUtils {
             sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
             seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
             if (seller == null || seller.trim().isEmpty()) {
-                String msg = "getSeller: is null or empty imposible recuperar el usuario en " + productUrl;
+                String msg = "getSeller dimension120: is null or empty imposible recuperar el usuario en " + productUrl;
                 Logger.log(msg);
                 Logger.log(htmlStringFromProductPage);
                 Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
                 System.out.println(msg);
                 return null;
-            }else {
-                return seller;
             }
-        }else {
-            String msg = "getSeller: no anda dimension120, imposible recuperar el usuario en " + productUrl;
-            Logger.log(msg);
-            Logger.log(htmlStringFromProductPage);
-            Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-            return null;
         }
+        if (seller==null){
+            sellerPos1=htmlStringFromProductPage.indexOf(PROFILE_BASE_URL);
+            if (sellerPos1>-1){
+                sellerPos1+=PROFILE_BASE_URL.length();
+                sellerPos2 = htmlStringFromProductPage.indexOf("\"", sellerPos1);
+                seller = htmlStringFromProductPage.substring(sellerPos1, sellerPos2);
+                if (seller == null || seller.trim().isEmpty()) {
+                    String msg = "getSeller profileURL: is null or empty imposible recuperar el usuario en " + productUrl;
+                    Logger.log(msg);
+                    Logger.log(htmlStringFromProductPage);
+                    Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    System.out.println(msg);
+                    return null;
+                }
+            }
 
 
+        }
+        return seller;
 
     }
 
@@ -692,8 +700,9 @@ public class HTMLParseUtils {
         //String url = "https://articulo.mercadolibre.com.ar/MLA-761860218-espejo-maquillaje-mesa-maquillaje-envios-solo-caba-y-gba-_JM";
         //String url ="https://articulo.mercadolibre.com.ar/MLA-755603972-despensero-1-puerta-40x30x150-cm-organizador-blanco-wengue--_JM";
         //String url ="https://articulo.mercadolibre.com.ar/MLA-813759067-soyal-ar-721h-control-de-acceso-rfidteclado-1000-usuarios-_JM";
-        //String url = "https://articulo.mercadolibre.com.ar/MLA-910255299-sillas-patas-de-aluminio-boston-blancas-x6-gardenlife-_JM?"; //tienda oficial
-        String url = "https://www.mercadolibre.com.ar/limpiador-blem-original-en-aerosol-360ml/p/MLA16209132";
+        //String url = "https://articulo.mercadolibre.com.ar/MLA-910255299-sillas-patas-de-aluminio-boston-blancas-x6-gardenlife-_JM"; //tienda oficial
+        //String url = "https://www.mercadolibre.com.ar/joystick-sony-playstation-dualshock-2-black/p/MLA15077944";
+        String url = "https://articulo.mercadolibre.com.ar/MLA-930649631-kit-mercado-pago-point-mini-qr-_JM";
         CloseableHttpClient client = HttpUtils.buildHttpClient();
         String productoPage=HttpUtils.getHTMLStringFromPage(url,client,false,false, null);
         boolean officialStore = getOfficialStore(productoPage);
@@ -701,6 +710,7 @@ public class HTMLParseUtils {
         int discount = getDiscount(productoPage,url);
         int totalSold = getTotalSold(productoPage,url);
         long sellerId=getSellerId(productoPage,url);
+        double price = getPrice(productoPage,url);
         boolean b=false;
 
 
