@@ -769,9 +769,13 @@ public class SalesChecker {
         if (order.buyerFirstName!=null) {
             result = order.buyerFirstName.trim();
         }else { //empresa
-            result = order.buyerBusinessName.trim();
-            if (result.contains("SA") || result.contains("SRL")){
-                processHumanName=false;
+            if (order.buyerBusinessName!=null) {
+                result = order.buyerBusinessName.trim();
+                if (result.contains("SA") || result.contains("SRL")) {
+                    processHumanName = false;
+                }
+            }else {
+                Logger.log("no sabemos quien carajos compro / pago la cuenta");
             }
         }
 
