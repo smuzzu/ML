@@ -38,6 +38,8 @@ public class ReportRunner {
     static final boolean REBUILD_INTERVALS = false;
     static final int MAX_INTERVAL_SIZE = 800;
 
+    static final String SERVICIO_URL="https://servicio.";
+
     static int globalMinimumSales = 1;
     static boolean globalFollowingDay = false;
     static boolean globalPreviousDay = false;
@@ -612,9 +614,11 @@ public class ReportRunner {
 
                 item.premium = HTMLParseUtils.getPremium(productHTMLdata);
 
-                item.price = HTMLParseUtils.getPrice2(productHTMLdata);
-                if (item.price == 0) {
-                    Logger.log("AA I couldn't get the price on " + productUrl);
+                if (!item.permalink.startsWith(SERVICIO_URL)) {
+                    item.price = HTMLParseUtils.getPrice2(productHTMLdata);
+                    if (item.price == 0) {
+                        Logger.log("AA I couldn't get the price on " + productUrl);
+                    }
                 }
 
                 item.advertised = productHTMLdata.contains("Promocionado"); //todo check
