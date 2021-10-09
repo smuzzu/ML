@@ -394,7 +394,7 @@ public class ReportRunner {
             }
 
             htmlStringFromPage = htmlStringFromPage.toString();
-            int resultSectionPos = htmlStringFromPage.indexOf("search-results");
+            int resultSectionPos = htmlStringFromPage.indexOf("Ordenar por");
             String resultListHMTLData = null;
             if (resultSectionPos == -1) {
                 if (htmlStringFromPage.indexOf("Escrib") > 0
@@ -404,7 +404,7 @@ public class ReportRunner {
                     Logger.log(msg);
                     continue;
                 }
-                Logger.log("Error getting search-results tag on page " + page + " " + uRL);
+                Logger.log("Error getting 'Ordenar por' label on page " + page + " " + uRL);
                 Logger.log(htmlStringFromPage);
                 resultListHMTLData = htmlStringFromPage;
             } else {
