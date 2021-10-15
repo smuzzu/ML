@@ -110,8 +110,7 @@ public class ProductPageProcessor extends Thread {
                         totalSold = HTMLParseUtils.getTotalSold(htmlString, url);
                     }
 
-                    if (totalSold <= 0) {
-                        // todo sacar
+                    if (totalSold <= 0 && !url.startsWith(HTMLParseUtils.SERVICIO_URL)) {
                         msg = "TOTAL SOLD = " + totalSold + " on " + url;
                         Logger.log(msg);
                         System.out.println(msg);

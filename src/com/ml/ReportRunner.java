@@ -28,7 +28,7 @@ public class ReportRunner {
     static final int RESULTS_WITHOUT_TOKEN = 1000;
     static final int RESULTS_LIMIT = 10000;
 
-    static int MAX_THREADS = 50;//14
+    static int MAX_THREADS = 35;//14
     static final boolean DEBUG = false;
 
     static final char COMPLETE = 'C';
@@ -37,8 +37,6 @@ public class ReportRunner {
 
     static final boolean REBUILD_INTERVALS = false;
     static final int MAX_INTERVAL_SIZE = 800;
-
-    static final String SERVICIO_URL="https://servicio.";
 
     static int globalMinimumSales = 1;
     static boolean globalFollowingDay = false;
@@ -614,7 +612,7 @@ public class ReportRunner {
 
                 item.premium = HTMLParseUtils.getPremium(productHTMLdata);
 
-                if (!item.permalink.startsWith(SERVICIO_URL)) {
+                if (!item.permalink.startsWith(HTMLParseUtils.SERVICIO_URL)) {
                     item.price = HTMLParseUtils.getPrice2(productHTMLdata);
                     if (item.price == 0) {
                         Logger.log("AA I couldn't get the price on " + productUrl);

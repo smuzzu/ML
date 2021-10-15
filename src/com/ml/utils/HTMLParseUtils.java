@@ -17,6 +17,7 @@ public class HTMLParseUtils {
     public static String MERCADOLIBRE_BASE_URL = "mercadolibre.com.ar";
     public static String ARTICLE_PREFIX = "MLA";
     public static String CATALOG_ITEM_URL_INDICATOR = "/p/"+HTMLParseUtils.ARTICLE_PREFIX;
+    public static String SERVICIO_URL = "https://servicio.";
 
     static String SHIPPING1_LABEL = "Envío a todo el país";
     static String SHIPPING2_LABEL = "Llega el";
