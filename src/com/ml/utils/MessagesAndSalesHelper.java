@@ -1281,7 +1281,7 @@ public class MessagesAndSalesHelper {
                 Message message = new Message();
                 message.id = messageJsonObject.getString("id");
                 message.text = messageJsonObject.getString("text");
-                String fromId = messageJsonObject.getJSONObject("from").getString("user_id");
+                String fromId = ""+messageJsonObject.getJSONObject("from").getLong("user_id");
                 if (fromId.equals(TokenUtils.getIdCliente(user))) {
                     message.direction = 'E';
                 } else {
