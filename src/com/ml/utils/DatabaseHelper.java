@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -27,6 +28,7 @@ public class DatabaseHelper {
     private static Connection globalAddMonthlyConnection = null;
     private static Connection globalAddActivityConnection = null;
     private static Connection globalCloudConnection = null;
+    private static Connection globalAddRemoveIdConnection = null;
 
     private static PreparedStatement globalSelectProduct = null;
     private static PreparedStatement globalSelectTotalSold = null;
@@ -52,9 +54,11 @@ public class DatabaseHelper {
     private static PreparedStatement globalInsertActivity = null;
     private static PreparedStatement globalInsertSale = null;
     private static PreparedStatement globalInsertQuestion = null;
+    private static PreparedStatement globalInsertId = null;
     private static PreparedStatement globalRemoveActivity = null;
     private static PreparedStatement globalRemoveSale = null;
     private static PreparedStatement globalRemoveQuestions = null;
+    private static PreparedStatement globalRemoveId = null;
     private static PreparedStatement globalUpdateProduct = null;
     private static PreparedStatement globalDisableProduct=null;            ;
     private static PreparedStatement globalUpdateVisits = null;
@@ -286,6 +290,40 @@ public class DatabaseHelper {
         }
         return globalAddProductConnection;
     }
+
+    public static synchronized Connection getAddRemoveIdConnection(String database){
+
+        boolean resetConnection= globalAddRemoveIdConnection ==null;
+        if (!resetConnection){
+            try {
+                resetConnection= globalAddRemoveIdConnection.isClosed();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (resetConnection) {
+
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "jdbc:postgresql://localhost:5432/"+database;
+            Properties props = new Properties();
+            props.setProperty("user", "postgres");
+            props.setProperty("password", "password");
+            try {
+                globalAddRemoveIdConnection = DriverManager.getConnection(url, props);
+            } catch (SQLException e) {
+                Logger.log("I couldn't make addproduct connection");
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        return globalAddRemoveIdConnection;
+    }
+
 
     public static synchronized Connection getAddDailyConnection(String database){
 
@@ -1559,7 +1597,111 @@ public class DatabaseHelper {
         }
     }
 
+    public static long getRemainingItems(String database){
+        Connection connection = getSelectConnection(database);
+        long totalIds=0;
+        try {
+            PreparedStatement remainingItems = connection.prepareStatement("select count(*) from public.ids");
+            ResultSet resultSet = remainingItems.executeQuery();
+            if (resultSet == null) {
+                Logger.log("Couldn't get count(*) on ids table I");
+            }
+            if (resultSet.next()) {
+                totalIds = resultSet.getLong(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Logger.log("Couldn't get count(*) on ids table II");
+            Logger.log(e);
+        }
+        return totalIds;
+    }
+
+    public static void saveItemsToProcess(Collection<Item> itemsToAdd, String database){
+        try {
+            if (globalInsertId ==null) {
+                Connection connection= DatabaseHelper.getAddRemoveIdConnection(database);
+                //item.permalink, item.id, item.sellerId, item.page, item.ranking,
+                globalInsertId = connection.prepareStatement("INSERT INTO public.ids(idproducto,url,idprovedor,pagina,ranking) VALUES (?,?,?,?,?);");
+            }
+
+            for (Item item: itemsToAdd) {
+                globalInsertId.setString(1, item.id);
+                globalInsertId.setString(2,item.permalink);
+                globalInsertId.setLong(3,item.sellerId);
+                globalInsertId.setInt(4,item.page);
+                globalInsertId.setInt(5,item.ranking);
+                int registrosInsertados = globalInsertId.executeUpdate();
+
+                if (registrosInsertados != 1) {
+                    Logger.log("Couldn't insert idproducto I "+item.id);
+                }
+            }
+            }catch(SQLException e){
+                Logger.log("Couldn't insert idproducto II ");
+                Logger.log(e);
+            }
+    }
+
+    public static HashMap<String, Item> getRemainingItemsToProcess(String database){
+        HashMap<String, Item> result = new HashMap<String, Item>();
+
+        Connection connection = getSelectConnection(database);
+        try {
+            PreparedStatement remainingItems = connection.prepareStatement("select idproducto,url,idprovedor,pagina,ranking from public.ids");
+            ResultSet resultSet = remainingItems.executeQuery();
+            if (resultSet == null) {
+                Logger.log("Couldn't get remaining ids on table I");
+            }
+            while (resultSet.next()) {
+                Item item = new Item();
+                item.id = resultSet.getString(1);
+                item.permalink = resultSet.getString(2);
+                item.sellerId = resultSet.getLong(3);
+                item.page = resultSet.getInt(4);
+                item.ranking = resultSet.getInt(5);
+                result.put(item.id,item);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Logger.log("Couldn't get remaining ids table II");
+            Logger.log(e);
+        }
+
+
+        return result;
+    }
+
+    public static void deleteItemsToProcess(ArrayList<String> itemsToRemove, String database){
+        try {
+            if (globalRemoveId ==null) {
+                Connection connection= DatabaseHelper.getAddRemoveIdConnection(database);
+                globalRemoveId = connection.prepareStatement("delete from public.ids where idproducto=?");
+            }
+            for (String productId: itemsToRemove) {
+                globalRemoveId.setString(1, productId);
+                int removedRecords = globalRemoveId.executeUpdate();
+
+                if (removedRecords != 1) {
+                    Logger.log("Couldn't delete id I "+productId);
+                }
+            }
+        }catch(SQLException e){
+            Logger.log("Couldn't delete id II");
+            Logger.log(e);
+        }
+    }
+
+
+
     public static void main(String[] args) {
+        long remainingItems=getRemainingItems("ML1");
+        ArrayList<String> idList=new ArrayList<>();
+        idList.add("MLA-ADADADAS");
+        idList.add("MLA-BBBBBBBBB");
+        idList.add("MLA-CCCCCCCCC");
+        deleteItemsToProcess(idList,"ML1");
+        remainingItems=getRemainingItems("ML1");
         //insertQuestion(2,2,"detalles");
         Map<Long,String> questionsMap = fetchQuestions();
         long id=11870686542L;

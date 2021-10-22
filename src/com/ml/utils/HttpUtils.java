@@ -38,7 +38,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class HttpUtils {
@@ -47,45 +53,148 @@ public class HttpUtils {
     public static final String EXPIRED_TOKEN = "401|";
 
     private static int currentProxyNumber=0;
+    private static long proxyStopSeconds=0;
 
-    private static boolean PROXY_ENABLED=true;
-    private static long MIN_REQUEST_NANOS=4L*1000000000L;
-    //todo revisar stop1 y 2
-    private static long PROXY_REQUEST_NUMBER=200;
-    private static long PROXY_STOP1_SECONDS=60;
-    private static long PROXY_STOP2_SECONDS=60;
-
-    private static boolean proxyOn=false;//no tocar
-    private static String[] proxyList=null;
-    static long requestCount=0;
-    static long timeRequestCount=System.nanoTime();
+    private static int requestCount=0;
+    private static long timeRequestCount=System.nanoTime();
+    private static boolean proxyOn=false;
 
 
-    private static void loadProxiesFromFile(){
-        String proxiesFile="C:\\centro\\proxyList.txt";
-        StringBuilder contentBuilder = new StringBuilder();
-        try (Stream<String> stream = Files.lines(Paths.get(proxiesFile), StandardCharsets.UTF_8)) {
-            stream.forEach(s -> contentBuilder.append(s).append("\n"));
+
+    private static boolean PROXY_ENABLED=false;
+
+    //habilita informacion de debug en tiempo real system.out
+    private static boolean PROXY_DEBUG=false;
+
+    //es el minimo y agrega una pausa para cada request para completar ese minimo si hace falta
+    private static long MIN_REQUEST_NANOS=6000000000L;
+
+    //los dos siguientes establecen un limite de tiempo para ejecutar una cantidad de requests sin proxy
+    //si e alcanza la cantidad de requests y todavia queda tiempo se encienden los proxies por el tiempo remantente
+    //hasta alcanzar los PROXY_STOP_SECONDS, luego de eso vuelve a funcionar sin proxy
+    //si e alcanza la cantidad de requests y el tiempo vencio entonces no es necesario recurrir a los proxies
+    private static long PROXY_REQUESTS_NUMBER =200L;
+    private static long PROXY_STOP_SECONDS =60L;
+
+    private static ArrayList proxyList=null;
+    private static HashMap<String,Long> proxyStatisticsTime =null;
+    private static HashMap<String,Long> proxyStatisticsCount =null;
+    private static int proxyCycleCount=0;
+
+
+    protected static synchronized ArrayList<String> loadProxiesFromFile() {
+
+        proxyCycleCount++;
+        HashMap<String,Long> myProxyStatisticsTime=new HashMap<String,Long>(proxyStatisticsTime);
+        int proxyListSize=myProxyStatisticsTime.size();
+        HashMap<String,Long> myProxyStatisticsCount=new HashMap<String,Long>(proxyStatisticsCount);
+
+
+        ArrayList<String> myProxyList=null;
+        if (proxyList==null){
+            myProxyList=new ArrayList<String>();
+        }else {
+            myProxyList=proxyList;
         }
-        catch (IOException e) {
-            e.printStackTrace();
+
+        if (proxyCycleCount==4 || (proxyCycleCount==15 && proxyListSize>5)
+             || (proxyCycleCount==30 && proxyListSize>5)){
+            if (proxyListSize>5) {
+                HashMap<String, Long> averageTime = new HashMap<String, Long>();
+                for (String proxy : myProxyStatisticsTime.keySet()) {
+                    long time = myProxyStatisticsTime.get(proxy);
+                    long count = myProxyStatisticsCount.get(proxy);
+                    long averageSeconds = time / count / 1000000000L;
+                    averageTime.put(proxy, averageSeconds);
+                }
+                int eightyPercent = averageTime.size() * 80 / 100;
+                Map<String, Long> proxyStatisticsTimeSorted = sortByComparator(myProxyStatisticsTime);
+                myProxyList = new ArrayList<String>(proxyStatisticsTimeSorted.keySet());
+                for (int i = proxyListSize-1; i >= eightyPercent; i--) {
+                    myProxyList.remove(i);
+                }
+                proxyStatisticsCount=new HashMap<String, Long>();
+                proxyStatisticsTime=new HashMap<String, Long>();
+            }
         }
-        String proxiesListStr =  contentBuilder.toString();
-        String [] proxies = proxiesListStr.split("\n");
-        proxyList= Arrays.stream(proxies)
-                .filter(s -> s.contains("//")==false)
-                .toArray(String[]::new);
+
+        if (proxyList == null || proxyCycleCount == 100) {
+            proxyCycleCount=0;
+            proxyStatisticsCount=new HashMap<String,Long>();
+            proxyStatisticsTime=new HashMap<String,Long>();
+            String proxiesFile = "C:\\centro\\proxyList.txt";
+            StringBuilder contentBuilder = new StringBuilder();
+            try (Stream<String> stream = Files.lines(Paths.get(proxiesFile), StandardCharsets.UTF_8)) {
+                stream.forEach(s -> contentBuilder.append(s).append("\n"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String proxiesListStr = contentBuilder.toString();
+            String[] proxies = proxiesListStr.split("\n");
+            for (String proxy : proxies) {
+                if (proxy.contains("PROXY_DEBUG")) {
+                    int pos1 = proxy.indexOf("=") + 1;
+                    PROXY_DEBUG = Boolean.parseBoolean(proxy.substring(pos1));
+                }
+                if (proxy.contains("PROXY_REQUESTS_NUMBER")) {
+                    int pos1 = proxy.indexOf("=") + 1;
+                    PROXY_REQUESTS_NUMBER = Long.parseLong(proxy.substring(pos1));
+                }
+                if (proxy.contains("PROXY_STOP_SECONDS")) {
+                    int pos1 = proxy.indexOf("=") + 1;
+                    PROXY_STOP_SECONDS = Long.parseLong(proxy.substring(pos1));
+                }
+                if (proxy.contains("MIN_REQUEST_NANOS")) {
+                    int pos1 = proxy.indexOf("=") + 1;
+                    MIN_REQUEST_NANOS = Long.parseLong(proxy.substring(pos1));
+                }
+                if (proxy.startsWith("//")){
+                    continue;
+                }
+                myProxyList.add(proxy);
+            }
+        }
+        return myProxyList;
     }
 
+    private static Map<String, Long> sortByComparator(Map<String, Long> unsortMap)
+    {
 
+        List<Map.Entry<String, Long>> list = new LinkedList<Map.Entry<String, Long>>(unsortMap.entrySet());
+
+        // Sorting the list based on values
+        Collections.sort(list, new Comparator<Map.Entry<String, Long>>()
+        {
+            public int compare(Map.Entry<String, Long> o1,
+                               Map.Entry<String, Long> o2)
+            {
+                return o1.getValue().compareTo(o2.getValue());
+            }
+        });
+
+        // Maintaining insertion order with the help of LinkedList
+        Map<String, Long> sortedMap = new LinkedHashMap<String, Long>();
+        for (Map.Entry<String, Long> entry : list)
+        {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+
+        return sortedMap;
+    }
 
     synchronized private static String getProxy() {
-        int totalproxies=proxyList.length;
-        currentProxyNumber++;
+        return (String) proxyList.get(currentProxyNumber);
+    }
+
+    synchronized private static String getNewProxy() {
+        String result;
+        int totalproxies=proxyList.size();
         if (currentProxyNumber>=totalproxies){
             currentProxyNumber=0;
         }
-        return proxyList[currentProxyNumber];
+        result= (String) proxyList.get(currentProxyNumber);
+        currentProxyNumber++;
+        return result;
     }
 
 
@@ -148,7 +257,6 @@ public class HttpUtils {
         CloseableHttpResponse response=null;
         try {
             response = httpClient.execute(httpDelete);
-
         }
         catch (Exception e){
             Logger.log("Error executing put "+e.getMessage());
@@ -172,7 +280,7 @@ public class HttpUtils {
 
 
 
-        public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
+     public static boolean postMessage(String text, CloseableHttpClient httpClient, long packId, String user, long customerId, char shippingType) {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
@@ -328,25 +436,6 @@ public class HttpUtils {
         return jsonResponse;
    }
 
-   synchronized static long increaseOrResetRequestCountersAndProxy(boolean reset){
-        requestCount++;
-        if (reset){
-            requestCount=0;
-            timeRequestCount=System.nanoTime();
-            proxyOn=false;
-        }
-        return requestCount;
-   }
-
-
-    synchronized static void rebuildClient(CloseableHttpClient client){
-        requestCount++;
-        if (requestCount>=40){
-            requestCount=0;
-            client=buildHttpClient();
-        }
-    }
-
 
     public static String getHTMLStringFromPage(String uRL, CloseableHttpClient client, boolean DEBUG, boolean useProxy, String token) {
 
@@ -375,18 +464,65 @@ public class HttpUtils {
         int statusCode = 0;
 
         String proxy = null;
+
+       long requestNanos1=System.nanoTime();
         while (retry && retries < 5) {
             retries++;
+            proxy=proxyAndPauseManagement(useProxy,httpGet);
 
-            rebuildClient(client);
 
             try {
                 response = client.execute(httpGet, context);
             } catch (IOException e) {
                 response = null;
-                Logger.log("Error en getHTMLStringFromPage intento #" + retries + " " + uRL+ " con proxy "+proxy);
-                Logger.log(e);
+                String msg="Error en getHTMLStringFromPage intento #" + retries + " " + uRL+ " con proxy "+proxy;
+                if (proxy != null) {
+                    if (proxyStatisticsTime!=null && proxyStatisticsTime.containsKey(proxy)){
+                        long time = proxyStatisticsTime.get(proxy);
+                        time+=40000000000L;//penalizamos con 40 segundos en la estadistica
+                        proxyStatisticsTime.replace(proxy,time);
+                    }
+                    if (PROXY_DEBUG) {
+                        System.out.println(msg);
+                    }
+                }
+                Logger.log(msg);
+                if (proxy==null || PROXY_DEBUG) {
+                    Logger.log(e);
+                }
             }
+
+            if (useProxy && PROXY_ENABLED) {
+                long requestNanos2 = System.nanoTime();
+                long requestNanos = requestNanos2 - requestNanos1;
+                if (requestNanos < MIN_REQUEST_NANOS) {
+                    try {
+                        long pause = (MIN_REQUEST_NANOS - requestNanos) / 10000000;
+                        if (PROXY_DEBUG) {
+                            System.out.println("pause " + pause + " miliseconds");
+                        }
+                        Thread.sleep(pause);
+                    } catch (InterruptedException e) {
+                        Logger.log(e);
+                    }
+                }
+
+                //statistics
+                if (proxy != null) {
+
+                    if (!proxyStatisticsTime.containsKey(proxy)) {
+                        proxyStatisticsTime.put(proxy, 0L);
+                        proxyStatisticsCount.put(proxy, 0L);
+                    }
+                    long elapsed = proxyStatisticsTime.get(proxy);
+                    long count=proxyStatisticsCount.get(proxy);
+                    elapsed += requestNanos;
+                    count++;
+                    proxyStatisticsTime.replace(proxy, elapsed);
+                    proxyStatisticsCount.replace(proxy, count);
+                }
+            }
+
             Counters.incrementGlobalRequestCount();
 
             if (response != null) {
@@ -398,7 +534,6 @@ public class HttpUtils {
                     } else {
                         Logger.log("Http "+statusCode+" en getHTMLStringFromPage intento #" + retries + " " + uRL+" whith proxy"+proxy);
                         //todo en el 403 hacemos algo?
-                        int segundosQuePasaron = (int) ((System.nanoTime()-timeRequestCount)/1000000000L);
                     }
                 }
             }
@@ -504,42 +639,79 @@ public class HttpUtils {
    }
 
 
-   private static void proxyAndPauseManagement(boolean useProxy,HttpGet httpGet) {
-        long eplapsedSeconds = (System.nanoTime() - timeRequestCount) / 1000000000L;
-        long requestCount = increaseOrResetRequestCountersAndProxy(false);
-        if (proxyOn){
-            if (eplapsedSeconds > PROXY_STOP2_SECONDS) {
-                increaseOrResetRequestCountersAndProxy(true);
+   private static String proxyAndPauseManagement(boolean useProxy,HttpGet httpGet) {
+        String result=null;
+        if (useProxy) {
+
+            long elapsedSeconds = getElapsedSeconds();
+            increaseOrResetRequestCountersAndProxy(false);
+            boolean isProxyOn=isProxyOn();
+            boolean counterLimitReached=getRequestCount() >= PROXY_REQUESTS_NUMBER;
+
+            boolean timeout=elapsedSeconds > PROXY_STOP_SECONDS;
+            if (isProxyOn){
+                timeout=elapsedSeconds > proxyStopSeconds;
             }
-            String proxy=getProxy();
-            RequestConfig requestConfig=buildRequestConfig(proxy);
-            httpGet.setConfig(requestConfig);
-        }else {
-            if (requestCount >= PROXY_REQUEST_NUMBER) {
-                if (eplapsedSeconds < PROXY_STOP1_SECONDS) {
-                    if (PROXY_ENABLED && useProxy) {
-                        loadProxiesFromFile();
-                        proxyOn = true;
-                    } else {
-                        long pasuseMilliseconds = (PROXY_STOP2_SECONDS - eplapsedSeconds) * 1000L;
-                        System.out.println(PROXY_REQUEST_NUMBER+" transacciones en menos de "+PROXY_STOP1_SECONDS
-                                +" segundos. Aguantamos los trapos " + pasuseMilliseconds/1000 + " segundos ");
-                        try {
-                            Thread.sleep(pasuseMilliseconds);
-                        } catch (InterruptedException e) {
-                            Logger.log(e);
-                        }
-                        requestCount = increaseOrResetRequestCountersAndProxy(false);
-                        if (requestCount >= PROXY_REQUEST_NUMBER) {
-                            increaseOrResetRequestCountersAndProxy(true);
+
+            if (!PROXY_ENABLED) {
+                checkCountNoProxy(counterLimitReached, timeout);
+            } else {//proxy enabled
+                if (counterLimitReached || timeout){
+                    increaseOrResetRequestCountersAndProxy(true);
+                    if (isProxyOn){
+                        setProxyOff();
+                    }else {
+                        if (counterLimitReached && !timeout){
+                            proxyStopSeconds= PROXY_STOP_SECONDS -elapsedSeconds;
+                            proxyList=loadProxiesFromFile();
+                            setProxyOn();
                         }
                     }
+                }
+
+                if (isProxyOn()) {
+                    String proxy = getNewProxy();
+                    result=proxy;
+                    RequestConfig requestConfig = buildRequestConfig(proxy);
+                    httpGet.setConfig(requestConfig);
+                    if (PROXY_DEBUG) {
+                        System.out.println(getRequestCount() + " " + getProxy() + " " + getElapsedSeconds());
+                    }
                 } else {
-                    increaseOrResetRequestCountersAndProxy(true);
+                    //nada - request sin proxy
+                    if (PROXY_DEBUG) {
+                        System.out.println(getRequestCount() + " NADA " + getElapsedSeconds());
+                    }
                 }
             }
+        }else {
+            //nada - request sin proxy
+            if (PROXY_DEBUG) {
+                System.out.println(" request sin proxy ");
+            }
         }
+        return result;
    }
+
+    private static synchronized void checkCountNoProxy(boolean counterLimitReached, boolean timeoutReached) {
+        if (counterLimitReached || timeoutReached){
+            increaseOrResetRequestCountersAndProxy(true);
+        }
+        if (PROXY_DEBUG) {
+            System.out.println(getRequestCount() + " NADA " + getElapsedSeconds());
+        }
+        if (counterLimitReached && !timeoutReached){
+            long pauseMilliseconds = (PROXY_STOP_SECONDS - getElapsedSeconds()) * 1000L;
+            System.out.println(PROXY_REQUESTS_NUMBER + " transacciones en menos de " + PROXY_STOP_SECONDS
+                    + " segundos. Aguantamos los trapos " + pauseMilliseconds / 1000 + " segundos ");
+            try {
+                Thread.sleep(pauseMilliseconds);
+            } catch (InterruptedException e) {
+                Logger.log(e);
+            }
+        }
+    }
+
 
    public static boolean isOK(String hmlString){
         if (hmlString!=null && hmlString.length()>1){
@@ -756,7 +928,7 @@ public class HttpUtils {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(productId);
-        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, false,null );
+        String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, true,null );
         if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red
             try {
@@ -788,7 +960,39 @@ public class HttpUtils {
         return newQuestions;
    }
 
-   public static void main(String[] args){
+    static boolean isProxyOn(){
+        return proxyOn;
+    }
+
+    static void setProxyOn(){
+        proxyOn=true;
+    }
+
+    static void setProxyOff(){
+        proxyOn=false;
+    }
+
+    static int getRequestCount(){
+        return requestCount;
+    }
+
+    static long getElapsedSeconds(){
+        return (System.nanoTime()-timeRequestCount)/1000000000L;
+    }
+
+
+    ///proxy
+    static void increaseOrResetRequestCountersAndProxy(boolean reset){
+        requestCount++;
+        if (reset){
+            requestCount=0;
+            timeRequestCount=System.nanoTime();
+        }
+    }
+
+
+
+    public static void main(String[] args){
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
         JSONObject object = getJsonObjectUsingToken("https://api.mercadolibre.com/users/me",httpClient,SData.getQuefresquete(),false);
         String text="Muchas gracias por tu compra";
@@ -799,5 +1003,22 @@ public class HttpUtils {
 
    }
 
+    static class ValueComparator implements Comparator<String> {
+        Map<String, Long> base;
+
+        public ValueComparator(Map<String, Long> base) {
+            this.base = base;
+        }
+
+        // Note: this comparator imposes orderings that are inconsistent with
+        // equals.
+        public int compare(String a, String b) {
+            if (base.get(a) >= base.get(b)) {
+                return -1;
+            } else {
+                return 1;
+            } // returning 0 would merge keys
+        }
+    }
 
 }
