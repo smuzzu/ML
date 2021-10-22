@@ -85,9 +85,15 @@ public class HttpUtils {
     protected static synchronized ArrayList<String> loadProxiesFromFile() {
 
         proxyCycleCount++;
-        HashMap<String,Long> myProxyStatisticsTime=new HashMap<String,Long>(proxyStatisticsTime);
+        HashMap<String,Long> myProxyStatisticsTime=new HashMap<String,Long>();
+        if (proxyStatisticsTime!=null){
+            myProxyStatisticsTime=new HashMap<String,Long>(proxyStatisticsTime);
+        }
         int proxyListSize=myProxyStatisticsTime.size();
-        HashMap<String,Long> myProxyStatisticsCount=new HashMap<String,Long>(proxyStatisticsCount);
+        HashMap<String,Long> myProxyStatisticsCount=new HashMap<String,Long>();
+        if (proxyStatisticsCount!=null){
+            myProxyStatisticsCount=new HashMap<String,Long>(proxyStatisticsCount);
+        }
 
 
         ArrayList<String> myProxyList=null;
