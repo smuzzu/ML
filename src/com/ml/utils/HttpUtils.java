@@ -61,7 +61,7 @@ public class HttpUtils {
 
 
 
-    private static boolean PROXY_ENABLED=false;
+    private static boolean PROXY_ENABLED=true;
 
     //habilita informacion de debug en tiempo real system.out
     private static boolean PROXY_DEBUG=false;

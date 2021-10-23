@@ -733,66 +733,86 @@ public class ReportRunner {
         globalMinimumSales=minimumSales;
 
         getGlobalDate(); //seteamos al principio de la corrida
+        HashMap<String, Item> itemHashMap = new HashMap<String, Item>();
 
-        if (REBUILD_INTERVALS){
-            System.out.println("Reconstruyendo intervalos...");
-            for (int i=0; i<apiBaseUrls.length; i++) {
-                intervals[i]=buildIntervals(apiBaseUrls[i],MAX_INTERVAL_SIZE, client);
+        long remainingItemsFromPreviousRun=DatabaseHelper.getRemainingItems(DATABASE);
+
+        if (remainingItemsFromPreviousRun==0) {
+
+            if (REBUILD_INTERVALS) {
+                System.out.println("Reconstruyendo intervalos...");
+                for (int i = 0; i < apiBaseUrls.length; i++) {
+                    intervals[i] = buildIntervals(apiBaseUrls[i], MAX_INTERVAL_SIZE, client);
+                }
             }
-        }
 
 
-        HashMap<String, Item> itemHashMap = new HashMap<String, Item> ();
-        for (String webBaseUrl : webBaseUrls) {
-            Logger.log("XXXXXXXXXXXXX Procesando nueava web url " + webBaseUrl);
-            processItemsOnUrl(webBaseUrl, client, itemHashMap);
-        }
-
-        if (!ONLY_RELEVANT) {
-            for (String apiBaseUrl : apiBaseUrls) {
-                Logger.log("XXXXXXXXXX Procesando nueava api url " + apiBaseUrl);
-                processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE,SAVE );
+            for (String webBaseUrl : webBaseUrls) {
+                Logger.log("XXXXXXXXXXXXX Procesando nueava web url " + webBaseUrl);
+                processItemsOnUrl(webBaseUrl, client, itemHashMap);
             }
-        }
 
-        for (int i = 0; i < intervals.length; i++) {
-            int[] interval= intervals[i];
-            String url= apiBaseUrls[i];
-            for (int j = 1; j < interval.length; j++) {
-                int since = interval[j - 1] + 1;
-                int upto = interval[j];
-                Logger.log("XXXXXXXXXX Procesando intervalo " + since + "-" + upto + " " + url);
-                processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE,SAVE );
+            if (!ONLY_RELEVANT) {
+                for (String apiBaseUrl : apiBaseUrls) {
+                    Logger.log("XXXXXXXXXX Procesando nueava api url " + apiBaseUrl);
+                    processItemsWithApi(apiBaseUrl, -1, -1, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE, SAVE);
+                }
             }
+
+            for (int i = 0; i < intervals.length; i++) {
+                int[] interval = intervals[i];
+                String url = apiBaseUrls[i];
+                for (int j = 1; j < interval.length; j++) {
+                    int since = interval[j - 1] + 1;
+                    int upto = interval[j];
+                    Logger.log("XXXXXXXXXX Procesando intervalo " + since + "-" + upto + " " + url);
+                    processItemsWithApi(url, since, upto, client, itemHashMap, usuario, ONLY_RELEVANT, DATABASE, SAVE);
+                }
+            }
+
+
+            Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
+            addPossiblePaused(itemHashMap, DATABASE);
+
+            //removemos lo que no nos interesa o ya fue procesado
+            Logger.log("XXXXXXXXXX Purgando items 1. itemHashMap=" + itemHashMap.size());
+            ArrayList<String> incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
+            Logger.log("XXXXXXXXXX Completando items 1.  itemHashMap=" + itemHashMap.size());
+            completeAndDisableItems(client, itemHashMap, incompleteList, DATABASE, SAVE);
+            Logger.log("XXXXXXXXXX Purgando items 2. itemHashMap=" + itemHashMap.size());
+            incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
+            if (incompleteList.size() > 0) {
+                System.out.println("algo salio mal aca");
+            }
+
+            Logger.log("XXXXXXXXXX Purgando items 3. itemHashMap=" + itemHashMap.size());
+            purgeItemHashMap2(itemHashMap, DATABASE);
+
+            Logger.log("XXXXXXXXXX guardando items en database");
+            DatabaseHelper.saveItemsToProcess(itemHashMap.values(),DATABASE);
+        }else {
+            Logger.log("XXXXXXXXXX recuperando items de la corrida anterior en database");
+            itemHashMap=DatabaseHelper.getRemainingItemsToProcess(DATABASE);
         }
 
-
-        Logger.log("XXXXXXXXXX Agregando posibles pausados.  itemHashMap=" + itemHashMap.size());
-        addPossiblePaused(itemHashMap, DATABASE);
-
-        int totalItemsToProcess=itemHashMap.size();
+        int totalItemsToProcess = itemHashMap.size();
         Counters.setGlobalProductCount(totalItemsToProcess);
 
-        //removemos lo que no nos interesa o ya fue procesado
-        Logger.log("XXXXXXXXXX Purgando items 1. itemHashMap=" + itemHashMap.size());
-        ArrayList<String> incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
-        Logger.log("XXXXXXXXXX Completando items 1.  itemHashMap=" + itemHashMap.size());
-        completeAndDisableItems(client, itemHashMap, incompleteList,DATABASE,SAVE );
-        Logger.log("XXXXXXXXXX Purgando items 2. itemHashMap=" + itemHashMap.size());
-        incompleteList = purgeItemHashMap(itemHashMap, DATABASE);
-        if (incompleteList.size() > 0) {
-            System.out.println("algo salio mal aca");
-        }
-
-        Logger.log("XXXXXXXXXX Purgando items 3. itemHashMap=" + itemHashMap.size());
-        purgeItemHashMap2(itemHashMap, DATABASE);
+        ArrayList<String> itemsToRemoveFromDatabase=new ArrayList<String>();
 
         ArrayList<Thread> threadArrayList = new ArrayList<Thread>();
         ArrayList<Thread> removeList = new ArrayList<Thread>();
-        Logger.log("XXXXXXXXXX Procesando productos. itemHashMap=" + itemHashMap.size());
+        Logger.log("\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        Logger.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        Logger.log("XXXXXXXXXX Procesando productos. itemHashMap=" + itemHashMap.size()+"\n\n");
+
         for (Item item : itemHashMap.values()) {
 
-
+            itemsToRemoveFromDatabase.add(item.id);
+            if (itemsToRemoveFromDatabase.size()==1000){//todo cambiar a 5000
+                DatabaseHelper.deleteItemsToProcess(itemsToRemoveFromDatabase,DATABASE);
+                itemsToRemoveFromDatabase.clear();
+            }
             ProductPageProcessor ppp = new ProductPageProcessor(item.permalink, item.id, item.sellerId, item.page, item.ranking, SAVE, DEBUG, DATABASE, getGlobalDate(), false);
             threadArrayList.add(ppp);
             ppp.start();
@@ -823,6 +843,8 @@ public class ReportRunner {
             }
         }
 
+        //terminamos de limpiar los pendientes
+        DatabaseHelper.deleteItemsToProcess(itemsToRemoveFromDatabase,DATABASE);
 
         if (!IGNORE_VISITS) {
             VisitCounter.updateVisits(DATABASE,SAVE);
