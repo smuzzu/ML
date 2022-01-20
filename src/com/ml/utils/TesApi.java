@@ -57,7 +57,8 @@ public class TesApi {
 
     private static long getUserIDByNickname(String nickname,String apiUser){
         long result=0;
-        String userUrl = userByNickname+nickname;
+        String formattedNickName=nickname.replace(" ","%20");
+        String userUrl = userByNickname+formattedNickName;
         JSONObject userObject = HttpUtils.getJsonObjectUsingToken(userUrl,HttpUtils.buildHttpClient(),apiUser,false);
         if (userObject!=null && userObject.has("seller")){
             JSONObject sellerObject=userObject.getJSONObject("seller");
@@ -208,18 +209,21 @@ public class TesApi {
 
     public static void main(String[] args){
 
-        //isLocked("EDI_RE2010","SOMOS_MAS");
+        String productId="MLA886804834";
+        getCategory(productId,SOMOS);
+
+
+        lockUser("P.MARIA GENOVEVA","ACACIAYLENGA",true,true);
+        boolean locked=isLocked("P.MARIA GENOVEVA","ACACIAYLENGA");
         //unlockUser("LAMESITAELEVABLE","SOMOS_MAS");
         long orderId=4753621661L;
         long customerId=221535448L;
         JSONObject object = HttpUtils.getJsonObjectUsingToken("https://api.mercadopago.com/v1/customers/"+customerId,HttpUtils.buildHttpClient(),ACACIA,false);
-        lockUser("EDI_RE2010","SOMOS_MAS",true,true);
+
         String oderId="4485479390";
         //JSONObject orderObject = getOrder(oderId,QUEFRESQUETE);
         JSONObject shippingObject = getShipping(oderId,QUEFRESQUETE);
 
-        String productId="MLA901398938";
-        getCategory(productId,SOMOS);
 
         boolean b=false;
     }
