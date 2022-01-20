@@ -24,13 +24,13 @@ public class SalesCheckerDailyReport {
         String msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
-        ArrayList<Order> completePendingOrdersAcacia = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, usuario,httpClient);
+        ArrayList<Order> completePendingOrdersAcacia = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, false, usuario,httpClient);
 
         usuario = SData.getSomosMas();
         msg="*********** Procesando usuario: "+usuario;
         Logger.log(msg);
         System.out.println(msg);
-        ArrayList<Order> completePendingOrdersSomos = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, usuario,httpClient);
+        ArrayList<Order> completePendingOrdersSomos = MessagesAndSalesHelper.requestOrdersAndMessages(false,true, false, usuario,httpClient);
 
         ArrayList<Order> completePendingOrders = new ArrayList<Order>();
         completePendingOrders.addAll(completePendingOrdersAcacia);

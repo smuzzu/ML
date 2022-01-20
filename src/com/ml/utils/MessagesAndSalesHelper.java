@@ -153,10 +153,32 @@ public class MessagesAndSalesHelper {
 
 
 
-    public static ArrayList<Order> requestOrdersAndMessages(boolean includeDetails, boolean onlyPending,  String user, CloseableHttpClient httpClient){
+    public static ArrayList<Order> requestOrdersAndMessages(boolean includeDetails, boolean onlyPending, boolean twoWeeksBefore, String user, CloseableHttpClient httpClient){
 
 
         int totalOrders=Integer.MAX_VALUE;
+
+        Timestamp twoWeeksBeore=new Timestamp(System.currentTimeMillis());
+        Timestamp threeWeeksBefore=new Timestamp(System.currentTimeMillis());
+
+        if(twoWeeksBefore) {
+            Calendar c = Calendar.getInstance();
+            long oneDayinMiliseconds = 86400000L;
+            c.setTimeInMillis(twoWeeksBeore.getTime());
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            twoWeeksBeore.setTime(c.getTimeInMillis() - 1 - oneDayinMiliseconds * 14L);
+
+            c.setTimeInMillis(twoWeeksBeore.getTime() - oneDayinMiliseconds * 6L);
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            threeWeeksBefore.setTime(c.getTimeInMillis());
+        }
+
 
         ArrayList<Order> orderArrayList = new ArrayList<Order>();
         long startTime=0;
@@ -207,10 +229,17 @@ public class MessagesAndSalesHelper {
             usersThatLeftMessage=null;
         }
 
-
+        String dateFilter=null;
         for (int ordersOffset=0; ordersOffset<=totalOrders; ordersOffset+=50) {
 
             String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset="+ordersOffset;
+            if (twoWeeksBefore){
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                dateFilter="&order.date_created.from="+dateFormat.format(threeWeeksBefore)+".000-00:00"+
+                        "&order.date_created.to="+dateFormat.format(twoWeeksBeore)+".000-00:00";
+                dateFilter=dateFilter.replace(" ","T");
+                ordersUrl+=dateFilter;
+            }
 
             JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
             if (ordersOffset==0){
@@ -262,7 +291,9 @@ public class MessagesAndSalesHelper {
         if (!onlyPending) {
             for (int ordersOffset = 0; ordersOffset <= totalOrders; ordersOffset += 50) {
                 String ordersUrl = "https://api.mercadolibre.com/orders/search/archived?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset=" + ordersOffset;
-
+                if (dateFilter!=null){//justOneWeek
+                    ordersUrl+=dateFilter;
+                }
                 JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
                 if (ordersOffset == 0) {
                     JSONObject pagingObj = jsonOrders.getJSONObject("paging");
@@ -1294,6 +1325,51 @@ public class MessagesAndSalesHelper {
         return result;
     }
 
+    public static boolean hasAttachmedPDFOnOrder(long packId, String user, CloseableHttpClient httpClient){
+        ArrayList<Message> result = new ArrayList<Message>();
+        int totalMessages = Integer.MAX_VALUE;
+        for (int messagesOffset = 0; messagesOffset <= totalMessages; messagesOffset += 10) {
+            String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user)
+                    + "?offset=" + messagesOffset+"&mark_as_read=false";
+            long startTime2 = System.currentTimeMillis();
+            JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
+            if (jsonMessages==null){
+                break;
+            }
+            long elapsedTime2 = System.currentTimeMillis() - startTime2;
+            if (elapsedTime2 >= tooMuchTime) {
+                httpClient = HttpUtils.buildHttpClient();
+            }
+            if (messagesOffset == 0) {
+                JSONObject pagingObj = jsonMessages.getJSONObject("paging");
+                totalMessages = pagingObj.getInt("total");
+            }
+            JSONArray jsonMessagesArray = jsonMessages.getJSONArray("messages");
+            for (Object messageObject : jsonMessagesArray) {
+                JSONObject messageJsonObject = (JSONObject) messageObject;
+                String attachment=null;
+                if (messageJsonObject.has("message_attachments") &&
+                        !messageJsonObject.isNull("message_attachments")){
+                    JSONArray msgArray = messageJsonObject.getJSONArray("message_attachments");
+                    if (msgArray!=null && !msgArray.isEmpty()){
+                        for (int i=0; i<msgArray.length(); i++){
+                            boolean b=false;
+                            JSONObject msgObject=msgArray.getJSONObject(i);
+                            if (msgObject!=null && msgObject.has("original_filename")) {
+                                String originalFilename=msgObject.getString("original_filename");
+                                if (originalFilename!=null && originalFilename.endsWith(".pdf")){
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
     private static String getPayerPhone(String user, long orderId){
         String payerPhone="";
         JSONObject paymentsObject = HttpUtils.getJsonObjectUsingToken(mercadopagoPaymentURL+orderId,HttpUtils.buildHttpClient(),user,false);
@@ -1348,7 +1424,7 @@ public class MessagesAndSalesHelper {
 
         //todo descomentar proxima linea
         reviewsHashMap=getAllReviews(user,httpClient); //opcional para que busque reviews de items
-        ArrayList<Order> orderArrayList = requestOrdersAndMessages(true,false, user,httpClient);
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(true,false, false, user,httpClient);
         String headers=new Order().getPrintableCSVHeader();
         Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){
