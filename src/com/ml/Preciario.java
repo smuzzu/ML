@@ -28,6 +28,9 @@ public class Preciario {
     static Double COSTO_TAXI = null;
     static Double COSTO_ENVOLTORIOS = null;
 
+    static Double PRECIO_DE_CORTE = 4000.0;
+    static Double BONIFICACION_POR_ENVIO_FLEX = 152.0;
+
     static long[] idsArray = new long[]
             {831749248,
                     837410777,
@@ -192,7 +195,7 @@ public class Preciario {
         }
         String costs = contentBuilder.toString();
         String [] cost=costs.split("\n");
-        if (costs==null || costs.length()!=3){
+        if (cost==null || cost.length!=5){
             String msg="No se pudo leer correctamente el archivo de costos. ";
             Logger.log(msg);
             System.out.println(msg);
@@ -206,6 +209,8 @@ public class Preciario {
             COSTO_MOTO=Double.parseDouble(cost[0]);
             COSTO_TAXI=Double.parseDouble(cost[1]);
             COSTO_ENVOLTORIOS=Double.parseDouble(cost[2]);
+            PRECIO_DE_CORTE=Double.parseDouble(cost[3]);
+            BONIFICACION_POR_ENVIO_FLEX=Double.parseDouble(cost[4]);
         }catch (Exception e){
             String msg="No se pudo convertir a numero la inforamcion en el archivo de costos. ";
             Logger.log(msg);
@@ -435,10 +440,10 @@ public class Preciario {
         item.ayudaMotos = 0.0;
         item.diferenciaDeMotos = 0.0;
         if (item.flex) {
-            if (item.price <= 3500) {
-                item.ayudaMotos = 309.99;
-            } else {
-                item.ayudaMotos = 155;
+            if (item.price < PRECIO_DE_CORTE) {
+                item.ayudaMotos = item.mercadoEnvios;
+            }else {
+                item.ayudaMotos = BONIFICACION_POR_ENVIO_FLEX;
             }
             item.diferenciaDeMotos = item.ayudaMotos - COSTO_MOTO;
         }
@@ -446,7 +451,9 @@ public class Preciario {
 
         item.ivaCompras = costoSinIva * 0.21;
         item.ivaVentas = item.price * 0.21;
-        item.ivaAfavorML = (item.saleCost + item.mercadoEnvios) * .21;
+        if (usuario.equals(SData.getAcaciaYLenga())) {
+            item.ivaAfavorML = (item.saleCost + item.mercadoEnvios) * .21;
+        }
 
         item.profitSF = item.price - item.costoSinIva - item.saleCost - item.mercadoEnvios + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
         item.profit = item.profitSF - item.ivaVentas;
@@ -484,7 +491,6 @@ public class Preciario {
 
     public static void main(String args[]) {
 
-        checkHafele();
 
         String usuario = "";
         String itemId = "";
@@ -772,9 +778,11 @@ public class Preciario {
                 String ivaVentasStr="Iva Ventas: " + decimalFormat.format(ivaVentas);
                 System.out.println(ivaVentasStr);
                 result+=ivaVentasStr+"<br/>";
-                String ivaDeMl="Iva de ML: " + decimalFormat.format(ivaAfavorML);
-                System.out.println(ivaDeMl);
-                result+=ivaDeMl+"<br/>";
+                if (usuario.equals(SData.getAcaciaYLenga())) {
+                    String ivaDeMl = "Iva de ML: " + decimalFormat.format(ivaAfavorML);
+                    System.out.println(ivaDeMl);
+                    result += ivaDeMl + "<br/>";
+                }
                 String envoltoriosStr="Envoltorios: " + costoEvoltorios;
                 System.out.println(envoltoriosStr);
                 result+=envoltoriosStr+"<br/>";
