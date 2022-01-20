@@ -13,13 +13,58 @@ public class Mercadolibre06b {
     static final boolean ONLY_RELEVANT = true;
     static final boolean IGNORE_VISITS = true;
     static final int MINIMUM_SALES = 10;
-    static final boolean FOLLOWING_DAY = true;
-    static final boolean PREVIOUS_DAY = false;
+    static final boolean FOLLOWING_DAY = false;
+    static final boolean PREVIOUS_DAY = true;
 
     static String[] webBaseUrls = new String[]
             {
+                    //autos (repuestos)
+                    "https://autos.mercadolibre.com.ar/accesorios-camiones/", //MLA86360 accesorios camiones
+                    "https://autos.mercadolibre.com.ar/accesorios/", //MLA6520 accesorio auto y camioneta
+                    "https://autos.mercadolibre.com.ar/herramientas/", //MLA2227 herramientas
+                    "https://autos.mercadolibre.com.ar/navegadores-gps/", //MLA8531 navegadores GPS
+                    "https://autos.mercadolibre.com.ar/repuestos/", //MLA1747 repuestos autos y camionetas
+                    "https://autos.mercadolibre.com.ar/seguridad-vehicular/", //MLA86080 seguridad vehicular
+                    "https://autos.mercadolibre.com.ar/servicio-programado/", //MLA377674 servicio programado
+                    "https://motos.mercadolibre.com.ar/accesorios/", //MLA4711 accesorios de motos
+                    "https://motos.mercadolibre.com.ar/repuestos-cuatriciclos/", //MLA1771 repuestos motos y cuatriciclos
+                    "https://tuning.mercadolibre.com.ar/performance/", //MLA402999 performance vehiculos
+                    "https://tuning.mercadolibre.com.ar/tuning/", //MLA4589 tuning
+                    "https://vehiculos.mercadolibre.com.ar/acc-repuestos-nauticos/", //MLA417044 repuestos nauticos
+                    "https://vehiculos.mercadolibre.com.ar/accesorios/otros/", //MLA6177 otros accesorios para vehiculos
+                    "https://vehiculos.mercadolibre.com.ar/audio/", //MLA3381 audio vehiculos
+                    "https://vehiculos.mercadolibre.com.ar/gnc/", //MLA4610 gnc
+                    "https://vehiculos.mercadolibre.com.ar/limpieza/", //MLA86838 limpieza vehiculos
+                    "https://vehiculos.mercadolibre.com.ar/llantas/", //MLA6537 llantas
+                    "https://vehiculos.mercadolibre.com.ar/neumaticos/", //MLA400928 neumaticos
+                    "https://vehiculos.mercadolibre.com.ar/repuestos-linea-pesada/", //MLA419936 repuestos linea pesada
+
+                    //agro
+                    "https://listado.mercadolibre.com.ar/agro-animales/", //MLA1071 animales y mascotas
+                    "https://listado.mercadolibre.com.ar/infraestructura-rural/", //MLA454448 infraestructura rural
+                    "https://listado.mercadolibre.com.ar/repuestos-maquinaria-agricola/", //MLA442351 repuestos maquinaria agricola
+                    "https://listado.mercadolibre.com.ar/agro-generadores-energia/", //MLA442344 agro generador de energia
+                    "https://listado.mercadolibre.com.ar/agro-insumos-agricolas/", //MLA442343 insumos agricolas
+                    "https://listado.mercadolibre.com.ar/industrias-oficinas/industria-agropecuaria/otros/", //MLA404085 agro otros
+
+                    //alimentos y bebidas
+                    "https://listado.mercadolibre.com.ar/almacen/", //MLA1423 almacen
+                    "https://listado.mercadolibre.com.ar/bebidas/", //MLA178700 bebidas
+                    "https://listado.mercadolibre.com.ar/comida-preparada/", //MLA410883 comida preparada
+                    "https://listado.mercadolibre.com.ar/congelados/", //MLA455292 congelados
+                    "https://listado.mercadolibre.com.ar/frescos/", //MLA194324 frescos
+                    "https://listado.mercadolibre.com.ar/alimentos-bebidas/otros/", //MLA1417 alimentos otros
+
                     // antigüedades
                     "https://listado.mercadolibre.com.ar/antiguedades/",
+
+
+                    //arte libreria y merceria
+                    "https://listado.mercadolibre.com.ar/libreria/",//MLA5982 libreria
+                    "https://listado.mercadolibre.com.ar/merceria/", //MLA10934 merceria
+                    "https://listado.mercadolibre.com.ar/arte-manualidades/", //MLA34263 arte y manualidades
+                    "https://listado.mercadolibre.com.ar/arte-artesanias/otros/", //MLA34294 otros
+
 
                     //gift cards
                     "https://videojuegos.mercadolibre.com.ar/ps-plus",
@@ -77,7 +122,6 @@ public class Mercadolibre06b {
                     "https://electronica.mercadolibre.com.ar/componentes-electronicos/",
                     "https://electronica.mercadolibre.com.ar/drones-accesorios/",
                     "https://listado.mercadolibre.com.ar/industrias-oficinas/equipamiento-oficinas/maquinas-oficina/",
-                    "https://autos.mercadolibre.com.ar/navegadores-gps/",
                     "https://electronica.mercadolibre.com.ar/pilas-cargadores-baterias/",
                     "https://hogar.mercadolibre.com.ar/seguridad/",
                     "https://electronica.mercadolibre.com.ar/accesorios-tv/",
@@ -87,21 +131,24 @@ public class Mercadolibre06b {
 
                     "https://televisores.mercadolibre.com.ar/televisores/",   //TVs
 
-                    //accesorios de vehiculos
-                    "https://autos.mercadolibre.com.ar/accesorios/",
-
-
-                    // alimentos y bebidas
-                    "https://listado.mercadolibre.com.ar/alimentos-bebidas/",
-
                     // animales y mascotas
                     "https://listado.mercadolibre.com.ar/animales-mascotas/",
 
-                    // arte libreria y merceria
-                    "https://listado.mercadolibre.com.ar/arte-artesanias/",
-
                     //belleza y cuidado personal
                     "https://listado.mercadolibre.com.ar/belleza-y-cuidado-personal/",
+
+                    //construcción
+                    "https://listado.mercadolibre.com.ar/construccion-aberturas/",//MLA30088 aberturas
+                    "https://listado.mercadolibre.com.ar/construccion-accesorios/",//MLA455443 accesorios de construcción
+                    "https://listado.mercadolibre.com.ar/construccion-banos-sanitarios/", //MLA411920 baños y sanitarios
+                    "https://listado.mercadolibre.com.ar/construccion-electricidad/",//MLA2467 electricidad
+                    "https://listado.mercadolibre.com.ar/herramientas-y-construccion/construccion/maquinarias/", //MLA1502 maquinarias para la construccion
+                    "https://listado.mercadolibre.com.ar/construccion-materiales-obra/",//MLA403697 materiales de obra
+                    "https://listado.mercadolibre.com.ar/construccion-mobiliario-cocinas/",//MLA30081 mobiliario de cocinas
+                    "https://listado.mercadolibre.com.ar/construccion-pintureria/",//MLA403700 pintureria
+                    "https://listado.mercadolibre.com.ar/construccion-pisos-revestimientos/", //MLA14548 pisos y revestimientos
+                    "https://listado.mercadolibre.com.ar/construccion-plomeria/",//MLA435273 plomeria
+                    "https://listado.mercadolibre.com.ar/herramientas-y-construccion/construccion/otros/",//MLA1503 otros construccion
 
                     //deportes y fitnes
                     "https://deportes.mercadolibre.com.ar/",
@@ -159,8 +206,52 @@ public class Mercadolibre06b {
             };
 
     static String[] apiBaseUrls = {
+
+            //autos (repuestos)
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA86360",  //accesorios camiones
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA6520",   //accesorio auto y camioneta
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA2227",   //herramientas (auto)
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA8531",   //navegadores GPS
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1747",   //repuestos autos y camionetas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA86080",  //seguridad vehicular
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA377674", //servicio programado
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA4711",   //accesorios de motos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1771",   //repuestos motos y cuatriciclos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA402999", //performance vehiculos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA4589",   //tuning
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA417044", //repuestos nauticos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA6177",   //otros accesorios para vehiculos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA3381",   //audio vehiculos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA4610",   // gnc
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA86838",  //limpieza vehiculos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA6537",   //llantas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA400928", //neumaticos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA419936", //repuestos linea pesada
+
+            //agro
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1071",   //animales y mascotas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA454448", //infraestructura rural
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA442351", //repuestos maquinaria agricola
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA442344", //agro generador de energia
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA442343", //insumos agricolas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA404085", //agro otros
+
+            //alimentos y bebidas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1423",   //almacen
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA178700", // bebidas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA410883", //comida preparada
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA455292", //congelados
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA194324", //frescos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1417",   //alimentos otros
+
             // antigüedades
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA436789",
+
+            //arte libreria y merceria
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA5982",  //libreria
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA10934", //merceria
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA34263", //arte y manualidades
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA34294", //otros
 
             //gift cards
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA1144&q=ps%20plus",
@@ -219,7 +310,6 @@ public class Mercadolibre06b {
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA11830",   //componentes electronicos
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA352294",  //drones y accesorios
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA5983",    //maquinas de oficina
-            "https://api.mercadolibre.com/sites/MLA/search?category=MLA8531",    //navegadores y gps
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA4641",    //pilas y cargadores
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA4624",    //seguridad para el hogar
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA431414",  //accesorios TV
@@ -229,21 +319,24 @@ public class Mercadolibre06b {
 
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA1002",   //TVs
 
-            //accesorios de vehiculos
-            "https://api.mercadolibre.com/sites/MLA/search?category=MLA6520",  //accesorios de auto y camioneta
-
-
-            // alimentos y bebidas
-            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1403",
-
             // animales y mascotas
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA1071",
 
-            // arte libteria y merceria
-            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1368",
-
             //belleza y cuidado personal
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA1246",
+
+            //construcción
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA30088",  // aberturas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA455443", // accesorios de construcción
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA411920", // baños y sanitarios
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA2467",   // electricidad
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1502",   // maquinarias para la construccion
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA403697", // materiales de obra
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA30081",  // mobiliario de cocinas
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA403700", // pintureria
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA14548",  // pisos y revestimientos
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA435273", // plomeria
+            "https://api.mercadolibre.com/sites/MLA/search?category=MLA1503",   // otros construccion
 
             //deportes y fitnes
             "https://api.mercadolibre.com/sites/MLA/search?category=MLA1276",
@@ -525,7 +618,50 @@ public class Mercadolibre06b {
 
     static int[][] intervals = new int[][]{
 
+            //autos (repuestos)
+            {0, 2147483647}, //accesorios camiones
+            {0, 2147483647}, //accesorio auto y camioneta
+            {0, 2147483647}, //herramientas (auto)
+            {0, 2147483647}, //navegadores GPS
+            {0, 2147483647}, //repuestos autos y camionetas
+            {0, 2147483647}, //seguridad vehicular
+            {0, 2147483647}, //servicio programado
+            {0, 2147483647}, //accesorios de motos
+            {0, 2147483647}, //repuestos motos y cuatriciclos
+            {0, 2147483647}, //performance vehiculos
+            {0, 2147483647}, //tuning
+            {0, 2147483647}, //repuestos nauticos
+            {0, 2147483647}, //otros accesorios para vehiculos
+            {0, 2147483647}, //audio vehiculos
+            {0, 2147483647}, // gnc
+            {0, 2147483647}, //limpieza vehiculos
+            {0, 2147483647}, //llantas
+            {0, 2147483647}, //neumaticos
+            {0, 2147483647}, //repuestos linea pesada
+
+            //agro
+            {0, 2147483647}, //animales y mascotas
+            {0, 2147483647}, //infraestructura rural
+            {0, 2147483647}, //repuestos maquinaria agricola
+            {0, 2147483647}, //agro generador de energia
+            {0, 2147483647}, //insumos agricolas
+            {0, 2147483647}, //agro otros
+
+            //alimentos y bebidas
+            {0, 2147483647}, //almacen
+            {0, 2147483647}, //bebidas
+            {0, 2147483647}, //comida preparada
+            {0, 2147483647}, //congelados
+            {0, 2147483647}, //frescos
+            {0, 2147483647}, //alimentos otros
+
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //antigüedades
+
+            //arte libreria y merceria
+            {0, 2147483647},  //libreria
+            {0, 2147483647}, //merceria
+            {0, 2147483647}, //arte y manualidades
+            {0, 2147483647}, //otros
 
             //gitf cards
             {0, 300, 1100, 2147483647}, //ps plus
@@ -582,7 +718,6 @@ public class Mercadolibre06b {
             {0, 3000, 2147483647}, // componentes electronicos
             {0, 3000, 2147483647}, // drones accesorios
             {0, 3000, 2147483647}, // maquinas de oficina
-            {0, 3000, 2147483647}, // gps
             {0, 3000, 2147483647}, // pilas cargadores baterias
             {0, 3000, 2147483647}, // seguridad para el hogar
             {0, 3000, 2147483647}, // accesorios TV
@@ -590,11 +725,22 @@ public class Mercadolibre06b {
             {0, 3000, 2147483647}, // otros
 
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //TVs
-            {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //accesorios de auto y camioneta
-            {0, 3000, 2147483647}, //alimentos y bebidas
             {0, 3000, 2147483647}, //animales y mascotas
-            {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //arte libteria y merceria
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //belleza y cuidado personal
+
+            //construcción
+            {0, 2147483647}, // aberturas
+            {0, 2147483647}, // accesorios de construcción
+            {0, 2147483647}, // baños y sanitarios
+            {0, 2147483647}, // electricidad
+            {0, 2147483647}, // maquinarias para la construccion
+            {0, 2147483647}, // materiales de obra
+            {0, 2147483647}, // mobiliario de cocinas
+            {0, 2147483647}, // pintureria
+            {0, 2147483647}, // pisos y revestimientos
+            {0, 2147483647}, // plomeria
+            {0, 2147483647}, // otros construccion
+
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //deportes y fitnes
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //electrodomesticos y aires
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //bazar y cocina
@@ -609,7 +755,6 @@ public class Mercadolibre06b {
             {0, 3000, 2147483647}, //moda (ropa)
             {0, 3000, 2147483647}, //moda (bolsos)
             {0, 3000, 2147483647}, //moda (calzado)
-//            {0,3000,2147483647}, //alimenos y bebidas
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //instrumentos musicales
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //joyas y relojes
             {0, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 25000, 2147483647}, //juguetes
