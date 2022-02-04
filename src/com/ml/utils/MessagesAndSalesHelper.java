@@ -242,6 +242,11 @@ public class MessagesAndSalesHelper {
             }
 
             JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
+            if (jsonOrders==null){
+                String msg="jsonOrders==null, no se pueden recuperar las ventas.  se recomienda revisar opciones de firewall ";
+                System.out.println(totalOrders);
+                Logger.log(msg);
+            }
             if (ordersOffset==0){
                 JSONObject pagingObj = jsonOrders.getJSONObject("paging");
                 totalOrders=pagingObj.getInt("total");
