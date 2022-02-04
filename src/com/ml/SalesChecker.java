@@ -345,7 +345,7 @@ public class SalesChecker {
                                                 firstMsgToBuyer +="tu ";
                                             }
                                             firstMsgToBuyer += productTitle + " en Av. Rivadavia 3756 CABA. "
-                                                    + "Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00 "
+                                                    + "Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 15:00 a 18:00 "
                                                     + "y nuestro teléfono es 4982-2519.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
                                         } else {
                                             firstMsgToBuyer += "Ya nos podremos a preparar tu "
