@@ -29,7 +29,6 @@ public class Preciario {
     static Double COSTO_ENVOLTORIOS = null;
 
     static Double PRECIO_DE_CORTE = 4000.0;
-    static Double BONIFICACION_POR_ENVIO_FLEX = 152.0;
 
     static long[] idsArray = new long[]
             {831749248,
@@ -195,7 +194,7 @@ public class Preciario {
         }
         String costs = contentBuilder.toString();
         String [] cost=costs.split("\n");
-        if (cost==null || cost.length!=5){
+        if (cost==null || cost.length!=4){
             String msg="No se pudo leer correctamente el archivo de costos. ";
             Logger.log(msg);
             System.out.println(msg);
@@ -210,7 +209,6 @@ public class Preciario {
             COSTO_TAXI=Double.parseDouble(cost[1]);
             COSTO_ENVOLTORIOS=Double.parseDouble(cost[2]);
             PRECIO_DE_CORTE=Double.parseDouble(cost[3]);
-            BONIFICACION_POR_ENVIO_FLEX=Double.parseDouble(cost[4]);
         }catch (Exception e){
             String msg="No se pudo convertir a numero la inforamcion en el archivo de costos. ";
             Logger.log(msg);
@@ -380,22 +378,7 @@ public class Preciario {
         }
 
         if (item.freeShipping) {
-            JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client, 5545);
-            if (shippingOptionsObj != null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")) {
-                JSONArray optionsObj = shippingOptionsObj.getJSONArray("options");
-                for (int i = 0; i < optionsObj.length(); i++) {
-                    JSONObject theOptionObj = optionsObj.getJSONObject(i);
-                    if (theOptionObj != null && theOptionObj.has("shipping_option_type") && !theOptionObj.isNull("shipping_option_type")) {
-                        String shippingOptionType = theOptionObj.getString("shipping_option_type");
-                        if (!shippingOptionType.equals("agency")) {
-                            continue;
-                        }
-                    }
-                    if (theOptionObj != null && theOptionObj.has("list_cost") && !theOptionObj.isNull("list_cost")) {
-                        item.mercadoEnvios = theOptionObj.getDouble("list_cost");
-                    }
-                }
-            }
+            item.mercadoEnvios=getMEShippingCostForZipCode(5545,"agency","list_cost",usuario, itemID, client);
         }
 
         if (item.customShipping) {
@@ -440,10 +423,9 @@ public class Preciario {
         item.ayudaMotos = 0.0;
         item.diferenciaDeMotos = 0.0;
         if (item.flex) {
-            if (item.price < PRECIO_DE_CORTE) {
-                item.ayudaMotos = item.mercadoEnvios;
-            }else {
-                item.ayudaMotos = BONIFICACION_POR_ENVIO_FLEX;
+            item.ayudaMotos=getMEShippingCostForZipCode(1424,"address","base_cost",usuario,itemID,client);
+            if (item.price >= PRECIO_DE_CORTE) {
+                item.ayudaMotos = Math.ceil(item.ayudaMotos * 0.2);
             }
             item.diferenciaDeMotos = item.ayudaMotos - COSTO_MOTO;
         }
@@ -486,6 +468,28 @@ public class Preciario {
 
 
         return item;
+    }
+
+    private static double getMEShippingCostForZipCode(int zipCode, String shippingOptionType, String costType, String usuario, String itemID, CloseableHttpClient client) {
+        double MEShippingCost=0.0;
+        JSONObject shippingOptionsObj = getShippingOptions(usuario, itemID, client, zipCode);
+        if (shippingOptionsObj != null && shippingOptionsObj.has("options") && !shippingOptionsObj.isNull("options")) {
+            JSONArray optionsObj = shippingOptionsObj.getJSONArray("options");
+            for (int i = 0; i < optionsObj.length(); i++) {
+                JSONObject theOptionObj = optionsObj.getJSONObject(i);
+                if (theOptionObj != null && theOptionObj.has("shipping_option_type") && !theOptionObj.isNull("shipping_option_type")) {
+                    String shippingOptionTypeStr = theOptionObj.getString("shipping_option_type");
+                    if (!shippingOptionTypeStr.equals(shippingOptionType)) {
+                        continue;
+                    }
+                }
+                if (theOptionObj != null && theOptionObj.has(costType) && !theOptionObj.isNull(costType)) {
+                    MEShippingCost = theOptionObj.getDouble(costType);
+                    break;
+                }
+            }
+        }
+        return MEShippingCost;
     }
 
 
