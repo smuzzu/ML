@@ -383,32 +383,13 @@ public class HTMLParseUtils {
         if (htmlString.indexOf("Precio a convenir") >0){
             return 0.01; //servicio
         }
-        int pricePos1 = htmlString.indexOf("price-tag-fraction\">") + 20;
-        int pricePos2 = htmlString.indexOf("<", pricePos1);
+        int pricePos1 = htmlString.indexOf("\"price\":") + 8;
+        int pricePos2 = htmlString.indexOf(",", pricePos1);
         String priceStr = htmlString.substring(pricePos1, pricePos2);
-        if (priceStr != null) {
-            //sacamos los puntos de miles para que no confunda con decimales
-            priceStr = priceStr.replace(".", "");
-            priceStr = priceStr.trim();
-        }
-
-        String priceDecimalsStr = null;
-        int priceDecimalPos1 = htmlString.indexOf("price-tag-cents\">");
-        if (priceDecimalPos1 >= 0) { //el tag de decimales puede no estar
-            priceDecimalPos1 += 17; //le sumo los caracteres de posicion de "price__decimals">
-            int priceDecimalPos2 = htmlString.indexOf("<", priceDecimalPos1);
-            priceDecimalsStr = htmlString.substring(priceDecimalPos1, priceDecimalPos2);
-            if (priceDecimalsStr != null) {
-                priceDecimalsStr = priceDecimalsStr.trim();
-            }
-        }
 
         Double price = null;
         try {
             price = Double.parseDouble(priceStr);
-            if (priceDecimalsStr != null) {
-                price += Double.parseDouble(priceDecimalsStr) / 100;
-            }
         } catch (NumberFormatException e) {
             Logger.log(" I couldn't get the price on " + url);
             Logger.log(e);
