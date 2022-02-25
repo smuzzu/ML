@@ -92,15 +92,17 @@ public class MessagesAndSalesHelper {
 
     public static boolean isReturned(JSONObject jsonOrder){
         boolean result = false;
-        JSONArray mediationsJSONArray = jsonOrder.getJSONArray("mediations");
-        if (mediationsJSONArray.length()>0){
-            for (int i=0; i<mediationsJSONArray.length(); i++){
-                JSONObject mediationObject = mediationsJSONArray.getJSONObject(i);
-                if (mediationObject.has("status")) {
-                    String mediationStatus = mediationObject.getString("status");
-                    //todo profundizar tema reclamos recien abiertos aca aca
-                    if (mediationStatus.equals("return_closed")) {
-                        result = true;
+        if (jsonOrder.has("mediations")) {
+            JSONArray mediationsJSONArray = jsonOrder.getJSONArray("mediations");
+            if (mediationsJSONArray.length() > 0) {
+                for (int i = 0; i < mediationsJSONArray.length(); i++) {
+                    JSONObject mediationObject = mediationsJSONArray.getJSONObject(i);
+                    if (mediationObject.has("status")) {
+                        String mediationStatus = mediationObject.getString("status");
+                        //todo profundizar tema reclamos recien abiertos aca aca
+                        if (mediationStatus.equals("return_closed")) {
+                            result = true;
+                        }
                     }
                 }
             }
