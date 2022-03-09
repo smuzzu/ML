@@ -351,7 +351,7 @@ public class SalesChecker {
                                     if (pendingOrder.shippingType == Order.PERSONALIZADO) {
                                         firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
                                                 + productTitle
-                                                + " Nuestro horario de atención es de lunes viernes de 10:00 a 13:00 y de 14:00 a 16:00";
+                                                + " Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 15:00 a 18:00";
                                     }
 
                                     if (pendingOrder.shippingType == Order.ACORDAR) {
