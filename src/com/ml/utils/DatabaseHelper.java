@@ -763,7 +763,7 @@ public class DatabaseHelper {
 
         try{
             PreparedStatement ps = updateConnection.prepareStatement("update public.ventas set " +queryStr+
-                    "mailEnviado2=?, fechaactualizacion=?, chatEnviado=? where id=?");
+                    "mailEnviado=?, fechaactualizacion=?, chatEnviado=? where id=?");
 
             ps.setString(1,mailSent.toString());
             ps.setTimestamp(2,lastUpdate);
@@ -1060,16 +1060,16 @@ public class DatabaseHelper {
         Connection selectConnection = getCloudConnection();
 
         String query = "SELECT id,fechaventa,fechaactualizacion,"
-                +"estado,tipoenvio,usuario,chatenviado,mailenviado2 FROM public.ventas";
+                +"estado,tipoenvio,usuario,chatenviado,mailenviado FROM public.ventas";
 
         if (sellerId>0){
             query+=" where usuario="+sellerId;
             if (pendingOnly){
-                query+=" and (mailenviado2!='Y' or chatenviado=false)";
+                query+=" and (mailenviado!='Y' or chatenviado=false)";
             }
         }else {
             if (pendingOnly){
-                query+=" where mailenviado2!='Y or chatenviado=false";
+                query+=" where mailenviado!='Y or chatenviado=false";
             }
         }
 

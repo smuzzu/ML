@@ -535,7 +535,7 @@ public class SalesChecker {
                 if (tipoEnvio!=null && tipoEnvio.length()>0){
                     order.shippingType=tipoEnvio.charAt(0);
                 }
-                String mailSent=rs.getString("mailenviado2");
+                String mailSent=rs.getString("mailenviado");
                 if (mailSent!=null && mailSent.length()>0) {
                     order.mailSent = mailSent.charAt(0);
                 }
