@@ -290,11 +290,11 @@ public class HttpUtils {
         boolean ok=false;
         String myUserId=TokenUtils.getIdCliente(user);
         String token = TokenUtils.getToken(user);
-        String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId;
+        String url = "https://api.mercadolibre.com/messages/packs/"+packId+"/sellers/"+myUserId+"?tag=post_sale";
 
         //todo nota importante:  se supone que el nuevo formato aplica para coreo y cross docking
         if (shippingType==Order.CORREO || shippingType==Order.FLEX) {
-            url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option";
+            url = "https://api.mercadolibre.com/messages/action_guide/packs/" + packId + "/option?tag=post_sale";
             if (text.length()>=350){ //todo restringir a shippingType = correo
                 Logger.log("Mensaje superior a 350 caracteres");
                 Logger.log(text);

@@ -740,13 +740,13 @@ public class DatabaseHelper {
     }
 
 
-    public static void updateSale(long id, Character state, Character shippingType, Boolean mailSent, Boolean chatSent) {
+    public static void updateSale(long id, Character state, Character shippingType, Character mailSent, Boolean chatSent) {
         Connection updateConnection =getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
 
         if (mailSent==null){
-            mailSent=false;
+            mailSent=Order.MAIL_NO_ENVIADO;
         }
 
         if (chatSent==null){
@@ -763,9 +763,9 @@ public class DatabaseHelper {
 
         try{
             PreparedStatement ps = updateConnection.prepareStatement("update public.ventas set " +queryStr+
-                    "mailEnviado=?, fechaactualizacion=?, chatEnviado=? where id=?");
+                    "mailEnviado2=?, fechaactualizacion=?, chatEnviado=? where id=?");
 
-            ps.setBoolean(1,mailSent);
+            ps.setString(1,mailSent.toString());
             ps.setTimestamp(2,lastUpdate);
             ps.setBoolean(3,chatSent);
             ps.setLong(4,id);
@@ -1060,16 +1060,16 @@ public class DatabaseHelper {
         Connection selectConnection = getCloudConnection();
 
         String query = "SELECT id,fechaventa,fechaactualizacion,"
-                +"estado,tipoenvio,mailenviado,usuario,chatenviado FROM public.ventas";
+                +"estado,tipoenvio,usuario,chatenviado,mailenviado2 FROM public.ventas";
 
         if (sellerId>0){
             query+=" where usuario="+sellerId;
             if (pendingOnly){
-                query+=" and (mailenviado=false or chatenviado=false)";
+                query+=" and (mailenviado2!='Y' or chatenviado=false)";
             }
         }else {
             if (pendingOnly){
-                query+=" where mailenviado=false or chatenviado=false";
+                query+=" where mailenviado2!='Y or chatenviado=false";
             }
         }
 

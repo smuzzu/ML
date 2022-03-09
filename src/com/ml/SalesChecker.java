@@ -75,9 +75,13 @@ public class SalesChecker {
         ArrayList<Order> completePendingOrders = new ArrayList<>();
         for (Order pendingOrder: pendingOrdersOnCloudArrayList) {  //viene de la base info limitada
             Order onlineOrder=MessagesAndSalesHelper.getOrderDetails(httpClient,usuario,pendingOrder.id);
-            if (onlineOrder.orderStatus!=Order.CANCELADO) {//salteamos el caso de una orden que se cargo en cloud y después se canceló
-                completePendingOrders.add(onlineOrder);
+            if (onlineOrder.orderStatus==Order.CANCELADO) {
+                continue; //salteamos el caso de una orden que se cargo en cloud y después se canceló
             }
+            if (pendingOrder.mailSent==Order.MAIL_BUFFERED && onlineOrder.buffered){
+                continue; //ya se notificó para mañana
+            }
+            completePendingOrders.add(onlineOrder);
         }
 
         //check multi items
@@ -96,9 +100,9 @@ public class SalesChecker {
             boolean statusChanged = false;
 
             double limiteAfip=39000.0;
-            boolean superaLimiteAFIP = false;
+            pendingOrder.superaLimiteAfip = false;
             if (usuario.equals(SOMOS) && pendingOrder.paymentAmount>limiteAfip){
-                superaLimiteAFIP=true;
+                pendingOrder.superaLimiteAfip=true;
             }
 
             Date orderCreationDate = new java.sql.Date(pendingOrder.creationTimestamp.getTime());
@@ -107,7 +111,7 @@ public class SalesChecker {
                 continue; //no hacemos nada con los full por ahora
             }
 
-            if (!pendingOrder.mailSent) {
+            if (pendingOrder.mailSent!=Order.MAIL_ENVIADO) {
 
                 System.out.println("VENDISTE !!!!!!!!! " + pendingOrder.productTitle+ " \nMail"+ pendingOrder.buyerEmail);
                 boolean hasLabel = false;
@@ -132,7 +136,10 @@ public class SalesChecker {
                         }
                     }
                 }
-                if (superaLimiteAFIP){
+                if (pendingOrder.buffered){
+                    shipping="<b>MAÑANA</b> - "+shipping;
+                }
+                if (pendingOrder.superaLimiteAfip || pendingOrder.buffered){
                     hasLabel=false;
                 }
                 String letraUser = usuario.substring(0, 1);
@@ -187,14 +194,18 @@ public class SalesChecker {
                     }
                 }
 
-                String cancelarStr="";
-                if (superaLimiteAFIP){
-                    cancelarStr="CANCELAR - ";
+                String prefijoStr="";
+                if (pendingOrder.superaLimiteAfip){
+                    prefijoStr="CANCELAR - ";
                 }
 
-                String mailTitle = cancelarStr + "VENDISTE " + letraUser + pendingOrder.id + " " + pendingOrder.productTitle;
+                if (pendingOrder.buffered){
+                    prefijoStr="MAÑANA - ";
+                }
 
-                String mailTitle2 = cancelarStr + "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
+                String mailTitle = prefijoStr + "VENDISTE " + letraUser + pendingOrder.id + " " + pendingOrder.productTitle;
+
+                String mailTitle2 = "VENTA/SALE " + letraUser + pendingOrder.id + " " + pendingOrder.productId + " " + pendingOrder.productTitle;
 
                 String mailBody = pendingOrder.creationTimestamp + "<br/><br/>"
                         + "<b>Producto:</b><br/>"
@@ -247,7 +258,7 @@ public class SalesChecker {
                     mailBody += pendingOrder.shippingOptionNameDescription + "<br/>";
                 }
                 if (pendingOrder.shippingType == Order.FLEX) {
-                    mailBody += "Entrega: "+getWhen('F',orderCreationDate) + "<br/>";
+                    mailBody += "Entrega: "+getWhen('F',orderCreationDate,false) + "<br/>";
 
                 }
 
@@ -293,8 +304,13 @@ public class SalesChecker {
                     GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress3, attachments2);
                 }
 
-                pendingOrder.mailSent = mailIsOk && labelIsOk;
-                if (pendingOrder.mailSent) {
+                pendingOrder.mailSent= Order.MAIL_NO_ENVIADO;
+                if (mailIsOk && labelIsOk) {//todo ver que pasa con el buffered
+                    if (pendingOrder.buffered){
+                        pendingOrder.mailSent = Order.MAIL_BUFFERED;
+                    }else {
+                        pendingOrder.mailSent = Order.MAIL_ENVIADO;
+                    }
                     statusChanged = true;
                 }
             }
@@ -359,7 +375,7 @@ public class SalesChecker {
                                         if (pendingOrder.shippingCurrier!=null && !pendingOrder.shippingCurrier.isEmpty()){
                                             shippingCurrier+="/"+pendingOrder.shippingCurrier;
                                         }
-                                        String when = getWhen('C',orderCreationDate);
+                                        String when = getWhen('C',orderCreationDate,pendingOrder.buffered);
                                         firstMsgToBuyer += when + " te estaremos despachando por " + shippingCurrier
                                                 + productTitle;
                                         String when2 = getWhen2('C',orderCreationDate);
@@ -367,7 +383,7 @@ public class SalesChecker {
                                     }
 
                                     if (pendingOrder.shippingType == Order.FLEX) {
-                                        String when = getWhen('F',orderCreationDate);
+                                        String when = getWhen('F',orderCreationDate,false);
                                         firstMsgToBuyer += when + " de 15 a 20 hs va a llegar una moto a tu domicilio con"
                                                 + productTitle;
                                         String when2 = getWhen2('F',orderCreationDate);//el horario lo trae la funcion
@@ -507,20 +523,23 @@ public class SalesChecker {
         try{
             while (rs.next()){
                 Order order=new Order();
-                order.sellerId =rs.getInt(7);
-                order.id=rs.getLong(1);
-                order.creationTimestamp = rs.getTimestamp(2);
-                order.updateTimestamp = rs.getTimestamp(3);
-                String status=rs.getString(4);
+                order.sellerId =rs.getInt("usuario");
+                order.id=rs.getLong("id");
+                order.creationTimestamp = rs.getTimestamp("fechaventa");
+                order.updateTimestamp = rs.getTimestamp("fechaactualizacion");
+                String status=rs.getString("estado");
                 if (status!=null && status.length()>0) {
                     order.orderStatus = status.charAt(0);
                 }
-                String tipoEnvio=rs.getString(5);
+                String tipoEnvio=rs.getString("tipoenvio");
                 if (tipoEnvio!=null && tipoEnvio.length()>0){
                     order.shippingType=tipoEnvio.charAt(0);
                 }
-                order.mailSent=rs.getBoolean(6);
-                order.chatSent=rs.getBoolean(8);
+                String mailSent=rs.getString("mailenviado2");
+                if (mailSent!=null && mailSent.length()>0) {
+                    order.mailSent = mailSent.charAt(0);
+                }
+                order.chatSent=rs.getBoolean("chatenviado");
                 orderArrayList.add(order);
             }
             }catch(SQLException e){
@@ -649,7 +668,7 @@ public class SalesChecker {
         return result;
     }
 
-    private static String getWhen(char correoOrFlex, Date orderCreationDate){
+    private static String getWhen(char correoOrFlex, Date orderCreationDate, boolean isBuffered){
         String result="";
 
         if (hollydays == null) {
@@ -659,7 +678,7 @@ public class SalesChecker {
         Date nextDeliveryDate = orderCreationDate;
         boolean isHoliday = isHoliday(nextDeliveryDate, hollydays);
         boolean isWeekend = isWeekend(nextDeliveryDate);
-        if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday) {
+        if (!isDayTimeLimitPassed(correoOrFlex) && !isWeekend && !isHoliday &&!isBuffered) {
             result = "Esta tarde";
         } else {
             nextDeliveryDate = getDate(TOMORROW, null);

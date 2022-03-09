@@ -1020,8 +1020,13 @@ public class MessagesAndSalesHelper {
             }
         }
 
-        if (order.shippingSubStatus!=null && order.shippingSubStatus.equals("waiting_for_withdrawal")) {
-            order.waitingForWithdrawal = true;
+        if (order.shippingSubStatus!=null){
+            if (order.shippingSubStatus.equals("waiting_for_withdrawal")) {
+                order.waitingForWithdrawal = true;
+            }
+            if (order.shippingSubStatus.equals("buffered")){
+                order.buffered=true;
+            }
         }
 
         order.shippingType=Order.UNKNOWN;
@@ -1299,7 +1304,7 @@ public class MessagesAndSalesHelper {
         int totalMessages = Integer.MAX_VALUE;
         for (int messagesOffset = 0; messagesOffset <= totalMessages; messagesOffset += 10) {
             String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user)
-                    + "?offset=" + messagesOffset+"&mark_as_read=false";
+                    + "?offset=" + messagesOffset+"&mark_as_read=false&tag=post_sale";
             long startTime2 = System.currentTimeMillis();
             JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
             if (jsonMessages==null){
@@ -1337,7 +1342,7 @@ public class MessagesAndSalesHelper {
         int totalMessages = Integer.MAX_VALUE;
         for (int messagesOffset = 0; messagesOffset <= totalMessages; messagesOffset += 10) {
             String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user)
-                    + "?offset=" + messagesOffset+"&mark_as_read=false";
+                    + "?offset=" + messagesOffset+"&mark_as_read=false&tag=post_sale";
             long startTime2 = System.currentTimeMillis();
             JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
             if (jsonMessages==null){
