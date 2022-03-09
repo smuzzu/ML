@@ -89,8 +89,10 @@ public class Order implements Comparable<Order> {
     public String publicationURL;
 
 
-    public boolean mailSent;
+    public char mailSent; //Y,N,B=buffered (venta pra el dia siguiente
     public boolean chatSent;
+    public boolean superaLimiteAfip;
+    public boolean buffered;
 
     public long packId; //for messages
     public ArrayList<Message> previousQuestionsOnItemArrayList;
@@ -113,6 +115,12 @@ public class Order implements Comparable<Order> {
     public static final char ENTREGADO='E';
     public static final char RECLAMO='R';
     public static final char CANCELADO='C';
+
+    //orderStatus
+    public static final char MAIL_ENVIADO='Y';
+    public static final char MAIL_NO_ENVIADO='N';
+    public static final char MAIL_BUFFERED='B';
+
 
     private static String[] productKeyAttributesList = new String[]
     {
