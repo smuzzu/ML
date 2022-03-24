@@ -57,11 +57,11 @@ public class MLSellerStatistics extends Thread {
     static int globalInsertCount=0;
     static int globalDisableCount=0;
 
-    static int MAX_THREADS = 30;
+    static int MAX_THREADS = 15;
     static boolean SAVE = true;
     static String DATABASE = "ML1";
     static boolean DEBUG = false;
-    static String FECHA="2021/08/01";
+    static String FECHA="2022/03/01";
     static String START_FROM="";
     static String ARTICLE_PREFIX="MLA";
     static int DAYS_WITHOUT_MOVEMENTS=180;
@@ -553,7 +553,7 @@ public class MLSellerStatistics extends Thread {
                     Logger.log("errorr !!! buscando salesPos I");
                     continue;
                 }
-                salesPos1 += 28;
+                salesPos1 += 47;
                 int salesPos2 = htmlStringWithoutUserComments.indexOf("</p>", salesPos1);
                 if (salesPos2 == -1) {
                     Logger.log("errorr !!! buscando salesPos II");
@@ -593,7 +593,7 @@ public class MLSellerStatistics extends Thread {
                 try {
                     totalSales = Integer.parseInt(salesAmount);
                 } catch (Exception e) {
-                    Logger.log("Error parsing experience " + experienceStr);
+                    Logger.log("Error parsing salesAmount " + salesAmount);
                     Logger.log(e);
                 }
                 int salesPos4 = salesOnPeriodStr.indexOf("ltimo");

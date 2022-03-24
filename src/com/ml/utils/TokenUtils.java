@@ -28,7 +28,15 @@ public class TokenUtils {
             {SData.getQuefresquete(), null, "0"},
             {SData.getAcaciaYLenga(), null, "0"},
             {SData.getSomosMas(), null, "0"},
-            {SData.getMarianaTest(), null, "0"}
+            {SData.getMarianaTest(), null, "0"},
+            {"test01","TEST-1076243182886342-092414-8824995665685dc48dee330dd9c79359-20451879","0"},
+            {"test02","TEST-2255961064013319-103123-25d1eb69586c9cda457446875fef476a-290295101","0"},
+            {"test03","TEST-1311235808921113-080316-a4dbc3d0a4c7db074768f3b8d38c6e6c-267138009","0"},
+            {"test04","APP_USR-1311235808921113-080316-2d2b380e360b66b5f5bf16a75b3ba96e-267138009","0"},
+            {"test05","APP_USR-6453962663304739-041217-a5c0aac952acf6db4c482411fe212bee-314350611","0"},
+            {"test06","APP_USR-6637655320562965-033110-3f688757fc570ebb8aa273bd614da586-95095923","0"},
+            {"test07","APP_USR-2080473907061160-092412-dbf5e910b023e44f194553d0d90a7b15-293324417","0"},
+            {"test08","APP_USR-4558-061211-f94e98afa1edbb6aee17c1001fd86221-101777428","0"}
         };
     static String refresh_token = null;
 
@@ -57,6 +65,9 @@ public class TokenUtils {
 
 
     private static boolean needsToFetchTokenOnCloud(String user){
+        if (user.startsWith("test")){
+            return false;
+        }
         if (tokenMatrix[getUserNumber(user)-1][1]==null){
             return true;
         }
@@ -119,6 +130,41 @@ public class TokenUtils {
                 }else {
                     if (user.equals(SData.getMarianaTest())) {
                         userNumber = 4;
+                    }
+                    else {
+                        if (user.equals("test01")){
+                            userNumber = 5;
+                        }
+                        else {
+                            if (user.equals("test02")){
+                                userNumber = 6;
+                            }
+                            else {
+                                if (user.equals("test03")) {
+                                    userNumber = 7;
+                                } else {
+                                    if (user.equals("test04")) {
+                                        userNumber = 8;
+                                    } else {
+                                        if (user.equals("test05")) {
+                                            userNumber = 9;
+                                        } else {
+                                            if (user.equals("test06")) {
+                                                userNumber = 10;
+                                            } else {
+                                                if (user.equals("test07")) {
+                                                    userNumber = 11;
+                                                }else {
+                                                    if (user.equals("test08")) {
+                                                        userNumber = 12;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

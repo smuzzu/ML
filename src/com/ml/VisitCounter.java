@@ -33,7 +33,7 @@ import org.json.JSONObject;
 public class VisitCounter extends Thread {
 
 
-    static int PAUSE_MILLISECONDS = 130;
+    static int PAUSE_MILLISECONDS = 2000;
     static int PAUSE_ON_ERRPR_MILLISECONDS = 3000;
     static int INTERVAL_SIZE=5000;
     static int TIMEOUT_MIN=10;
@@ -53,7 +53,15 @@ public class VisitCounter extends Thread {
             SData.getAcaciaYLenga(),
             SData.getQuefresquete(),
             SData.getSomosMas(),
-            SData.getMarianaTest()
+            SData.getMarianaTest(),
+            "test01",
+            "test02",
+            "test03",
+            "test04",
+            "test05",
+            "test06",
+            "test07",
+            "test08"
     };
 
 
