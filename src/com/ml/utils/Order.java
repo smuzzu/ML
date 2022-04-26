@@ -181,19 +181,24 @@ public class Order implements Comparable<Order> {
 
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
-            }String value = "";
+            }
+            String value = "";
             if (name.equals("messageArrayList") ||
                 name.equals("previousQuestionsOnItemArrayList") ||
                 name.equals("previousQuestionsOtherItemsArrayList")){
                 ArrayList<Message> messageArrayList = (ArrayList) valueObj;
-                for (Message message: messageArrayList){
-                    value+=message.toStringForReport()+"\n";
+                value = "\"";
+                for (int i=0; i<messageArrayList.size(); i++){
+                    value+=messageArrayList.get(i).toStringForReport();
+                    if (i<messageArrayList.size()){
+                        value+="\n";
+                    }
                 }
-                value=value.replaceAll("\"", "'");
-                value = "\""+value+"\"";
+                value+="\"";
             }else {
                 if (valueObj != null) {
                     value = valueObj.toString();
+                    value=value.replaceAll("\\p{C}", "");
                     value=value.replaceAll("\"", "'");
                 }
             }

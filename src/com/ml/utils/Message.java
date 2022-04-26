@@ -26,7 +26,9 @@ public class Message implements Comparable<Message> {
 
 
     public String toStringForReport(){
-        return this.direction+":"+this.text;
+        String text=this.text.replaceAll("\\p{C}", "");
+        text=text.replaceAll("\"", "'");
+        return this.direction+":"+text;
     }
 
 

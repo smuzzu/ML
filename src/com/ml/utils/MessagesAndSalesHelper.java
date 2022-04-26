@@ -1315,8 +1315,10 @@ public class MessagesAndSalesHelper {
                 httpClient = HttpUtils.buildHttpClient();
             }
             if (messagesOffset == 0) {
-                JSONObject pagingObj = jsonMessages.getJSONObject("paging");
-                totalMessages = pagingObj.getInt("total");
+                if (jsonMessages.has("paging")) {
+                    JSONObject pagingObj = jsonMessages.getJSONObject("paging");
+                    totalMessages = pagingObj.getInt("total");
+                }
             }
             JSONArray jsonMessagesArray = jsonMessages.getJSONArray("messages");
             for (Object messageObject : jsonMessagesArray) {
