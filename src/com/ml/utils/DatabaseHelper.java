@@ -664,7 +664,7 @@ public class DatabaseHelper {
         }
     }
 
-    public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, boolean mailSent, int userNumber, boolean chatSent) {
+    public static void insertSale(long id, Timestamp saleDate, String state, String shippingType, String mailSent, int userNumber, boolean chatSent) {
         Connection updateConnection = getCloudConnection();
 
         Timestamp lastUpdate = new Timestamp(Calendar.getInstance().getTimeInMillis());
@@ -679,7 +679,7 @@ public class DatabaseHelper {
             globalInsertSale.setTimestamp(3,lastUpdate);
             globalInsertSale.setString(4,state);
             globalInsertSale.setString(5,shippingType);
-            globalInsertSale.setBoolean(6,mailSent);
+            globalInsertSale.setString(6,mailSent);
             globalInsertSale.setInt(7,userNumber);
             globalInsertSale.setBoolean(8,chatSent);
 

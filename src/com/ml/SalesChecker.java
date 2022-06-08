@@ -65,7 +65,7 @@ public class SalesChecker {
         for (Order pendingOrder: pendingOrdersOnlineArrayList) {
             boolean alreadyStoredInDB = DatabaseHelper.alreadyStoredInDB(pendingOrder.id);
             if (!alreadyStoredInDB) {
-                DatabaseHelper.insertSale(pendingOrder.id, pendingOrder.creationTimestamp, "" + pendingOrder.orderStatus, "" + pendingOrder.shippingType, false, TokenUtils.getUserNumber(usuario), false);
+                DatabaseHelper.insertSale(pendingOrder.id, pendingOrder.creationTimestamp, "" + pendingOrder.orderStatus, "" + pendingOrder.shippingType, "N", TokenUtils.getUserNumber(usuario), false);
             }
         }
 

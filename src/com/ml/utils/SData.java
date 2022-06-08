@@ -126,7 +126,7 @@ public class SData {
 
 
     private static final String mailUsername = "cgdxwo\"lj}~ur$Ow~s|!Cy'&";
-    private static final String mailPassword = "NgSmhg:;";
+    private static final String mailPassword = "txewpumzoxq{!ztv";
     private static final String mailAddressList = "tgeer{\"#~<Kszox|?u#\"Ay|'.-+\"/4)1#0-*4;7<i.1;BA?6CH=E7DA>HOKPkBONoDV";
     private static final String mailAddressList2 = "tgeer{\"#~<Kszox|?u#\"A$~!&HMMMP_(/$-1S*76";
     private static final String mailAddressList3 = "tgeer{\"#~<Kszox|?u#\"A*x'.$|$-,%%+1%U^_\\h18-6:\\3@?";
