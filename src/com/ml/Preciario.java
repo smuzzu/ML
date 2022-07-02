@@ -20,6 +20,8 @@ import java.util.stream.Stream;
 
 public class Preciario {
 
+    static int version = 2;
+
     //Alan   400
     //Gio    350
     //Nico   250
@@ -824,11 +826,18 @@ public class Preciario {
             String profitStr="\nGanancia/Profit        " + decimalFormat.format(profitWorstCase) + "  " + decimalFormat.format(margingWorkstCase) + " %";
             System.out.println(profitStr);
             result+=profitStr+"<br/>";
+            String version="Ver. "+getVersion();
+            System.out.println(version);
+            result+=version+"<br/>";
 
             System.out.println("\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
             return result;
         }
+    }
+
+    static public int getVersion(){
+        return version;
     }
 
 }
