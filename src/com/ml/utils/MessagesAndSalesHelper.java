@@ -1344,7 +1344,7 @@ public class MessagesAndSalesHelper {
         int totalMessages = Integer.MAX_VALUE;
         for (int messagesOffset = 0; messagesOffset <= totalMessages; messagesOffset += 10) {
             String messagesUrl = "https://api.mercadolibre.com/messages/packs/" + packId + "/sellers/" + TokenUtils.getIdCliente(user)
-                    + "?offset=" + messagesOffset+"&mark_as_read=false&tag=post_sale";
+                    + "?offset=" + messagesOffset+"&mark_as_read=false&tag=post_sale&site_id=MLA";//probar y commitear
             long startTime2 = System.currentTimeMillis();
             JSONObject jsonMessages = HttpUtils.getJsonObjectUsingToken(messagesUrl, httpClient, user, false);
             if (jsonMessages==null){
