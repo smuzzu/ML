@@ -99,9 +99,8 @@ public class SalesChecker {
 
             boolean statusChanged = false;
 
-            double limiteAfip=39000.0;
             pendingOrder.superaLimiteAfip = false;
-            if (usuario.equals(SOMOS) && pendingOrder.paymentAmount>limiteAfip){
+            if (usuario.equals(SOMOS) && pendingOrder.paymentAmount>SData.LIMITE_MONO_AFIP){
                 pendingOrder.superaLimiteAfip=true;
             }
 
