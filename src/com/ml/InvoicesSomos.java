@@ -31,7 +31,7 @@ public class InvoicesSomos {
 
 
             boolean facturado=MessagesAndSalesHelper.hasAttachmedPDFOnOrder(order.packId,SData.getSomosMas(),httpClient);
-            if (order.paymentAmount>42000 || facturado){
+            if (order.paymentAmount>SData.LIMITE_MONO_AFIP || facturado){
                 continue;
             }
 
@@ -77,8 +77,8 @@ public class InvoicesSomos {
         String mailTitle="Reporte para emitir facturas C";
         String destinationAdress=SData.getMailAddressList();
 
-        //TODO DESCOMENTAR
-        //GoogleMailSenderUtil.sendMail(mailTitle, html, destinationAdress,null);
+
+        GoogleMailSenderUtil.sendMail(mailTitle, html, destinationAdress,null);
 
     }
 
