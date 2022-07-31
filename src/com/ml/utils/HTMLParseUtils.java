@@ -427,14 +427,14 @@ public class HTMLParseUtils {
         if (pos1 == -1) {
             return 0;//no tiene reviews
         }
-        pos1 = htmlString.indexOf(">", pos1);
+        pos1 = htmlString.indexOf("(", pos1);
         if (pos1 == -1) {
             msg = "Cannot find reviews II on " + url;
             Logger.log(msg);
             System.out.println(msg);
         }
         pos1++;
-        int pos2 = htmlString.indexOf("opini", pos1);
+        int pos2 = htmlString.indexOf(")", pos1);
         if (pos2 == -1) {
             msg = "Cannot find reviews III on " + url;
             Logger.log(msg);
