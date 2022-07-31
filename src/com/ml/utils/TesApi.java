@@ -24,6 +24,8 @@ public class TesApi {
     private static String mercadopagoPayment="https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=";
     private static String mercadopagoPayment2="https://api.mercadopago.com/v1/payments/";
     private static String mercadopagoOrder="https://api.mercadopago.com/merchant_orders/search?payer_id=";
+    private static String mercadopagoOrder2="https://api.mercadopago.com/merchant_orders/";
+
     private static String mercadopagoCustomer="https://api.mercadopago.com/v1/customers/";
 
 
@@ -209,6 +211,16 @@ public class TesApi {
 
     public static void main(String[] args){
 
+        String url="https://api.mercadolibre.com/v1/claims/search";
+        JSONObject historyObj=HttpUtils.getJsonObjectUsingToken(url,HttpUtils.buildHttpClient(),SData.getQuefresquete(),false);
+        HttpUtils.downloadFile(HttpUtils.buildHttpClient(),url,"aa",SData.getQuefresquete());
+
+
+        long orderId=23750481137L;
+        long customerId=50032819L;
+        JSONObject object = HttpUtils.getJsonObjectUsingToken("https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=2000003807759738",HttpUtils.buildHttpClient(),ACACIA,false);
+
+
         String productId="MLA886804834";
         getCategory(productId,SOMOS);
 
@@ -216,9 +228,6 @@ public class TesApi {
         lockUser("P.MARIA GENOVEVA","ACACIAYLENGA",true,true);
         boolean locked=isLocked("P.MARIA GENOVEVA","ACACIAYLENGA");
         //unlockUser("LAMESITAELEVABLE","SOMOS_MAS");
-        long orderId=4753621661L;
-        long customerId=221535448L;
-        JSONObject object = HttpUtils.getJsonObjectUsingToken("https://api.mercadopago.com/v1/customers/"+customerId,HttpUtils.buildHttpClient(),ACACIA,false);
 
         String oderId="4485479390";
         //JSONObject orderObject = getOrder(oderId,QUEFRESQUETE);
