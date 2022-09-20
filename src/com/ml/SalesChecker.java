@@ -296,10 +296,7 @@ public class SalesChecker {
 
                 boolean mailIsOk = GoogleMailSenderUtil.sendMail(mailTitle, mailBody, destinationAddress, attachments);
 
-                if (mailIsOk && letraUser!=null && letraUser.equals("S")){
-                    //GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress2, attachments2);
-                }
-                if (mailIsOk && letraUser!=null && letraUser.equals("A")){
+                if (mailIsOk){
                     GoogleMailSenderUtil.sendMail(mailTitle2, mailBody2, destinationAddress3, attachments2);
                 }
 
