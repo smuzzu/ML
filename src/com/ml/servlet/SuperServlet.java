@@ -1,7 +1,7 @@
 package com.ml.servlet;
 
 import com.ml.Preciario;
-import com.ml.QuestionsChecker3;
+import com.ml.QuestionsChecker2;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -80,7 +80,7 @@ public class SuperServlet extends HttpServlet {
 
         /****************     QUESTIONS    ****************/
         if (uri.equals("/pampa/vosquiensos")) {
-            List<String> qustionsList = QuestionsChecker3.fetchQuestions(true);
+            List<String> qustionsList = QuestionsChecker2.fetchQuestions(true);
 
             response.setContentType("text/html");
             PrintWriter writer = response.getWriter();

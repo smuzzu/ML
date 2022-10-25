@@ -7,6 +7,7 @@ public class SData {
 
     public static LocalTime NON_WORKING_HOURS_FROM = LocalTime.of(0,01);
     public static LocalTime NON_WORKING_HOURS_TO = LocalTime.of(7,00);
+    public static LocalTime NON_WORKING_HOURS_TO2 = LocalTime.of(9,30);
     public static double LIMITE_MONO_AFIP=49600;
 
     private static String QUEFRESQUETE="RWHJWKZY^O_Q";

@@ -6,8 +6,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.Timestamp;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class QuestionsChecker2 {
@@ -52,6 +54,47 @@ public class QuestionsChecker2 {
                 DatabaseHelper.updateQuestion(questionId,compressedTest);
             }
         }
+
+
+        LocalTime now = LocalTime.now();
+        if (now.isAfter(SData.NON_WORKING_HOURS_FROM) && now.isBefore(SData.NON_WORKING_HOURS_TO2)) {
+            System.exit(0);
+        }// evitamos mailear a la noche
+
+        List<String> questions = fetchQuestions(true);
+        String body="<table border=1>";
+        for (String question:questions){
+            body+="<tr><td>"+question+"</td></tr>";
+        }
+        body+="</table>";
+        String destinationAddress3=SData.getMailAddressList3();
+        GoogleMailSenderUtil.sendMail("Preguntas sin responder",body,destinationAddress3);
+
+    }
+
+
+    public static List<String> fetchQuestions(boolean web) {
+        List<String> result = new ArrayList<String>();
+        Map<Long, String> questionsMap = DatabaseHelper.fetchQuestions();
+        for (String compressedQuestion : questionsMap.values()) {
+            String text = null;
+            try {
+                text = CompressionUtil.decompressB64(compressedQuestion);
+            } catch (Exception e) {
+                String msg = "Error descomprimiendo pregunta";
+                System.out.println(msg);
+                Logger.log(msg);
+                e.printStackTrace();
+                Logger.log(e);
+            }
+            if (text != null) {
+                if (web) {
+                    text=text.replaceAll("\n", "<br/>");
+                }
+                result.add(text);
+            }
+        }
+        return result;
     }
 
 
