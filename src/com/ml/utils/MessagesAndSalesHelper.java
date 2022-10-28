@@ -22,6 +22,10 @@ import java.util.stream.Stream;
 
 public class MessagesAndSalesHelper {
 
+    public static final int ALL=0;
+    public static final int TWO_WEEKS_BEFORE=1;
+    public static final int LAST_TWO_MONTHS=2;
+
     static ArrayList<Message> allQuestionsArrayList=new ArrayList<Message>();
     static HashMap<Long,String> reviewsHashMap = new HashMap<Long,String>();
     static ArrayList<String> allMyItems=new ArrayList<String>();
@@ -155,30 +159,40 @@ public class MessagesAndSalesHelper {
 
 
 
-    public static ArrayList<Order> requestOrdersAndMessages(boolean includeDetails, boolean onlyPending, boolean twoWeeksBefore, String user, CloseableHttpClient httpClient){
+    public static ArrayList<Order> requestOrdersAndMessages(boolean includeDetails, boolean onlyPending, int timeFrame, String user, CloseableHttpClient httpClient, boolean verbose){
 
 
         int totalOrders=Integer.MAX_VALUE;
 
-        Timestamp twoWeeksBeore=new Timestamp(System.currentTimeMillis());
+        Timestamp twoWeeksBefore=new Timestamp(System.currentTimeMillis());
         Timestamp threeWeeksBefore=new Timestamp(System.currentTimeMillis());
 
-        if(twoWeeksBefore) {
+        Timestamp lastTwoMonthsBegin=new Timestamp(System.currentTimeMillis());
+        Timestamp lastTwoMonthsEnd=new Timestamp(System.currentTimeMillis());
+        long oneDayinMiliseconds = 86400000L;
+
+
+        if (timeFrame==TWO_WEEKS_BEFORE) {
             Calendar c = Calendar.getInstance();
-            long oneDayinMiliseconds = 86400000L;
-            c.setTimeInMillis(twoWeeksBeore.getTime());
+            c.setTimeInMillis(twoWeeksBefore.getTime());
             c.set(Calendar.HOUR_OF_DAY, 0);
             c.set(Calendar.MINUTE, 0);
             c.set(Calendar.SECOND, 0);
             c.set(Calendar.MILLISECOND, 0);
-            twoWeeksBeore.setTime(c.getTimeInMillis() - 1 - oneDayinMiliseconds * 14L);
+            twoWeeksBefore.setTime(c.getTimeInMillis() - 1 - oneDayinMiliseconds * 14L);
 
-            c.setTimeInMillis(twoWeeksBeore.getTime() - oneDayinMiliseconds * 6L);
+            c.setTimeInMillis(twoWeeksBefore.getTime() - oneDayinMiliseconds * 6L);
             c.set(Calendar.HOUR_OF_DAY, 0);
             c.set(Calendar.MINUTE, 0);
             c.set(Calendar.SECOND, 0);
             c.set(Calendar.MILLISECOND, 0);
             threeWeeksBefore.setTime(c.getTimeInMillis());
+        }else {
+            if (timeFrame==LAST_TWO_MONTHS){
+                Calendar c = Calendar.getInstance();
+                c.setTimeInMillis(lastTwoMonthsBegin.getTime());
+                lastTwoMonthsBegin.setTime(c.getTimeInMillis() - oneDayinMiliseconds * 60L);
+            }
         }
 
 
@@ -235,12 +249,20 @@ public class MessagesAndSalesHelper {
         for (int ordersOffset=0; ordersOffset<=totalOrders; ordersOffset+=50) {
 
             String ordersUrl = "https://api.mercadolibre.com/orders/search?seller=" + TokenUtils.getIdCliente(user) + "&sort=date_desc&offset="+ordersOffset;
-            if (twoWeeksBefore){
+            if (timeFrame==TWO_WEEKS_BEFORE){
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                 dateFilter="&order.date_created.from="+dateFormat.format(threeWeeksBefore)+".000-00:00"+
-                        "&order.date_created.to="+dateFormat.format(twoWeeksBeore)+".000-00:00";
+                        "&order.date_created.to="+dateFormat.format(twoWeeksBefore)+".000-00:00";
                 dateFilter=dateFilter.replace(" ","T");
                 ordersUrl+=dateFilter;
+            }   else {
+                if (timeFrame==LAST_TWO_MONTHS){
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                    dateFilter="&order.date_created.from="+dateFormat.format(lastTwoMonthsBegin)+".000-00:00"+
+                            "&order.date_created.to="+dateFormat.format(lastTwoMonthsEnd)+".000-00:00";
+                    dateFilter=dateFilter.replace(" ","T");
+                    ordersUrl+=dateFilter;
+                }
             }
 
             JSONObject jsonOrders = HttpUtils.getJsonObjectUsingToken(ordersUrl, httpClient, user, false);
@@ -286,7 +308,9 @@ public class MessagesAndSalesHelper {
                 order=processOrder(order,jsonOrder,shippingObj,stateHashMap,usersInOrders,includeDetails,user,httpClient);
                 orderArrayList.add(order);
 
-                System.out.println(order.creationTimestamp +" "+ order.orderStatus+" "+ order.userNickName + " "+order.buyerAddressState+","+order.buyerAddressCity);
+                if (verbose) {
+                    System.out.println(order.creationTimestamp + " " + order.orderStatus + " " + order.userNickName + " " + order.buyerAddressState + "," + order.buyerAddressCity);
+                }
                 elapsedTime=System.currentTimeMillis()-startTime;
                 if (elapsedTime>=tooMuchTime){
                     httpClient=HttpUtils.buildHttpClient();
@@ -1438,7 +1462,7 @@ public class MessagesAndSalesHelper {
 
         //todo descomentar proxima linea
         reviewsHashMap=getAllReviews(user,httpClient); //opcional para que busque reviews de items
-        ArrayList<Order> orderArrayList = requestOrdersAndMessages(true,false, false, user,httpClient);
+        ArrayList<Order> orderArrayList = requestOrdersAndMessages(true,false, MessagesAndSalesHelper.ALL, user,httpClient, true);
         String headers=new Order().getPrintableCSVHeader();
         Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){

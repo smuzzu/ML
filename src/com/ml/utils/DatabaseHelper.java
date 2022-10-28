@@ -40,6 +40,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalSelectLastMonthly = null;
     private static PreparedStatement globalSelectSales1 = null;
     private static PreparedStatement globalSelectSales2 = null;
+    private static PreparedStatement globalSelectCancelled = null;
     private static PreparedStatement globalSelectQuestions1 = null;
     private static PreparedStatement globalSelectQuestions2 = null;
     private static PreparedStatement globalSelectHolidays = null;
@@ -53,6 +54,7 @@ public class DatabaseHelper {
     private static PreparedStatement globalInsertMonthly = null;
     private static PreparedStatement globalInsertActivity = null;
     private static PreparedStatement globalInsertSale = null;
+    private static PreparedStatement globalInsertCancelled = null;
     private static PreparedStatement globalInsertQuestion = null;
     private static PreparedStatement globalInsertId = null;
     private static PreparedStatement globalRemoveActivity = null;
@@ -695,6 +697,32 @@ public class DatabaseHelper {
         }
     }
 
+    public static void insertCancelled(long id, Timestamp saleDate) {
+        Connection updateConnection = getCloudConnection();
+
+
+        try{
+            if (globalInsertCancelled ==null) {
+                globalInsertCancelled = updateConnection.prepareStatement("insert into public.canceladas"+
+                        "(id,fechaventa) values (?,?)");
+            }
+            globalInsertCancelled.setLong(1,id);
+            globalInsertCancelled.setTimestamp(2,saleDate);
+
+            int insertedRecords = globalInsertCancelled.executeUpdate();
+            if (insertedRecords!=1){
+                Logger.log("Couln't insert a record in cancelled table id="+id);
+            }
+
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Cannot insert a record in globalInsertCancelled table II id="+id);
+            Logger.log(e);
+        }
+    }
+
+
+
     public static void insertQuestion(long id, int userNumber, String data) {
         Connection updateConnection = getCloudConnection();
         try{
@@ -1024,7 +1052,7 @@ public class DatabaseHelper {
     }
 
 
-    public static boolean alreadyStoredInDB(long saleId) {
+    public static boolean saleAlreadyStoredInDB(long saleId) {
 
         ResultSet resultSet = null;
         Connection selectConnection = getCloudConnection();
@@ -1047,6 +1075,35 @@ public class DatabaseHelper {
         }catch(SQLException e){
             e.printStackTrace();
             Logger.log("Couldn't get sale alreadyStoredInDB II");
+            Logger.log(e);
+        }
+        return result;
+    }
+
+
+    public static boolean cancellAlreadyStoredInDB(long saleId) {
+
+        ResultSet resultSet = null;
+        Connection selectConnection = getCloudConnection();
+        boolean result=false;
+        try{
+            if (globalSelectCancelled ==null) {
+                globalSelectCancelled = selectConnection.prepareStatement("SELECT id FROM public.canceladas where id = ?");
+            }
+            globalSelectCancelled.setLong(1,saleId);
+
+            resultSet = globalSelectCancelled.executeQuery();
+
+            if (resultSet==null){
+                Logger.log("Couldn't get cancelled alreadyStoredInDB");
+            }
+
+            if (resultSet.next()){
+                result = true;
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            Logger.log("Couldn't get cancelled alreadyStoredInDB II");
             Logger.log(e);
         }
         return result;

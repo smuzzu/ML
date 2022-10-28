@@ -23,7 +23,7 @@ public class InvoicesSomos {
         Logger.log(msg);
         System.out.println(msg);
 
-        ArrayList<Order> completeOrders = MessagesAndSalesHelper.requestOrdersAndMessages(false,false, true, usuario,httpClient);
+        ArrayList<Order> completeOrders = MessagesAndSalesHelper.requestOrdersAndMessages(false,false, MessagesAndSalesHelper.TWO_WEEKS_BEFORE, usuario,httpClient, true);
         Collections.sort(completeOrders);
 
         String html = "<h1>Reporte para facturación semanal</h1><table border=1>";

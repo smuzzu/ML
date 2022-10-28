@@ -60,10 +60,10 @@ public class SalesChecker {
 
 
         CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        ArrayList<Order> pendingOrdersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false, true, false, usuario,httpClient);
+        ArrayList<Order> pendingOrdersOnlineArrayList = MessagesAndSalesHelper.requestOrdersAndMessages(false, true, MessagesAndSalesHelper.ALL, usuario,httpClient, true);
 
         for (Order pendingOrder: pendingOrdersOnlineArrayList) {
-            boolean alreadyStoredInDB = DatabaseHelper.alreadyStoredInDB(pendingOrder.id);
+            boolean alreadyStoredInDB = DatabaseHelper.saleAlreadyStoredInDB(pendingOrder.id);
             if (!alreadyStoredInDB) {
                 DatabaseHelper.insertSale(pendingOrder.id, pendingOrder.creationTimestamp, "" + pendingOrder.orderStatus, "" + pendingOrder.shippingType, "N", TokenUtils.getUserNumber(usuario), false);
             }
