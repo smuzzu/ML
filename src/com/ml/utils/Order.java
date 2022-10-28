@@ -188,10 +188,12 @@ public class Order implements Comparable<Order> {
                 name.equals("previousQuestionsOtherItemsArrayList")){
                 ArrayList<Message> messageArrayList = (ArrayList) valueObj;
                 value = "\"";
-                for (int i=0; i<messageArrayList.size(); i++){
-                    value+=messageArrayList.get(i).toStringForReport();
-                    if (i<messageArrayList.size()){
-                        value+="\n";
+                if (messageArrayList!=null) {
+                    for (int i = 0; i < messageArrayList.size(); i++) {
+                        value += messageArrayList.get(i).toStringForReport();
+                        if (i < messageArrayList.size()) {
+                            value += "\n";
+                        }
                     }
                 }
                 value+="\"";
