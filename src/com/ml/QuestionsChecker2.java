@@ -62,6 +62,9 @@ public class QuestionsChecker2 {
         }// evitamos mailear a la noche
 
         List<String> questions = fetchQuestions(true);
+        if (questions.isEmpty()) {//no hay preguntas no notificamos
+            System.exit(0);
+        }
         String body="<table border=1>";
         for (String question:questions){
             body+="<tr><td>"+question+"</td></tr>";
