@@ -57,7 +57,8 @@ public class QuestionsChecker2 {
 
 
         LocalTime now = LocalTime.now();
-        if (now.isAfter(SData.NON_WORKING_HOURS_FROM) && now.isBefore(SData.NON_WORKING_HOURS_TO2)) {
+        if (now.isAfter(SData.NON_WORKING_HOURS_FROM2) ||
+                (now.isAfter(SData.NON_WORKING_HOURS_FROM) && now.isBefore(SData.NON_WORKING_HOURS_TO2))) {
             System.exit(0);
         }// evitamos mailear a la noche
 
