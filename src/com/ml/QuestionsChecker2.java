@@ -1,11 +1,16 @@
 package com.ml;
 
-import com.ml.utils.*;
+import com.ml.utils.CompressionUtil;
+import com.ml.utils.DatabaseHelper;
+import com.ml.utils.GoogleMailSenderUtil;
+import com.ml.utils.HttpUtils;
+import com.ml.utils.Logger;
+import com.ml.utils.SData;
+
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.sql.Timestamp;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,8 +62,7 @@ public class QuestionsChecker2 {
 
 
         LocalTime now = LocalTime.now();
-        if (now.isAfter(SData.NON_WORKING_HOURS_FROM2) ||
-                (now.isAfter(SData.NON_WORKING_HOURS_FROM) && now.isBefore(SData.NON_WORKING_HOURS_TO2))) {
+        if (now.isAfter(SData.NON_WORKING_HOURS_FROM2) && now.isBefore(SData.NON_WORKING_HOURS_TO2)) {
             System.exit(0);
         }// evitamos mailear a la noche
 
