@@ -1,14 +1,7 @@
 package com.ml.utils;
 
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.nio.charset.StandardCharsets;
 
 
 public class TesApi {
@@ -20,7 +13,6 @@ public class TesApi {
     private static String baseProductUrl="https://api.mercadolibre.com/items/";
     private static String baseOrderUrl="https://api.mercadolibre.com/orders/";
     private static String baseShippingUrl="https://api.mercadolibre.com/shipments/";
-    private static String userByNickname="https://api.mercadolibre.com/sites/MLA/search?nickname=";
     private static String mercadopagoPayment="https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=";
     private static String mercadopagoPayment2="https://api.mercadopago.com/v1/payments/";
     private static String mercadopagoOrder="https://api.mercadopago.com/merchant_orders/search?payer_id=";
@@ -57,159 +49,9 @@ public class TesApi {
         return orderObject;
     }
 
-    private static long getUserIDByNickname(String nickname,String apiUser){
-        long result=0;
-        String formattedNickName=nickname.replace(" ","%20");
-        String userUrl = userByNickname+formattedNickName;
-        JSONObject userObject = HttpUtils.getJsonObjectUsingToken(userUrl,HttpUtils.buildHttpClient(),apiUser,false);
-        if (userObject!=null && userObject.has("seller")){
-            JSONObject sellerObject=userObject.getJSONObject("seller");
-            if (sellerObject!=null && sellerObject.has("id")){
-                result=sellerObject.getLong("id");
-            }
-        }
-        if (result==0){
-            System.out.println("No se pudo obtener el id de "+nickname);
-        }
-        return result;
-    }
-
-    private static void unlockUser(String nickname, String user){
-        long lockedUserId=getUserIDByNickname(nickname,user);
-        String unlockUrl="https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(user)+"/order_blacklist/"+lockedUserId;
-        HttpUtils.delete(unlockUrl,HttpUtils.buildHttpClient(),user);
-    }
-
-    private static void lockUser(String nicknameToLock, String myNickname, boolean questions, boolean orders){
-
-        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-        String token = TokenUtils.getToken(myNickname);
-        long userIdToLock=getUserIDByNickname(nicknameToLock,myNickname);
-        String url1 = "https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(myNickname)+"/questions_blacklist";
-        CloseableHttpResponse response = null;
-
-        if (questions) {
-            HttpPost httpPost = new HttpPost(url1);
-            httpPost.setHeader("Accept", "application/json");
-            httpPost.setHeader("Content-type", "application/json");
-            httpPost.addHeader("Authorization", "Bearer " + token);
-
-            String json = "{ \"user_id\": " + userIdToLock + " }";
-            StringEntity entity = new StringEntity(json, StandardCharsets.US_ASCII);
-            httpPost.setEntity(entity);
-
-            try {
-                response = httpClient.execute(httpPost);
-            } catch (Exception e) {
-                Logger.log("Error executing post " + e.getMessage());
-                Logger.log(e);
-                e.printStackTrace();
-            }
-
-            if (response != null) {
-                StatusLine statusline = response.getStatusLine();
-                if (statusline != null) {
-                    int statusCode = statusline.getStatusCode();
-                    if (statusCode == 200 || statusCode == 201) { //este cambio dejarlo
-                    } else {
-                        Logger.log("Error actualizando bloqueando usuario en questions_blacklist. " + nicknameToLock + " status code =  " + statusCode);
-                    }
-                }
-            }
-        }
-
-        if (orders) {
-            String url2 = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(myNickname) + "/order_blacklist";
-
-            HttpPost httpPost2 = new HttpPost(url2);
-            httpPost2.setHeader("Accept", "application/json");
-            httpPost2.setHeader("Content-type", "application/json");
-            httpPost2.addHeader("Authorization", "Bearer " + token);
-
-            String json2 = "{ user_id: {" + userIdToLock + "} }";
-            StringEntity entity2 = new StringEntity(json2, StandardCharsets.US_ASCII);
-            httpPost2.setEntity(entity2);
-
-            try {
-                response = httpClient.execute(httpPost2);
-            } catch (Exception e) {
-                Logger.log("Error executing post " + e.getMessage());
-                Logger.log(e);
-                e.printStackTrace();
-            }
-
-            if (response != null) {
-                StatusLine statusline = response.getStatusLine();
-                if (statusline != null) {
-                    int statusCode = statusline.getStatusCode();
-                    if (statusCode == 200 || statusCode == 201) { //este cambio dejarlo
-                    } else {
-                        Logger.log("Error actualizando bloqueando usuario en order_blacklist. " + nicknameToLock + " status code =  " + statusCode);
-                    }
-                }
-            }
-        }
-    }
-
-    static boolean isLocked(String nicknameToCheck, String myNickname){
-        boolean questionsLock=false;
-        boolean orderLock=false;
-        long userIdToCheck=getUserIDByNickname(nicknameToCheck,myNickname);
-        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
-
-        boolean finished=false;
-        int offset=0;
-        while (!finished) {
-            String url1 = "https://api.mercadolibre.com/users/" + TokenUtils.getIdCliente(myNickname) + "/questions_blacklist?limit=50&offset=" + offset ;
-            JSONObject object = HttpUtils.getJsonObjectUsingToken(url1, httpClient, myNickname, false);
-            if (object != null && object.has("users")) {
-                JSONArray userArray = object.getJSONArray("users");
-                for (int i = 0; i < userArray.length(); i++) {
-                    JSONObject user = userArray.getJSONObject(i);
-                    if (user != null && user.has("id")) {
-                        long userId = user.getLong("id");
-                        if (userId == userIdToCheck) {
-                            questionsLock = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            offset+=50;
-            if (!object.has("users") || object.getJSONArray("users").length()==0){
-                finished=true;
-            }
-        }
-
-        finished=false;
-        offset=0;
-        while (!finished) {
-            String url2 = "https://api.mercadolibre.com/users/"+TokenUtils.getIdCliente(myNickname)+"/order_blacklist?limit=50&offset=" + offset ;
-            JSONObject object = HttpUtils.getJsonObjectUsingToken(url2,httpClient,myNickname,false);
-            if (object!=null && object.has("users")){
-                JSONArray userArray = object.getJSONArray("users");
-                for (int i=0; i<userArray.length(); i++){
-                    JSONObject user = userArray.getJSONObject(i);
-                    if (user!=null && user.has("id")){
-                        long userId=user.getLong("id");
-                        if (userId==userIdToCheck){
-                            orderLock=true;
-                            break;
-                        }
-                    }
-                }
-            }
-            offset+=50;
-            if (!object.has("users") || object.getJSONArray("users").length()==0){
-                finished=true;
-            }
-        }
-
-        return questionsLock && orderLock;
-    }
-
 
     public static void main(String[] args){
+
 
         String url="https://api.mercadolibre.com/v1/claims/search";
         JSONObject historyObj=HttpUtils.getJsonObjectUsingToken(url,HttpUtils.buildHttpClient(),SData.getQuefresquete(),false);
@@ -225,8 +67,6 @@ public class TesApi {
         getCategory(productId,SOMOS);
 
 
-        lockUser("P.MARIA GENOVEVA","ACACIAYLENGA",true,true);
-        boolean locked=isLocked("P.MARIA GENOVEVA","ACACIAYLENGA");
         //unlockUser("LAMESITAELEVABLE","SOMOS_MAS");
 
         String oderId="4485479390";
