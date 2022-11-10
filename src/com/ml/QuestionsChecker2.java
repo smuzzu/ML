@@ -11,6 +11,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -76,7 +77,8 @@ public class QuestionsChecker2 {
         }
         body+="</table>";
         String destinationAddress3=SData.getMailAddressList3();
-        GoogleMailSenderUtil.sendMail("Preguntas sin responder",body,destinationAddress3);
+        String timeStamp = new SimpleDateFormat("yyyyMMdd HHmm").format(System.currentTimeMillis());
+        GoogleMailSenderUtil.sendMail("Preguntas sin responder "+timeStamp,body,destinationAddress3);
 
     }
 
