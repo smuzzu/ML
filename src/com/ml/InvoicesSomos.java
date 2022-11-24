@@ -28,7 +28,9 @@ public class InvoicesSomos {
 
         String html = "<h1>Reporte para facturación semanal</h1><table border=1>";
         for (Order order: completeOrders) {  //viene de la base info limitada
-
+            if (order.paymentStatus.equals("cancelled")){
+                continue;
+            }
 
             boolean facturado=MessagesAndSalesHelper.hasAttachmedPDFOnOrder(order.packId,SData.getSomosMas(),httpClient);
             if (order.paymentAmount>SData.LIMITE_MONO_AFIP || facturado){
@@ -55,15 +57,6 @@ public class InvoicesSomos {
             html += "<br/>" + order.productQuantity;
 
             String product=" " + order.productTitle;
-/*
-            if (order.productVariationText != null && !order.productVariationText.isEmpty()
-                    && !order.productVariationText.equals("N/A")) {
-                product += order.productVariationText + "<br/>";
-            }
-            if (order.productKeyAttributes != null && !order.productKeyAttributes.isEmpty()
-                    && !order.productKeyAttributes.equals("N/A")) {
-                product += order.productKeyAttributes + "<br/>";
-            }*/
             product=product.replace("Hafele","");
             product=product.replace("Häfele","");
             product=product.replace("Cuotas","");
