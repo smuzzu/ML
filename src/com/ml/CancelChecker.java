@@ -24,8 +24,13 @@ public class CancelChecker {
                     continue;
                 }
 
-                String mailTitle = "VENTA CANCELLADA/CANCELLED SALE " + order.id + " " + order.productId + " " + order.productTitle;
-                String mailBody = order.creationTimestamp + "<br/><br/>"
+                String userLetter="S";
+                if (user.equals(SData.getAcaciaYLenga())){
+                    userLetter="A";
+                }
+
+                String mailTitle = "VENTA CANCELADA/CANCELLED SALE " + userLetter + order.id + " " + order.productId + " " + order.productTitle;
+                String mailBody = order.id+" "+order.creationTimestamp + "<br/><br/>"
                         + "<b>Producto:</b><br/>"
                         + order.productTitle + "<br/>";
 
@@ -37,6 +42,7 @@ public class CancelChecker {
                         && !order.productKeyAttributes.equals("N/A")) {
                     mailBody += order.productKeyAttributes + "<br/>";
                 }
+                mailBody += "total: "+order.paymentAmount + "<br/>";
                 System.out.println(mailTitle);
                 System.out.println(order.getPrintableCSVValues());
                 String destinationAddress3=SData.getMailAddressList3();
