@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 
 public class Preciario {
 
-    static int version = 2;
+    static int version = 3;
 
     //Alan   400
     //Gio    350
@@ -304,6 +304,14 @@ public class Preciario {
             item.price = jsonItem.getDouble("price");
         }
 
+        //ACACIA: comercio electronico 3% - iibb minimo 1.5%
+        if (usuario.equals(SData.getAcaciaYLenga())){
+            item.percepcionIibbComercioElectronico=item.price*0.03;
+            item.retencionIibbMinimoGeneral=item.price*0.015;
+        }else {//SOMOS: comercio electronico 4% - iibb minimo 3%
+            item.percepcionIibbComercioElectronico=item.price*0.04;
+            item.retencionIibbMinimoGeneral=item.price*0.03;
+        }
 
         item.descripcion = "N/A";
         if (jsonItem.has("title") && !jsonItem.isNull("title")) {
@@ -439,10 +447,13 @@ public class Preciario {
             item.ivaAfavorML = (item.saleCost + item.mercadoEnvios) * .21;
         }
 
-        item.profitSF = item.price - item.costoSinIva - item.saleCost - item.mercadoEnvios + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
+        item.profitSF = item.price - item.costoSinIva - item.saleCost - item.mercadoEnvios + item.ivaCompras + item.ivaAfavorML
+                - item.costoEvoltorios - item.percepcionIibbComercioElectronico - item.retencionIibbMinimoGeneral;
         item.profit = item.profitSF - item.ivaVentas;
-        item.profitSFMoto = item.price - costoSinIva - item.saleCost + item.diferenciaDeMotos + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
-        item.profitSFTaxi = item.price - item.costoSinIva - item.saleCost + item.diferencialCustomShipping + item.ivaCompras + item.ivaAfavorML - item.costoEvoltorios;
+        item.profitSFMoto = item.price - costoSinIva - item.saleCost + item.diferenciaDeMotos + item.ivaCompras + item.ivaAfavorML
+                - item.costoEvoltorios - item.percepcionIibbComercioElectronico - item.retencionIibbMinimoGeneral;
+        item.profitSFTaxi = item.price - item.costoSinIva - item.saleCost + item.diferencialCustomShipping + item.ivaCompras + item.ivaAfavorML
+                - item.costoEvoltorios - item.percepcionIibbComercioElectronico - item.retencionIibbMinimoGeneral;
         item.profitMoto = item.profitSFMoto - item.ivaVentas;
         item.profitTaxi = item.profitSFTaxi - item.ivaVentas;
 
@@ -721,6 +732,8 @@ public class Preciario {
         double margingMoto;
         double profitTaxi;
         double margingTaxi;
+        double percepcionIibbComercioElectronico; //acacia 3% - somos 4%
+        double retencionIibbMinimoGeneral; //acacia 1.5% - somos 3%
 
         double profit;
         double marging;
@@ -789,6 +802,14 @@ public class Preciario {
                     System.out.println(ivaDeMl);
                     result += ivaDeMl + "<br/>";
                 }
+
+                String iiBB1Str="Percepcion IIBB com. elect. : " + this.percepcionIibbComercioElectronico;
+                System.out.println(iiBB1Str);
+                result+=iiBB1Str+"<br/>";
+                String iiBB2Str="Retencion IIBB minima : " + this.retencionIibbMinimoGeneral;
+                System.out.println(iiBB2Str);
+                result+=iiBB2Str+"<br/>";
+
                 String envoltoriosStr="Envoltorios: " + costoEvoltorios;
                 System.out.println(envoltoriosStr);
                 result+=envoltoriosStr+"<br/>";
