@@ -304,9 +304,9 @@ public class Preciario {
             item.price = jsonItem.getDouble("price");
         }
 
-        //ACACIA: comercio electronico 3% - iibb minimo 1.5%
+        //ACACIA: comercio electronico 3% (se deduce) - iibb minimo 1.5%
         if (usuario.equals(SData.getAcaciaYLenga())){
-            item.percepcionIibbComercioElectronico=item.price*0.03;
+            item.percepcionIibbComercioElectronico=0.0;
             item.retencionIibbMinimoGeneral=item.price*0.015;
         }else {//SOMOS: comercio electronico 4% - iibb minimo 3%
             item.percepcionIibbComercioElectronico=item.price*0.04;
