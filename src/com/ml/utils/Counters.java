@@ -1,11 +1,12 @@
 package com.ml.utils;
 
 import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class Counters {
 
-    static int globalPageCount = 0;
     static int globalRequestCount = 0;
     static int globalProductCount = 0;
     static int globalNewsCount = 0;
@@ -15,9 +16,6 @@ public class Counters {
     static Calendar globalCalendar1 = null;
     static Calendar globalCalendar2 = null;
 
-    synchronized public static void incrementGlobalPageCount() {
-        globalPageCount++;
-    }
 
     synchronized public static void incrementGlobalRequestCount() {
         globalRequestCount++;
@@ -41,10 +39,6 @@ public class Counters {
 
     synchronized public static void initGlobalRunnerCount() {
         globalRunnerCount = 0;
-    }
-
-    public static int getGlobalPageCount() {
-        return globalPageCount;
     }
 
     public static int getGlobalRequestCountCount() {
@@ -77,6 +71,19 @@ public class Counters {
         boolean sameDay = globalCalendar1.get(Calendar.YEAR) == globalCalendar2.get(Calendar.YEAR) &&
                 globalCalendar1.get(Calendar.DAY_OF_YEAR) == globalCalendar2.get(Calendar.DAY_OF_YEAR);
         return sameDay;
+    }
+
+    public static Date parseDate(String dateStr) {
+        Date runDate = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        try {
+            java.util.Date dt =sdf.parse(dateStr);
+            runDate=new Date(dt.getTime());
+        } catch (ParseException e) {
+            e.printStackTrace();
+            System.out.println("Error parsing date "+dateStr);
+        }
+        return runDate;
     }
 
 }

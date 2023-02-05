@@ -905,6 +905,9 @@ public class HttpUtils {
    }
 
    private static synchronized boolean isUrlChanged(HttpContext context, String url) {
+        if (url.startsWith("https://www.dice.com/")){
+            return false;
+        }
         String newURL = null;
         if (context.getAttribute("http.request") instanceof HttpRequestWrapper) {
             HttpRequestWrapper httpRequestWrapper = (HttpRequestWrapper) context.getAttribute("http.request");
@@ -930,10 +933,11 @@ public class HttpUtils {
         return false;
    }
 
-   public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, String productId, CloseableHttpClient httpClient, String runnerID, boolean DEBUG, String previousLastQuestion) {
+   public static ArrayList<String> getNewQuestionsFromPreviousLastQuestion(String uRL, String productId, String runnerID, boolean DEBUG, String previousLastQuestion) {
 
         ArrayList<String> newQuestions = new ArrayList<String>();
         String questionsURL = HTMLParseUtils.getQuestionsURL(productId);
+        CloseableHttpClient httpClient = HttpUtils.buildHttpClient();
         String htmlStringFromQuestionsPage = getHTMLStringFromPage(questionsURL, httpClient, DEBUG, true,null );
         if (!HttpUtils.isOK(htmlStringFromQuestionsPage)) {
             // hacemos pausa por si es problema de red

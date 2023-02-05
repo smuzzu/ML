@@ -1,6 +1,10 @@
 package com.ml.utils;
 
-public class Item {
+import java.io.Serializable;
+import java.sql.Date;
+import java.util.ArrayList;
+
+public class Item implements Serializable {
 
         public String id;
         public String title;
@@ -12,15 +16,26 @@ public class Item {
         public int shipping;
         public boolean premium;
         public int ranking;
-        public int page;
         public int totalSold;
+        public int stock;
+        public int reviews;
+        public double stars;
         public String sellerName;
         public long sellerId;
+
+        public boolean catalog;
+        public Date lastUpdate;
+        public int newQuestions;
+        public String lastQuestion;
+        public ArrayList<String> variations;
+
+        public String status; //para migrador2023 todo sacar
 
         public Item () {
             this.advertised=false;
             this.ranking=10000;
             this.totalSold=-1;
+            this.stock=-1;
             this.price=-1.0;
             this.discount=-1;
             this.sellerId=-1L;

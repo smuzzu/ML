@@ -1,5 +1,7 @@
 package com.ml.utils;
 
+import com.ml.ReportRunner;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 
@@ -53,7 +55,18 @@ public class TesApi {
     public static void main(String[] args){
 
 
-        String url="https://api.mercadolibre.com/v1/claims/search";
+        String scrollIdURL="https://api.mercadolibre.com/users/"+SData.getIdClienteSomosMas()+"/items/search?search_type=scan";
+        JSONObject scrollIdObject = HttpUtils.getJsonObjectUsingToken(scrollIdURL,HttpUtils.buildHttpClient(),SData.getSomosMas(),false);
+        String url="";
+        if (scrollIdObject.has("scroll_id") && !scrollIdObject.isNull("scroll_id")) {
+            String scrollId=scrollIdObject.getString("scroll_id");
+            url = "https://api.mercadolibre.com/sites/MLA/search?category=MLA411938&scroll_id="+scrollId;
+            JSONObject jsonArray = HttpUtils.getJsonObjectUsingToken(url, HttpUtils.buildHttpClient(), SData.getSomosMas(), true);
+            boolean b=false;
+        }
+        boolean C=false;
+
+
         JSONObject historyObj=HttpUtils.getJsonObjectUsingToken(url,HttpUtils.buildHttpClient(),SData.getQuefresquete(),false);
         HttpUtils.downloadFile(HttpUtils.buildHttpClient(),url,"aa",SData.getQuefresquete());
 

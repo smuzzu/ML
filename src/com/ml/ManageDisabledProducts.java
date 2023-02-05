@@ -99,8 +99,14 @@ public class ManageDisabledProducts {
 
                                     if (status.equals("paused")) {
                                         String lastupdatedStr = productObj.getString("last_updated").substring(0, 10);
-                                        java.util.Date updateDate = dateFormat.parse(lastupdatedStr);
-                                        Date limitDate = DatabaseHelper.getTwoHundredSeventyDaysBefore();
+                                        java.util.Date updateDate = null;
+                                        try {
+                                            updateDate = dateFormat.parse(lastupdatedStr);
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
+                                        long oneDayinMiliseconds = 86400000;
+                                        Date limitDate = new Date(System.currentTimeMillis() - oneDayinMiliseconds * 60);
                                         if (updateDate.before(limitDate)) {
                                             update = false;
                                         }
@@ -152,11 +158,6 @@ public class ManageDisabledProducts {
         } catch (SQLException sQLException) {
             Logger.log(sQLException);
             sQLException.printStackTrace();
-            System.exit(0);
-        }
-        catch (ParseException parseException){
-            Logger.log(parseException);
-            parseException.printStackTrace();
             System.exit(0);
         }
 

@@ -418,31 +418,46 @@ public class MessagesAndSalesHelper {
         }
 
         for (String itemId: itemsIdArrayList){
-            offset=0;
-            finished=false;
-            while (!finished) {
-                String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+itemId+"&offset="+ offset;
-                JSONObject questionsObj = HttpUtils.getJsonObjectUsingToken(questionsUrl,httpClient,user,false);
-                if (questionsObj==null){
-                    finished=true;
-                    continue;
-                }
-                JSONArray questionsArray = questionsObj.getJSONArray("questions");
-                if (questionsArray.length()==0){
-                    finished=true;
-                    continue;
-                }
-                for (Object questionObject : questionsArray){
-                    JSONObject questionJSONObject = (JSONObject)questionObject;
-                    addQuestionToArray(previousQuestionsArrayList, questionJSONObject);
-                }
-                offset+=50;
-            }
+            requestItemQuestions(user,httpClient, previousQuestionsArrayList, itemId);
         }
 
         Collections.sort(previousQuestionsArrayList);
 
         return previousQuestionsArrayList;
+    }
+
+    public static void requestItemQuestions(String user,CloseableHttpClient httpClient, ArrayList<Message> previousQuestionsArrayList, String itemId) {
+        boolean finished;
+        int offset;
+        offset=0;
+        finished=false;
+        boolean questionsOnly=false;
+        if (user==null){
+            questionsOnly=true;
+        }
+        while (!finished) {
+            String questionsUrl = "https://api.mercadolibre.com/questions/search?item="+ itemId +"&offset="+ offset+"&sort=date_created&sort_types=DESC";
+            JSONObject questionsObj = null;
+            if (user==null) {
+                questionsObj=HttpUtils.getJsonObjectWithoutToken(questionsUrl, httpClient, false);
+            }else {
+                questionsObj=HttpUtils.getJsonObjectUsingToken(questionsUrl, httpClient, user,false);
+            }
+            if (questionsObj==null){
+                finished=true;
+                continue;
+            }
+            JSONArray questionsArray = questionsObj.getJSONArray("questions");
+            if (questionsArray.length()==0){
+                finished=true;
+                continue;
+            }
+            for (Object questionObject : questionsArray){
+                JSONObject questionJSONObject = (JSONObject)questionObject;
+                addQuestionToArray(previousQuestionsArrayList, questionJSONObject, questionsOnly);
+            }
+            offset+=50;
+        }
     }
 
     public static String getQuestionFileName(String user){
@@ -483,7 +498,7 @@ public class MessagesAndSalesHelper {
                 }
                 for (Object questionObject : questionsArray){
                     JSONObject questionJSONObject = (JSONObject)questionObject;
-                    addQuestionToArray(newQuestionsArrayList, questionJSONObject);
+                    addQuestionToArray(newQuestionsArrayList, questionJSONObject, false);
                 }
                 lastItem=newQuestionsArrayList.size()-1;
                 lastQuestion = newQuestionsArrayList.get(lastItem);
@@ -620,7 +635,7 @@ public class MessagesAndSalesHelper {
             JSONArray questionsArray = questionsObj.getJSONArray("questions");
             for (Object questionObject : questionsArray) {
                 JSONObject questionJSONObject = (JSONObject) questionObject;
-                addQuestionToArray(previousQuestionsArrayList, questionJSONObject);
+                addQuestionToArray(previousQuestionsArrayList, questionJSONObject, false);
             }
         }
         return previousQuestionsArrayList;
@@ -699,7 +714,7 @@ public class MessagesAndSalesHelper {
         return result;
     }
 
-    private static void addQuestionToArray(ArrayList<Message> previousQuestionsArrayList, JSONObject questionJSONObject) {
+    private static void addQuestionToArray(ArrayList<Message> previousQuestionsArrayList, JSONObject questionJSONObject, boolean questionsOnly) {
         Message question = new Message();
         Message answer = new Message();
         long id=questionJSONObject.getLong("id");
@@ -713,9 +728,11 @@ public class MessagesAndSalesHelper {
         String dateCreatedStr=questionJSONObject.getString("date_created");
         question.creationTimestamp=getTimestamp(dateCreatedStr);
 
-        JSONObject from = questionJSONObject.getJSONObject("from");
-        question.customerId=from.getLong("id");
-        answer.customerId=question.customerId;
+        if (questionJSONObject.has("from") && !questionJSONObject.isNull("from")) {
+            JSONObject from = questionJSONObject.getJSONObject("from");
+            question.customerId = from.getLong("id");
+            answer.customerId = question.customerId;
+        }
         question.text= questionJSONObject.getString("text");
         question.direction='R';
         answer.direction='E';
@@ -737,7 +754,9 @@ public class MessagesAndSalesHelper {
         if (previousQuestionsArrayList.contains(answer)) {
             previousQuestionsArrayList.remove(answer);
         }
-        previousQuestionsArrayList.add(answer);
+        if (!questionsOnly) {
+            previousQuestionsArrayList.add(answer);
+        }
     }
 
 

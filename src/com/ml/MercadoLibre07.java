@@ -574,7 +574,7 @@ public class MercadoLibre07 extends Thread {
         return globalDate;
     }
 
-    private static synchronized void updateProductAddActivity(String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int shipping, int discount, boolean premium) {
+    private static synchronized void updateProductAddActivity(String productId, String seller, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int shipping, int discount, boolean premium) {
         Connection connection = getAddActivityConnection();
         try{
             if (globalUpdateProduct ==null) {
@@ -620,13 +620,12 @@ public class MercadoLibre07 extends Thread {
             globalInsertActivity.setInt(8,newSold);
             globalInsertActivity.setInt(9,totalSold);
             globalInsertActivity.setInt(10,newQuestions);
-            globalInsertActivity.setInt(11,pagina);
-            globalInsertActivity.setString(12,seller);
-            globalInsertActivity.setBoolean(13,officialStore);
+            globalInsertActivity.setString(11,seller);
+            globalInsertActivity.setBoolean(12,officialStore);
 
-            globalInsertActivity.setInt(14,shipping);
-            globalInsertActivity.setInt(15,discount);
-            globalInsertActivity.setBoolean(16,premium);
+            globalInsertActivity.setInt(13,shipping);
+            globalInsertActivity.setInt(14,discount);
+            globalInsertActivity.setBoolean(15,premium);
 
             insertedRecords = globalInsertActivity.executeUpdate();
             if (insertedRecords!=1){

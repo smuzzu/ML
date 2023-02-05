@@ -1,5 +1,13 @@
 package com.ml.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -458,22 +466,28 @@ public class DatabaseHelper {
 
 /***************************************************************************************************/
 
-    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate, String productId, String seller, long sellerId, boolean officialStore, int totalSold, int newSold, String title, String url, int feedbacksTotal, double feedbacksAverage, double price, int newQuestions, String lastQuestion, int pagina, int ranking, int shipping, int discount, boolean premium) {
+    public static synchronized void updateProductAddActivity(String database, boolean overrideTodaysRun, Date globalDate,
+                                                             String productId, String seller, long sellerId, boolean officialStore,
+                                                             int totalSold, int newSold, int stock, int difStock, String title,
+                                                             String url, int feedbacksTotal, double feedbacksAverage, double price,
+                                                             int newQuestions, String lastQuestion, int ranking, int shipping,
+                                                             int discount, boolean premium, boolean mostSold) {
         Connection connection = getAddActivityConnection(database);
         try{
             if (globalUpdateProduct ==null) {
 
-                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, idproveedor=?, deshabilitado=false WHERE id = ?;");
+                globalUpdateProduct = connection.prepareStatement("UPDATE public.productos SET totalvendidos = ?, stock=?, lastupdate=?, url=?, lastquestion=?, proveedor=?, tiendaoficial=?, idproveedor=?, deshabilitado=false WHERE id = ?;");
             }
 
             globalUpdateProduct.setInt(1,totalSold);
-            globalUpdateProduct.setDate(2,globalDate);
-            globalUpdateProduct.setString(3,url);
-            globalUpdateProduct.setString(4,lastQuestion);
-            globalUpdateProduct.setString(5,seller);
-            globalUpdateProduct.setBoolean(6,officialStore);
-            globalUpdateProduct.setLong(7,sellerId);
-            globalUpdateProduct.setString(8,productId);
+            globalUpdateProduct.setInt(2,stock);
+            globalUpdateProduct.setDate(3,globalDate);
+            globalUpdateProduct.setString(4,url);
+            globalUpdateProduct.setString(5,lastQuestion);
+            globalUpdateProduct.setString(6,seller);
+            globalUpdateProduct.setBoolean(7,officialStore);
+            globalUpdateProduct.setLong(8,sellerId);
+            globalUpdateProduct.setString(9,productId);
 
             int updatedRecords = globalUpdateProduct.executeUpdate();
             if (updatedRecords!=1){
@@ -493,7 +507,7 @@ public class DatabaseHelper {
             }
 
             if (globalInsertActivity ==null){
-                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, nuevaspreguntas, pagina, proveedor, tiendaoficial, envio, descuento, premium, ranking, idproveedor) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?);");
+                globalInsertActivity =connection.prepareStatement("INSERT INTO public.movimientos(fecha, idproducto, titulo, url, opinionestotal, opinionespromedio, precio, vendidos, totalvendidos, stock, difstock, nuevaspreguntas, proveedor, tiendaoficial, envio, descuento, premium, masvendido, ranking, idproveedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?);");
             }
 
             globalInsertActivity.setDate(1,globalDate);
@@ -505,17 +519,19 @@ public class DatabaseHelper {
             globalInsertActivity.setDouble(7, price);
             globalInsertActivity.setInt(8,newSold);
             globalInsertActivity.setInt(9,totalSold);
-            globalInsertActivity.setInt(10,newQuestions);
-            globalInsertActivity.setInt(11,pagina);
-            globalInsertActivity.setString(12,seller);
-            globalInsertActivity.setBoolean(13,officialStore);
+            globalInsertActivity.setInt(10,stock);
+            globalInsertActivity.setInt(11,difStock);
+            globalInsertActivity.setInt(12,newQuestions);
+            globalInsertActivity.setString(13,seller);
+            globalInsertActivity.setBoolean(14,officialStore);
 
-            globalInsertActivity.setInt(14,shipping);
-            globalInsertActivity.setInt(15,discount);
-            globalInsertActivity.setBoolean(16,premium);
-            globalInsertActivity.setInt(17,ranking);
+            globalInsertActivity.setInt(15,shipping);
+            globalInsertActivity.setInt(16,discount);
+            globalInsertActivity.setBoolean(17,premium);
+            globalInsertActivity.setBoolean(18,mostSold);
+            globalInsertActivity.setInt(19,ranking);
 
-            globalInsertActivity.setLong(18,sellerId);
+           globalInsertActivity.setLong(20,sellerId);
 
             updatedRecords = globalInsertActivity.executeUpdate();
             if (updatedRecords!=1){
@@ -545,12 +561,13 @@ public class DatabaseHelper {
         }
     }
 
-    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, long sellerId, int totalSold, String latestquestion, String url, boolean officialStore) {
+    public static synchronized void insertProduct(String database, Date globalDate,String idProduct, String seller, long sellerId,
+                                                  int totalSold, int stock, String latestquestion, String url, boolean officialStore) {
 
         try{
             if (globalInsertProduct ==null) {
                 Connection connection= DatabaseHelper.getAddProductConnection(database);
-                globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, url, tiendaoficial, idproveedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                globalInsertProduct = connection.prepareStatement("INSERT INTO public.productos(id, proveedor, ingreso, lastupdate, lastquestion, totalvendidos, stock, url, tiendaoficial, idproveedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
             }
 
             globalInsertProduct.setString(1,idProduct);
@@ -559,9 +576,10 @@ public class DatabaseHelper {
             globalInsertProduct.setDate(4,globalDate);
             globalInsertProduct.setString(5,latestquestion);
             globalInsertProduct.setInt(6,totalSold);
-            globalInsertProduct.setString(7,url);
-            globalInsertProduct.setBoolean(8,officialStore);
-            globalInsertProduct.setLong(9,sellerId);
+            globalInsertProduct.setInt(7,stock);
+            globalInsertProduct.setString(8,url);
+            globalInsertProduct.setBoolean(9,officialStore);
+            globalInsertProduct.setLong(10,sellerId);
 
             int registrosInsertados = globalInsertProduct.executeUpdate();
 
@@ -1317,12 +1335,12 @@ public class DatabaseHelper {
         return serviceEnabled;
     }
 
-    public static synchronized Date fetchLastUpdate(String productId, String database) {
-        Date lastUpdate=null;
+    public static synchronized Item fetchLastUpdate(String productId, String database) {
+        Item item=null;
         Connection connection=DatabaseHelper.getSelectConnection(database);
         try{
             if (globalSelectProduct ==null) {
-                globalSelectProduct = connection.prepareStatement("SELECT lastUpdate FROM public.productos WHERE id=?;");
+                globalSelectProduct = connection.prepareStatement("SELECT id,lastUpdate,totalvendidos,stock,lastquestion FROM public.productos WHERE id=?;");
             }
 
             globalSelectProduct.setString(1,productId);
@@ -1332,13 +1350,18 @@ public class DatabaseHelper {
                 Logger.log("Couldn't get last update I "+productId);
             }
             if (rs.next()){
-                lastUpdate=rs.getDate(1);
+                item=new Item();
+                item.id=rs.getString(1);
+                item.lastUpdate=rs.getDate(2);
+                item.totalSold=rs.getInt(3);
+                item.stock=rs.getInt(4);
+                item.lastQuestion=rs.getString(5);
             }
         }catch(SQLException e){
             Logger.log("Couldn't get last update II "+productId);
             Logger.log(e);
         }
-        return lastUpdate;
+        return item;
     }
 
     public static ArrayList<String> fetchProductsLike(String searchString, String database) {
@@ -1547,49 +1570,65 @@ public class DatabaseHelper {
         return result;
     }
 
-    public static ArrayList<String> getPossiblePausedProducts(String database, ArrayList<String> proccessedItemsArrayList, Date date) {
-        ArrayList<String> possiblyPausedProductList = new ArrayList<String>();
+    public static HashMap<String, Item> fetchItemsBeyondRadar(String database, HashMap<String, Item> itemHashMap, Date date) {
 
-        String productId=null;
-        Date since = getTwoHundredSeventyDaysBefore();
+        HashMap<String, Item> result=new HashMap<>();
+        Date since = getTwoHundredSeventyDaysBefore(date);
         Connection selectConnection = DatabaseHelper.getSelectConnection(database);
         try{
-            PreparedStatement globalSelectPossiblyPaused = null;
-            //option 1  //TODO, PONER UN RANGO DE FECHAS A POSIBLE PAUSADOS PARA EVITAR REGISTROS MUY VIEJOS?
-            globalSelectPossiblyPaused = selectConnection.prepareStatement("SELECT id FROM public.productos WHERE lastupdate>? and lastupdate<? and deshabilitado=false order by lastupdate");
-            globalSelectPossiblyPaused.setDate(1,since);
-            globalSelectPossiblyPaused.setDate(2,date);
+            PreparedStatement globalBeyondRadarStm = null;
 
-            String msg="Buscando pausados en databasse"+" - "+ globalSelectPossiblyPaused.toString();
+            globalBeyondRadarStm = selectConnection.prepareStatement("SELECT id,totalvendidos,proveedor, lastquestion FROM public.productos where deshabilitado = false and lastupdate>? and lastupdate<?");
+
+            globalBeyondRadarStm.setDate(1,since);
+            globalBeyondRadarStm.setDate(2,date);
+
+            String msg="Buscando items mas alla del radar en databasse"+" - "+ globalBeyondRadarStm.toString();
             System.out.println(msg);
             Logger.log(msg);
 
-            ResultSet rs2 = globalSelectPossiblyPaused.executeQuery();
+            ResultSet rs2 = globalBeyondRadarStm.executeQuery();
             if (rs2==null){
-                Logger.log("Couldn't get Possibly Paused Products");
+                String msg1="Couldn't get Beyond Radar Products";
+                System.out.println(msg1);
+                Logger.log(msg1);
                 return null;
             }
 
+
+            int count=0;
             while (rs2.next()){
-                productId=rs2.getString(1);
-                if (!proccessedItemsArrayList.contains(productId)) {
-                    possiblyPausedProductList.add(productId);
+                count++;
+                if (count==10000){
+                    count=0;
+                    msg="leyendo productos de database";
+                    System.out.println(msg);
+                    Logger.log(msg);
+                }
+                Item item = new Item();
+                String formattedId= rs2.getString(1);
+                item.id=HTMLParseUtils.getUnformattedId(formattedId);
+                item.totalSold= rs2.getInt(2);
+                item.sellerName=rs2.getString(3);
+                item.lastQuestion=rs2.getString(4);
+                if (!itemHashMap.containsKey(item.id)) {
+                    result.put(item.id,item);
                 }
             }
         }catch(SQLException e){
-            Logger.log("Couldn't get Possibly Paused Products II");
+            Logger.log("Couldn't get Beyond Radar Products II");
             Logger.log(e);
         }
-        return possiblyPausedProductList;
+        return result;
     }
 
-    public static synchronized Date getTwoHundredSeventyDaysBefore(){
+    public static synchronized Date getTwoHundredSeventyDaysBefore(Date date){
         if (twoHundredSeventyDaysBefore==null) {
             Date result = null;
             long oneDayInMiliseconds = 86400000L;
             long twoHundredSeventyDaysInMiliseconds = oneDayInMiliseconds * 270;
             Calendar cal = Calendar.getInstance();
-            long milliseconds = cal.getTimeInMillis();
+            long milliseconds = date.getTime();
             twoHundredSeventyDaysBefore = new Date(milliseconds - twoHundredSeventyDaysInMiliseconds);
         }
         return twoHundredSeventyDaysBefore;
@@ -1679,15 +1718,16 @@ public class DatabaseHelper {
             if (globalInsertId ==null) {
                 Connection connection= DatabaseHelper.getAddRemoveIdConnection(database);
                 //item.permalink, item.id, item.sellerId, item.page, item.ranking,
-                globalInsertId = connection.prepareStatement("INSERT INTO public.ids(idproducto,url,idprovedor,pagina,ranking) VALUES (?,?,?,?,?);");
+                globalInsertId = connection.prepareStatement("INSERT INTO public.ids(idproducto,producto) VALUES (?,?);");
             }
 
             for (Item item: itemsToAdd) {
                 globalInsertId.setString(1, item.id);
-                globalInsertId.setString(2,item.permalink);
-                globalInsertId.setLong(3,item.sellerId);
-                globalInsertId.setInt(4,item.page);
-                globalInsertId.setInt(5,item.ranking);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bos);
+                oos.writeObject(item);
+                byte[] buff = bos.toByteArray();
+                globalInsertId.setBytes(2,buff);
                 int registrosInsertados = globalInsertId.executeUpdate();
 
                 if (registrosInsertados != 1) {
@@ -1697,7 +1737,9 @@ public class DatabaseHelper {
             }catch(SQLException e){
                 Logger.log("Couldn't insert idproducto II ");
                 Logger.log(e);
-            }
+            } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static HashMap<String, Item> getRemainingItemsToProcess(String database){
@@ -1705,21 +1747,30 @@ public class DatabaseHelper {
 
         Connection connection = getSelectConnection(database);
         try {
-            PreparedStatement remainingItems = connection.prepareStatement("select idproducto,url,idprovedor,pagina,ranking from public.ids");
+            PreparedStatement remainingItems = connection.prepareStatement("select producto from public.ids");
             ResultSet resultSet = remainingItems.executeQuery();
             if (resultSet == null) {
                 Logger.log("Couldn't get remaining ids on table I");
             }
             while (resultSet.next()) {
-                Item item = new Item();
-                item.id = resultSet.getString(1);
-                item.permalink = resultSet.getString(2);
-                item.sellerId = resultSet.getLong(3);
-                item.page = resultSet.getInt(4);
-                item.ranking = resultSet.getInt(5);
+
+                byte[] buff  = resultSet.getBytes(1);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                InputStream in  = resultSet.getBinaryStream(1);
+                int n = 0;
+                while ((n = in.read(buff)) >= 0) {
+                    baos.write(buff, 0, n);
+                }
+
+                byte[] bytes = baos.toByteArray();
+                ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+                ObjectInput in1 = new ObjectInputStream(bis);
+
+                Object o = in1.readObject();
+                Item item = (Item)o;
                 result.put(item.id,item);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             Logger.log("Couldn't get remaining ids table II");
             Logger.log(e);
