@@ -223,14 +223,8 @@ public class TokenUtils {
             refresh_token= SData.decode(encodedRefreshToken);
         }
 
-        String tokenURL = "https://api.mercadolibre.com/oauth/token?grant_type=refresh_token"
-                + "&client_id=" + appId
-                + "&client_secret=" + appSecret
-                + "&refresh_token=" + refresh_token;
-        System.out.println(tokenURL);
-        Logger.log(tokenURL);
-
-        HttpPost httppost = new HttpPost("https://api.mercadolibre.com/oauth/token");
+        String url = "https://api.mercadolibre.com/oauth/token";
+        HttpPost httppost = new HttpPost(url);
         List<NameValuePair> params = new ArrayList<NameValuePair>(4);
         params.add(new BasicNameValuePair("grant_type", "refresh_token"));
         params.add(new BasicNameValuePair("client_id", appId));
@@ -242,6 +236,10 @@ public class TokenUtils {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
+        String msg="XXXXXXXXXXXX refreshing token "+url+"?grant_type=refresh_token&client_id="+appId+"&client_secret="+appSecret+"&refresh_token="+refresh_token;
+        System.out.println(msg);
+        Logger.log(msg);
 
         HttpResponse response = null;
         try {
@@ -280,7 +278,7 @@ public class TokenUtils {
                 refresh_token = (String) refreshTokenObject;
             }
         }
-        String msg = "******************************* new token";
+        msg = "******************************* new token";
         System.out.println(msg);
         Logger.log(msg);
 

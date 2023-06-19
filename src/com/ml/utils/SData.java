@@ -76,8 +76,8 @@ public class SData {
 
     private static String SOMOS_MAS="TQPSXeTI\\";
     private static String idClienteSOMOS_MAS = "7987<99<";
-    private static String appIdSOMOS_MAS = "39<=:=9;?A?@DFHC";
-    private static String appSecretSOMOS_MAS = "UVQNwXX\u007FRVV_#^}'Eh\u007FYE~-1.m'4.2e&";
+    private static String appIdSOMOS_MAS = "8:6:887:B:DDAD@I";
+    private static String appSecretSOMOS_MAS = "boPW6STi^KrPgRtUdb[%kG~&$'su~,$j";
     private static String tokenFileSOMOS_MAS="C:"+File.separator+"centro"+File.separator+"tokenSomosMas.txt";
 
     public static String getSomosMas(){
