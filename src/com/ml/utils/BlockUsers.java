@@ -219,8 +219,11 @@ public class BlockUsers {
 
     public static void main(String[] args){
 
-        //todo correr 2 veces o ver si hay que meter una pausa porque no refleja los cambios al toque
-        String nickNameToLock="TIENDA CN";
+        System.out.println(new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()));
+
+
+        String nickNameToLock="ELEBANO-MUEBLERIA";
+        boolean lockQuefresquete=false;
 
         ////ACACIA
         String myUserName=SData.getAcaciaYLenga();
@@ -232,6 +235,8 @@ public class BlockUsers {
         lockUser(nickNameToLock,myUserName,true,true);
         pausa(30);
         System.out.println("ok!");
+        isOrderLocked=isOrderLocked(nickNameToLock,myUserName);
+        isQuestionsLocked =isQuestionsLocked(nickNameToLock,myUserName);
         System.out.println(nickNameToLock+" bloqueaPreguntas="+isQuestionsLocked+" bloqueaCompras="+isOrderLocked);
 
 
@@ -245,7 +250,26 @@ public class BlockUsers {
         lockUser(nickNameToLock,myUserName,true,true);
         pausa(30);
         System.out.println("ok!");
+        isOrderLocked=isOrderLocked(nickNameToLock,myUserName);
+        isQuestionsLocked =isQuestionsLocked(nickNameToLock,myUserName);
         System.out.println(nickNameToLock+" bloqueaPreguntas="+isQuestionsLocked+" bloqueaCompras="+isOrderLocked);
+
+        ////QUEFRESQUETE
+        if (lockQuefresquete) {
+            myUserName = SData.getQuefresquete();
+            isOrderLocked = isOrderLocked(nickNameToLock, myUserName);
+            isQuestionsLocked = isQuestionsLocked(nickNameToLock, myUserName);
+            System.out.println("\n\nChequeando en " + myUserName);
+            System.out.println(nickNameToLock + " bloqueaPreguntas=" + isQuestionsLocked + " bloqueaCompras=" + isOrderLocked);
+            System.out.println("bloqueando...");
+            lockUser(nickNameToLock, myUserName, true, true);
+            pausa(30);
+            System.out.println("ok!");
+            isOrderLocked = isOrderLocked(nickNameToLock, myUserName);
+            isQuestionsLocked = isQuestionsLocked(nickNameToLock, myUserName);
+            System.out.println(nickNameToLock + " bloqueaPreguntas=" + isQuestionsLocked + " bloqueaCompras=" + isOrderLocked);
+        }
+
 
     }
 
