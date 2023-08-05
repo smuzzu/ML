@@ -230,29 +230,30 @@ public class QuestionsChecker1 {
 
             JSONObject transactionsObj = sellerReputation.getJSONObject("transactions");
             String period2 = transactionsObj.getString("period");
-            int canceled = transactionsObj.getInt("canceled");
+            int canceled = 0;
+            if (transactionsObj.has("canceled") & !transactionsObj.isNull("canceled")) {
+                canceled = transactionsObj.getInt("canceled");
+            }
             int total = transactionsObj.getInt("total");
-            int completed2 =  transactionsObj.getInt("completed");
+            int completed2 = 0;
+            if (transactionsObj.has("completed") & !transactionsObj.isNull("completed")) {
+                completed2 = transactionsObj.getInt("completed");
+            }
 
             String canceledPercentageStr=""+(canceled*1.0/total)*100L;
             sellerSalesInPeriod=period2.trim()+" total="+total+" completed="+completed2+" canceled="+canceled+"->"+canceledPercentageStr.substring(0,3);
 
+            if (transactionsObj.has("ratings") & !transactionsObj.isNull("ratings")) {
+                JSONObject ratings = transactionsObj.getJSONObject("ratings");
+                Double positive = ratings.getDouble("positive");
+                Double neutral = ratings.getDouble("neutral");
+                Double negative = ratings.getDouble("negative");
 
-            JSONObject ratings = transactionsObj.getJSONObject("ratings");
-            Double positive = ratings.getDouble("positive");
-            Double neutral = ratings.getDouble("neutral");
-            Double negative = ratings.getDouble("negative");
-
-            sellerRating="positive="+positive+" / neutral="+neutral+" / negative="+negative;
-
-        }
-
-        if (customerObj.has("tags") && !customerObj.isNull("tags")) {
-            JSONArray tagsArray = customerObj.getJSONArray("tags");
-            for (int j = 0; j < tagsArray.length(); j++) {
-                String tag = (String) tagsArray.get(j);
-                tagsArrayList.add(tag);
+                sellerRating = "positive=" + positive + " / neutral=" + neutral + " / negative=" + negative;
+            }else {
+                sellerRating = "no rating";
             }
+
         }
 
         String registrationDate = "N/A";
@@ -260,21 +261,31 @@ public class QuestionsChecker1 {
             registrationDate = customerObj.getString("registration_date");
         }
 
-        int points = customerObj.getInt("points");
-        String userType = customerObj.getString("user_type");
+        int points = 0;
+        if (customerObj.has("points") && !customerObj.isNull("points")) {
+            points = customerObj.getInt("points");
+        }
 
-        JSONObject addressObj = customerObj.getJSONObject("address");
-        String city = "N/A";
-        if (addressObj.has("city") && !addressObj.isNull("city")) {
-            city = (String) addressObj.get("city");
+        String userType = "N/A";
+        if (customerObj.has("user_type") && !customerObj.isNull("user_type")) {
+            userType = customerObj.getString("user_type");
         }
-        String stateDesc = "N/A";
-        if (addressObj.has("state") && !addressObj.isNull("state")) {
-            String state = (String) addressObj.get("state");
-            HashMap<String, String> stateHashMap = getStateHashMap();
-            stateDesc = stateHashMap.get(state);
+
+        String address = "N/A";
+        if (customerObj.has("address") && !customerObj.isNull("address")) {
+            JSONObject addressObj = customerObj.getJSONObject("address");
+            String city = "N/A";
+            if (addressObj.has("city") && !addressObj.isNull("city")) {
+                city = (String) addressObj.get("city");
+            }
+            String stateDesc = "N/A";
+            if (addressObj.has("state") && !addressObj.isNull("state")) {
+                String state = (String) addressObj.get("state");
+                HashMap<String, String> stateHashMap = getStateHashMap();
+                stateDesc = stateHashMap.get(state);
+            }
+            address = city + ", " + stateDesc;
         }
-        String address=city+", "+stateDesc;
 
 
         if (customerObj.has("tags") && !customerObj.isNull("tags")) {
