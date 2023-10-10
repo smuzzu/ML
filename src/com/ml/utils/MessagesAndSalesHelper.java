@@ -1015,7 +1015,9 @@ public class MessagesAndSalesHelper {
 
         JSONObject receiverAddressObj = getObjectValue(orderShippingObj,shippingObj,"receiver_address");
         if (receiverAddressObj!=null){
-            order.shippingReceiverName = receiverAddressObj.getString("receiver_name");
+            if (receiverAddressObj.has("receiver_name") && !receiverAddressObj.isNull("receiver_name")) {
+                order.shippingReceiverName = receiverAddressObj.getString("receiver_name");
+            }
             order.buyerAddressState = receiverAddressObj.getJSONObject("state").getString("name");
             order.buyerAddressCity = receiverAddressObj.getJSONObject("city").getString("name");
             order.buyerAddressZip = receiverAddressObj.getString("zip_code");
@@ -1468,11 +1470,11 @@ public class MessagesAndSalesHelper {
 
 
         Calendar calendar = Calendar.getInstance();
-        Timestamp year2022 = Timestamp.valueOf("2022-01-01 00:00:00.1");
+        Timestamp year2023 = Timestamp.valueOf("2023-01-01 00:00:00.1");
 
         String user = SData.getSomosMas();
         //String user = SData.getAcaciaYLenga();
-        boolean SINCE_2022=true;
+        boolean SINCE_2023=true;
 
         String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
                 calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");
@@ -1485,7 +1487,7 @@ public class MessagesAndSalesHelper {
         String headers=new Order().getPrintableCSVHeader();
         Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){
-            if (SINCE_2022 && order.creationTimestamp.before(year2022)){
+            if (SINCE_2023 && order.creationTimestamp.before(year2023)){
                 continue;
             }
             String record = order.getPrintableCSVValues();
