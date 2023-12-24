@@ -337,39 +337,82 @@ public class Preciario {
             listingTypeId = jsonItem.getString("listing_type_id");
         }
         if (listingTypeId == null) {
-            System.out.println("No se pudo encontrar el tipo de publicación del item: " + itemID + " del usuario " + usuario);
+            System.out.println("No se pudo encontrar el listing_type_id del item: " + itemID + " del usuario " + usuario);
             return null;
         }
 
         item.costoEvoltorios = COSTO_ENVOLTORIOS;
         item.saleType = "N/A";
         item.saleCost = 0.0;
-        String saleCostUrl = "https://api.mercadolibre.com/sites/MLA/listing_prices?category_id=" + categoryId + "&price=" + item.price;
-        JSONObject saleCostArray = HttpUtils.getJsonObjectUsingToken(saleCostUrl, client, usuario, true);
-        if (saleCostArray != null) {
-            JSONArray costArray = saleCostArray.getJSONArray("elArray");
-            for (int i = 0; i < costArray.length(); i++) {
-                JSONObject costObj = costArray.getJSONObject(i);
-                if (costObj != null && costObj.has("listing_type_id") && !costObj.isNull("listing_type_id")) {
-                    String listingTypeId2 = costObj.getString("listing_type_id");
-                    if (listingTypeId2.equals(listingTypeId)) {
-                        if (costObj.has("sale_fee_amount") && !costObj.isNull("sale_fee_amount")) {
-                            item.saleCost = costObj.getDouble("sale_fee_amount");
-                        }
-                        if (costObj.has("listing_type_name") && !costObj.isNull("listing_type_name")) {
-                            item.saleType = costObj.getString("listing_type_name");
-                            if (item.saleType.contains("sica")) { //clásica o clasica
-                                item.saleType += "/standard";
-                            }
-                        }
+
+        String domainId=null;
+        if (jsonItem.has("domain_id") && !jsonItem.isNull("domain_id")) {
+            domainId = jsonItem.getString("domain_id");
+        }
+        if (domainId == null) {
+            System.out.println("No se pudo encontrar domain_id del item: " + itemID + " del usuario " + usuario);
+            return null;
+        }
+
+        String tag=null;
+        JSONArray tagsArray = jsonItem.getJSONArray("tags");
+        for (int i=0; i<tagsArray.length(); i++){
+            String tagStr=tagsArray.getString(i);
+            if (tagStr.equals("pcj-co-funded") || tagStr.equals("3x_campaign") ||
+                    tagStr.equals("ahora-paid-by-buyer") || tagStr.equals("ahora-3") ||
+                    tagStr.equals("ahora-6") || tagStr.equals("ahora-12"))
+            {
+                tag=tagStr;
+                break;
+            }
+        }
+
+        String salesCostUrl="https://api.mercadolibre.com/sites/MLA/listing_prices?price="+item.price+"&listing_type_id="+listingTypeId+"&tags="+tag+"&domain_id="+domainId;
+        JSONObject saleCostObject = HttpUtils.getJsonObjectWithoutToken(salesCostUrl, client, false);
+        if (saleCostObject==null || saleCostObject.isEmpty()){
+            System.out.println("No se pudo encontrar el salesCost del item: " + itemID + " del usuario " + usuario + " con url "+salesCostUrl);
+            return null;
+        }
+
+        if (saleCostObject.has("listing_type_name") && !saleCostObject.isNull("listing_type_name")) {
+            item.saleType = saleCostObject.getString("listing_type_name");
+        }
+        if (item.saleType == null || item.saleType.isEmpty() ) {
+            System.out.println("No se pudo encontrar listing_type_name del item: " + itemID + " del usuario " + usuario);
+            return null;
+        }
+
+        if (item.saleType.equals("Clásica")){
+            if (tag!=null && !tag.isEmpty()){
+                if (tag.equals("pcj-co-funded")){
+                    item.saleType+=" / cuotas con interés bajo";
+                }else {
+                    item.saleType+=" / "+tag;
+                }
+            }
+        }else {
+            if (item.saleType.equals("Premium")){
+                if (tag==null || tag.isEmpty()) {
+                    item.saleType += " / 6 cuotas";
+                }else {
+                    if (tag.equals("3x_campaign")) {
+                        item.saleType += " / 3 cuotas";
+                    }
+                    else {
+                            item.saleType += " / "+tag;
                     }
                 }
             }
-            if (item.saleCost == 0.0) {
-                System.out.println("No se pudo encontrar el costo de la comision para el item: " + itemID + " del usuario " + usuario);
-                return null;
-            }
         }
+
+        if (saleCostObject.has("sale_fee_amount") && !saleCostObject.isNull("sale_fee_amount")) {
+            item.saleCost = saleCostObject.getDouble("sale_fee_amount");
+        }
+        if (item.saleCost == 0.0 ) {
+            System.out.println("No se pudo encontrar sale_fee_amount del item: " + itemID + " del usuario " + usuario);
+            return null;
+        }
+        item.saleCost=Math.ceil(item.saleCost*10)/10;
 
         item.freeShipping = false;
         item.customShipping = false;
