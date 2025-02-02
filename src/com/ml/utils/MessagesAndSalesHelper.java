@@ -1041,6 +1041,7 @@ public class MessagesAndSalesHelper {
         }
 
         if (includeDetails) {
+            /*
             String buyerPhone = getPayerPhone(user, order.id);
             if (order.buyerPhone == null) {
                 order.buyerPhone = buyerPhone;
@@ -1052,7 +1053,7 @@ public class MessagesAndSalesHelper {
                         order.buyerPhone += " / " + buyerPhone;
                     }
                 }
-            }
+            }*/
 
             //todo esto es para recuperar el email
             String orderUrl = "https://api.mercadolibre.com/orders/" + order.id;
@@ -1470,11 +1471,11 @@ public class MessagesAndSalesHelper {
 
 
         Calendar calendar = Calendar.getInstance();
-        Timestamp year2023 = Timestamp.valueOf("2023-01-01 00:00:00.1");
+        Timestamp year2024 = Timestamp.valueOf("2024-01-01 00:00:00.1");
 
-        String user = SData.getSomosMas();
-        //String user = SData.getAcaciaYLenga();
-        boolean SINCE_2023=true;
+        //String user = SData.getSomosMas();
+        String user = SData.getAcaciaYLenga();
+        boolean SINCE_2024=true;
 
         String fileName = ("C:\\centro\\reportes\\"+user+ "_"+ calendar.get(Calendar.YEAR) + "-" + String.format("%02d",(calendar.get(Calendar.MONTH)+1) )+ "-" +
                 calendar.get(Calendar.DAY_OF_MONTH)+"_"+ calendar.getTime().getTime() / 1000 + ".csv");
@@ -1487,7 +1488,7 @@ public class MessagesAndSalesHelper {
         String headers=new Order().getPrintableCSVHeader();
         Logger.writeOnFile(fileName,headers);
         for (Order order:orderArrayList){
-            if (SINCE_2023 && order.creationTimestamp.before(year2023)){
+            if (SINCE_2024 && order.creationTimestamp.before(year2024)){
                 continue;
             }
             String record = order.getPrintableCSVValues();
