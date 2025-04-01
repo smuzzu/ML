@@ -931,7 +931,7 @@ public class MessagesAndSalesHelper {
         }
 
         String url = "https://api.mercadolibre.com/items/"+order.productId;
-        JSONObject publicationJsonObject = HttpUtils.getJsonObjectWithoutToken(url,httpClient, false);
+        JSONObject publicationJsonObject =  HttpUtils.getJsonObjectUsingToken(url,httpClient,user,false);
         order.productPictureURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,false);
         order.productPictureThumbnailURL= getOrderPictureUrl(publicationJsonObject,order.productVariationId,true);
         if (publicationJsonObject.has("permalink")) {
