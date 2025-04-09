@@ -98,7 +98,7 @@ public class QuestionsChecker1 {
             System.out.print(line);
             String text=line;
 
-            text = processBasicInfo(httpClient, fromId,text);
+            text = processBasicInfo(httpClient, fromId,text,user);
             int pos1=text.indexOf("|");
             String nickName=text.substring(0,pos1);
             text=text.substring(pos1+1);
@@ -151,8 +151,8 @@ public class QuestionsChecker1 {
             if (question!=null){
                 if (question.customerId== fromId && question.direction=='R'){
                     String itemUrl="https://api.mercadolibre.com/items/"+question.productId;
-                    JSONObject itemObj = HttpUtils.getJsonObjectWithoutToken(itemUrl, httpClient,false);
-                    if (itemObj.has("permalink") && !itemObj.isNull("permalink")){
+                    JSONObject itemObj = HttpUtils.getJsonObjectUsingToken(itemUrl, httpClient,user, false);
+                    if (itemObj!=null && itemObj.has("permalink") && !itemObj.isNull("permalink")){
                         String permalink=itemObj.getString("permalink");
                         line=permalink+"\n";
                         System.out.print(line);
@@ -191,7 +191,7 @@ public class QuestionsChecker1 {
         DatabaseHelper.insertQuestion(id,TokenUtils.getUserNumber(user),compressedText);
     }
 
-    private static String processBasicInfo(CloseableHttpClient httpClient, long fromId, String text) {
+    private static String processBasicInfo(CloseableHttpClient httpClient, long fromId, String text, String user) {
         String customerUrl="https://api.mercadolibre.com/users/"+ fromId;
         JSONObject customerObj = HttpUtils.getJsonObjectWithoutToken(customerUrl, httpClient,false);
 
@@ -351,15 +351,21 @@ public class QuestionsChecker1 {
         newText+=line;
 
         String customerItemsUrl="https://api.mercadolibre.com/sites/MLA/search?seller_id="+ fromId;
-        JSONObject itemsObj=HttpUtils.getJsonObjectWithoutToken(customerItemsUrl, httpClient,false);
-        JSONArray itemsArray = itemsObj.getJSONArray("results");
-        line="Items on Sale: "+itemsArray.length()+"\n";
-        System.out.print(line);
-        newText+=line;
-        for (int j=0; j<itemsArray.length() && j<10; j++){
-            JSONObject itemObject = itemsArray.getJSONObject(j);
-            String permalink = itemObject.getString("permalink");
-            line=permalink+"\n";
+        JSONObject itemsObj=HttpUtils.getJsonObjectUsingToken(customerItemsUrl, httpClient,user, false);
+        if (itemsObj!=null && itemsObj.has("results")) {
+            JSONArray itemsArray = itemsObj.getJSONArray("results");
+            line="Items on Sale: "+itemsArray.length()+"\n";
+            System.out.print(line);
+            newText+=line;
+            for (int j=0; j<itemsArray.length() && j<10; j++){
+                JSONObject itemObject = itemsArray.getJSONObject(j);
+                String permalink = itemObject.getString("permalink");
+                line=permalink+"\n";
+                System.out.print(line);
+                newText+=line;
+            }
+        } else {
+            line="Items on Sale not available\n";
             System.out.print(line);
             newText+=line;
         }
