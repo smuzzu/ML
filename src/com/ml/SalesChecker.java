@@ -351,7 +351,7 @@ public class SalesChecker {
                                         if (pendingOrder.shippingType == Order.PERSONALIZADO) {
                                             firstMsgToBuyer += "Pronto nos contactaremos con vos para coordinar el envio de"
                                                     + productTitle
-                                                    + " Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 15:00 a 18:00";
+                                                    + " Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 14:00 a 17:00";
                                         }
 
                                         if (pendingOrder.shippingType == Order.ACORDAR) {
@@ -360,9 +360,9 @@ public class SalesChecker {
                                                 if (pendingOrder.productQuantity == 1) {
                                                     firstMsgToBuyer += "tu ";
                                                 }
-                                                firstMsgToBuyer += productTitle + " en Av. Rivadavia 3756 CABA. "
-                                                        + "Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 15:00 a 18:00 "
-                                                        + "y nuestro teléfono es 4982-2519.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
+                                                firstMsgToBuyer += productTitle + " en la calle Jose Marmol 2169 CABA, porton gris. "
+                                                        + "Nuestro horario de atención es de lunes viernes de 10:00 a 12:00 y de 14:00 a 17:00 "
+                                                        + "y nuestro teléfono es 15-5464-6033.  Por favor llamanos antes de venir porque estamos trabajando a puertas cerradas";
                                             } else {
                                                 firstMsgToBuyer += "Ya nos podremos a preparar tu "
                                                         + productTitle
