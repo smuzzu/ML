@@ -110,9 +110,9 @@ public class SData {
     }
 
 
-    private static String globalCloudUrl = "kfeg?vv{}q}q!\u007F{J@At'(&~y(/(6J\",*/%-3-S,.+726A7]53G5afdML?kiQCLBPoLS~zzzzx[[`bVbVe";
-    private static String globalCloudUser = "qqvxlxl{";
-    private static String globalCouldPassword = "OgzXjsiwYk~\u007F%}\"tBDFHJ";
+    private static String globalCloudUrl = "kfeg?vv{}q}q!\u007F{J@At,)CGE/.H\"~24MSP4453-;W>A=/11D7`7DCplllljMMRTHTHW";
+    private static String globalCloudUser = "qqvxlxl{7|nzou'}zu})y+,|2,}(/";
+    private static String globalCouldPassword = "WkyeXguTx|pz(}@3";
 
     public static String getGlobalCloudUrl(){
         return decode(globalCloudUrl);
